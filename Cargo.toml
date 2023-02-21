@@ -1,0 +1,9 @@
+# Alternatively, a Cargo.toml file can be created with a [workspace] section 
+# but without a [package] section. This is called a virtual manifest.
+
+[workspace]
+members = ["utils"]
+
+[workspace.package]
+authors = ["ZROJ Team"]
+keywords = ["Online Judge", "Sandbox"]
