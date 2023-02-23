@@ -48,7 +48,7 @@ enum ConventionalOptions<'a> {
     Docs(&'a str),
     Test(&'a str),
     Reject(&'a str),
-    Amend(&'a str),
+    // Amend(&'a str),
 }
 
 impl<'a> std::fmt::Display for ConventionalOptions<'a> {
@@ -60,7 +60,7 @@ impl<'a> std::fmt::Display for ConventionalOptions<'a> {
             ConventionalOptions::Docs(s) => s,
             ConventionalOptions::Refactor(s, _) => s,
             ConventionalOptions::Test(s) => s,
-            ConventionalOptions::Amend(s) => s,
+            // ConventionalOptions::Amend(s) => s,
             ConventionalOptions::Reject(s) => s,
         };
         f.write_str(s)
@@ -109,7 +109,7 @@ fn main() {
                 VersionChange::Minor,
             ),
             Refactor(
-                "C) 主要优化（重构）了一下代码实现，删除了一些没啥用的东西",
+                "C) 主要优化（重构）了一下代码实现、改了改代码格式、删了些没用的东西",
                 VersionChange::Patch,
             ),
             Fix(
@@ -142,11 +142,11 @@ fn main() {
             Docs(_) => ("docs", None),
             Refactor(_, c) => ("refactor", Some(c)),
             Test(_) => ("test", None),
-            Amend(_) => {
-                println!("未实现");
-                return ();
-                // println!("本次修改的内容将与上一次的提交合并。");
-            }
+            // Amend(_) => {
+            //     println!("未实现");
+            //     return ();
+            //     // println!("本次修改的内容将与上一次的提交合并。");
+            // }
             Reject(_) => {
                 println!("这种情况无法使用本工具进行自动提交，你可能需要将修改的内容分成几个 commit 来提交。\
                     请你在和其他成员讨论后手动执行 git 命令处理提交。");
@@ -183,23 +183,24 @@ fn main() {
             } else {
                 panic!("版本号不是字符串")
             };
-            dbg!(origin_ver.to_string());
+            // dbg!(origin_ver.to_string());
 
             if let Some(vc) = ver_change {
                 match vc {
                     VersionChange::Minor => {
                         origin_ver.minor += 1;
+                        println!("{}: {}", "[版本更新]".green(), origin_ver.to_string());
                     }
                     VersionChange::Patch => {
                         origin_ver.patch += 1;
+                        println!("{}: {}", "[版本更新]".green(), origin_ver.to_string());
                     }
                 }
             }
             *ver = toml::Value::String(origin_ver.to_string());
         }
 
-        fs::write("Cargo.toml", cargodata.to_string())
-            .expect("更新 Cargo.toml 时出错");
+        fs::write("Cargo.toml", cargodata.to_string()).expect("更新 Cargo.toml 时出错");
 
         Command::new("git")
             .args(["add", "Cargo.toml"])
