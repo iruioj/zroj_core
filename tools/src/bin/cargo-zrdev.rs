@@ -8,30 +8,45 @@ use std::{fs, process::Command, str::FromStr};
 #[derive(Parser, Debug)]
 #[command(author, about, long_about = None)]
 struct Cli {
+    #[command(subcommand)]
+    command: Option<ExtendCargoCommands>,
+}
+
+// 附加到的 cargo 子命令
+#[derive(Subcommand, Debug)]
+enum ExtendCargoCommands {
+    /// 辅助 ZROJ 开发的命令行工具
+    Zrdev(ZrdevArgs),
+}
+
+#[derive(Args, Debug)]
+struct ZrdevArgs {
     /// 获取当前的项目版本号
     #[arg(short = 'V', long)]
     version: bool,
 
-    #[command(subcommand)]
-    command: Option<Commands>,
-    // /// Name of the person to greet
-    // #[arg(short, long)]
-    // name: String,
+    /// 进行交互式询问但是不执行提交命令，主要用于调试
+    #[arg(long = "dry")]
+    dry_run: bool,
 
-    // /// Number of times to greet
-    // #[arg(short, long, default_value_t = 1)]
-    // count: u8,
+    #[command(subcommand)]
+    command: Option<ZrdevSubcommands>,
 }
 
 #[derive(Subcommand, Debug)]
-enum Commands {
+enum ZrdevSubcommands {
     /// 进行交互式的提交
     Commit(CommitArgs),
+    /// 尚未实现
     Cover,
 }
 
 #[derive(Args, Debug)]
-struct CommitArgs {}
+struct CommitArgs {
+    /// 进行交互式询问但是不执行提交命令，主要用于调试
+    #[arg(long = "dry")]
+    dry_run: bool,
+}
 
 #[derive(Debug)]
 enum VersionChange {
@@ -81,7 +96,15 @@ fn get_version(data: &toml::Table) -> Option<Version> {
 
 fn main() {
     // https://docs.rs/clap/latest/clap/_derive/_tutorial/index.html#subcommands
-    let args = Cli::parse();
+    let args = match Cli::parse().command {
+        None => {
+            println!("{}: 请使用 zrdev 子命令", "[INFO]".green());
+            return ();
+        }
+        Some(args) => match args {
+            ExtendCargoCommands::Zrdev(args) => args,
+        },
+    };
 
     let mut cargodata = fs::read_to_string("Cargo.toml")
         .expect("读取当前目录下的 Cargo.toml 失败")
@@ -100,7 +123,7 @@ fn main() {
         return ();
     }
 
-    if let Some(Commands::Commit(_)) = args.command {
+    if let Some(ZrdevSubcommands::Commit(CommitArgs { dry_run })) = args.command {
         use ConventionalOptions::*;
         let options = vec![
             Feat("A) 主要新建了一个子项目", VersionChange::Minor),
@@ -109,24 +132,28 @@ fn main() {
                 VersionChange::Minor,
             ),
             Refactor(
-                "C) 主要优化（重构）了一下代码实现、改了改代码格式、删了些没用的东西",
+                "C) 在保证外部接口基本不变的情况下，主要优化（重构）了一下代码实现、改了改代码格式、删了些没用的东西",
                 VersionChange::Patch,
             ),
-            Fix(
-                "D) 主要修复了一个小 bug（之前运行时没有暴露，自己检查时发现）",
-                VersionChange::Patch,
-            ),
-            Fix(
-                "E) 主要修复了一个大 bug（导致运行时出现错误，排查出来的错误）",
+            Refactor(
+                "D) 大幅度优化（重构）了一下代码实现和子项目的功能，可能涉及到修改了与之关联的别的子项目的代码",
                 VersionChange::Minor,
             ),
-            Docs("F) 主要修改了一下文档注释或者 Readme 文件"),
-            Test("G) 主要添加、修改了一些测试代码"),
-            Chore(
-                "H) 干了些奇奇怪怪的小事情，不是特别好分类",
+            Fix(
+                "E) 主要修复了一个小 bug（之前运行时没有暴露，自己检查时发现）",
                 VersionChange::Patch,
             ),
-            Reject("I) 干了些奇奇怪怪的大事情，不是特别好分类"),
+            Fix(
+                "F) 主要修复了一个大 bug（导致运行时出现错误，排查出来的错误）",
+                VersionChange::Minor,
+            ),
+            Docs("G) 主要修改了一下文档注释或者 Readme 文件"),
+            Test("H) 主要添加、修改了一些测试代码"),
+            Chore(
+                "I) 干了些奇奇怪怪的小事情，不是特别好分类",
+                VersionChange::Patch,
+            ),
+            Reject("J) 干了些奇奇怪怪的大事情，不是特别好分类"),
             Reject("K) 在多个子项目中都做了大量的修改"),
             // Amend( "H) 当前做的修改和上一次提交干的事情差不多，并且上一次提交没有同步到远程服务器上",),
             // Reject( "J) 当前做的修改和上一次提交干的事情差不多，但是上一次提交已经同步到远程服务器上",),
@@ -153,7 +180,7 @@ fn main() {
                 return ();
             }
         };
-        let scope = Text::new("你对哪个子项目做出了修改（文件夹名字，如果没有就直接换行）")
+        let scope = Text::new("你（主要）对哪个子项目做出了修改（文件夹名字，如果没有就直接换行）")
             .prompt()
             .expect("输入信息时错误");
         let scope_trimed = scope.trim();
@@ -200,6 +227,11 @@ fn main() {
             *ver = toml::Value::String(origin_ver.to_string());
         }
 
+        if dry_run {
+            println!("{}: 本次操作并未执行", "[INFO]".green());
+            return ();
+        }
+
         fs::write("Cargo.toml", cargodata.to_string()).expect("更新 Cargo.toml 时出错");
 
         Command::new("git")
@@ -215,5 +247,5 @@ fn main() {
         return ();
     }
 
-    println!("未实现！")
+    println!("{}: 请使用 -h 选项查看帮助", "[INFO]".green());
 }
