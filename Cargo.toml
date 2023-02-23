@@ -2,8 +2,10 @@
 # but without a [package] section. This is called a virtual manifest.
 
 [workspace]
-members = ["utils"]
+members = ["sandbox"]
 
 [workspace.package]
 authors = ["ZROJ Team"]
 keywords = ["Online Judge", "Sandbox"]
+version = "0.1.0"
+edition = "2021"
