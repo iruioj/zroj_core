@@ -29,3 +29,16 @@ edition.workspace = true
 同理，每个模块的版本号也当分开管理。
 
 请遵循 [Conventional Commits 规范](https://www.conventionalcommits.org/zh-hans/v1.0.0/) 填写 commit 信息。
+
+工具构建：
+
+```bash
+cargo build -p tools --bin cargo-zrdev --release
+# 使用 --target x86_64-unknown-linux-gnu 可以进行交叉编译
+# 详见 https://doc.rust-lang.org/cargo/commands/cargo-build.html#compilation-options
+# 生成的可执行文件位于 target/release 目录下
+```
+
+对于 Linux 用户，执行 `cp target/release/cargo-zrdev ~/.cargo/bin` 可以将其安装到本机，它的作用是为 cargo 添加了一个子命令，使用 `cargo zrdev` 可以查看用法（等价于 `cargo-zrdev zrdev`），MacOS 和 Windows 用户待定。你需要保证本机上安装有 Git 命令行工具。
+
+使用 `cargo clean` 来删除构建的内容。
