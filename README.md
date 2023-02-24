@@ -7,14 +7,12 @@
 ### Development Tools
 
 - 请使用 VS Code 作为编辑器，并安装 rust-analyzer 插件。
-- 请掌握 Git 的基本用法，（配合 SSH key 验证的使用）。
+- 请掌握 Git 的基本用法，（配合 SSH key 验证的使用）。可以安装 Git Graph 插件。
 
 为了保持规范的提交信息和版本管理，我们提供了相应的命令行开发工具 zrdev，构建命令为：
 
 ```bash
 cargo build -p tools --bin cargo-zrdev --release
-# 使用 --target x86_64-unknown-linux-gnu 可以进行交叉编译
-# 详见 https://doc.rust-lang.org/cargo/commands/cargo-build.html#compilation-options
 # 生成的可执行文件位于 target/release 目录下
 ```
 
@@ -67,6 +65,13 @@ edition.workspace = true
 同理，每个模块的版本号也当分开管理。
 
 使用 `cargo clean` 来删除构建的内容。
+
+## 交叉编译
+
+- 使用 `rustc --print target-list` 查看可选 target
+- 使用 `rustup target add x86_64-pc-windows-gnu` 安装交叉编译的环境
+- 使用 `cargo build -p sandbox --lib --target x86_64-pc-windows-gnu --release` 进行交叉编译
+- 详见 [cargo build compilation options](https://doc.rust-lang.org/cargo/commands/cargo-build.html#compilation-options)
 
 ## Appendix: What is branch and How to merge elegantly
 

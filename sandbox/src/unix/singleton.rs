@@ -1,11 +1,10 @@
 use crate::{
     check_limit,
-    error::msg_error,
-    error::{self, Error},
-    vec_str_to_vec_cstr, ExecSandBox, Limitation, Status, Termination,
+    error::{self, msg_error, Error},
+    vec_str_to_vec_cstr, Limitation, Status, Termination,
 };
 use nix::{
-    libc::{self},
+    libc,
     sys::{resource::getrusage, wait::waitpid},
     sys::{
         resource::{setrlimit, Resource, UsageWho},
@@ -23,6 +22,8 @@ pub struct Singleton {
     arguments: Vec<String>,
     envs: Vec<String>,
 }
+
+#[cfg(target_os = "linux")]
 impl Singleton {
     fn exec_child(&self) -> Result<(), error::Error> {
         // todo: do some limitation
@@ -86,7 +87,7 @@ impl Singleton {
     }
 }
 
-impl ExecSandBox for Singleton {
+impl crate::ExecSandBox for Singleton {
     fn exec_sandbox(&self) -> Result<crate::Termination, Error> {
         let start = Instant::now();
         match unsafe { fork() } {
@@ -99,11 +100,10 @@ impl ExecSandBox for Singleton {
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     use crate::TimeLimitExceededKind;
-
+    use crate::ExecSandBox;
     use super::*;
 
     #[test]
@@ -130,7 +130,10 @@ mod tests {
             envs: vec![],
         };
         let term = singleton.exec_fork()?;
-        assert_eq!(term.status, Status::TimeLimitExceeded(TimeLimitExceededKind::Real));
+        assert_eq!(
+            term.status,
+            Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
+        );
         println!("termination: {:?}", term);
         Ok(())
     }

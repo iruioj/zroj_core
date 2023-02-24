@@ -31,6 +31,7 @@ impl From<serde_json::Error> for Error {
         }
     }
 }
+#[cfg(all(unix))]
 impl From<nix::errno::Errno> for Error {
     fn from(value: nix::errno::Errno) -> Self {
         Error {
