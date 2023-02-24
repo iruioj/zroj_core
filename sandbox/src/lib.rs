@@ -6,12 +6,13 @@ use serde_derive::{Deserialize, Serialize};
 use std::{
     ffi::{CString, NulError},
     fmt::Debug,
-    fs::File,
-    io::Write,
 };
 
 pub mod error;
-pub mod singleton;
+
+/// Unix 系统下的沙盒 API
+#[cfg(all(unix))]
+pub mod unix;
 
 /// 对进程施加各种类型的资源限制
 #[derive(Serialize, Deserialize, Debug)]
@@ -19,25 +20,25 @@ enum Limitation {
     /// 限制实际运行时间，一般是用来做一个大保底
     RealTime(u32),
     /// 限制 CPU 的运行时间，一般用来衡量程序的运行时间，单位：ms
-    /// 
+    ///
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
     CpuTime(u32, u32),
     /// 可以导致数组开大就会 MLE 的结果，单位：byte
-    /// 
+    ///
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
     VirtualMemory(u32, u32),
     /// 程序执行完后才统计内存占用情况 （byte）
     ActualMemory(u32),
     /// byte
-    /// 
+    ///
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
     StackMemory(u32, u32),
     /// byte
-    /// 
+    ///
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
     OutputMemory(u32, u32),
     /// 限制文件指针数
-    /// 
+    ///
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
     Fileno(u32, u32),
 }
@@ -61,9 +62,8 @@ fn check_limit(term: &Termination, lim: &Limitation) -> Option<Status> {
     None
 }
 
-#[derive(Serialize, Deserialize, Debug)]
 /// TLE 的具体类型
-#[derive(PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum TimeLimitExceededKind {
     /// 内核时间与用户时间之和
     Cpu,
@@ -95,8 +95,9 @@ pub enum Status {
     DangerousSyscall,
 }
 
-impl From<Signal> for Status {
-    fn from(signal: Signal) -> Self {
+#[cfg(all(unix))]
+impl From<nix::sys::signal::Signal> for Status {
+    fn from(signal: nix::sys::signal::Signal) -> Self {
         Self::RuntimeError(0, Some(signal.to_string()))
     }
 }
@@ -119,8 +120,10 @@ impl Termination {
         }
     }
 }
-impl From<Signal> for Termination {
-    fn from(signal: Signal) -> Self {
+
+#[cfg(all(unix))]
+impl From<nix::sys::signal::Signal> for Termination {
+    fn from(signal: nix::sys::signal::Signal) -> Self {
         // 存在优化的可能，即通过 signal 判断状态
         Self {
             status: Status::from(signal),
@@ -131,32 +134,41 @@ impl From<Signal> for Termination {
     }
 }
 
-use error::msg_error;
-use nix::{
-    libc,
-    sys::wait::WaitStatus,
-    sys::{signal::Signal, wait::waitpid},
-    unistd::{fork, ForkResult},
-};
-use std::io::{Seek, SeekFrom};
-use tempfile::tempfile;
+fn vec_str_to_vec_cstr(strs: &Vec<String>) -> Result<Vec<CString>, NulError> {
+    strs.iter()
+        .map(|s| CString::new((*s).clone()))
+        .into_iter()
+        .collect()
+}
 
 /// 在沙箱中执行一系列的任务，返回相应的结果
 pub trait ExecSandBox {
     /// 在实现时需要考虑 async-signal-safe，详见
     ///
-    /// https://docs.rs/nix/latest/nix/unistd/fn.fork.html#safety
+    /// <https://docs.rs/nix/latest/nix/unistd/fn.fork.html#safety>
     ///
     fn exec_sandbox(&self) -> Result<Termination, error::Error>;
 
-    /// 在执行 exec_fork 内部执行此函数，如果失败会直接返回 Error，子进程会返回异常
-    fn exec_sandbox_fork(&self, result_file: &mut File) -> Result<(), error::Error> {
+    /// Unix Only: 在执行 exec_fork 内部执行此函数，如果失败会直接返回 Error，子进程会返回异常
+    #[cfg(all(unix))]
+    fn exec_sandbox_fork(&self, result_file: &mut std::fs::File) -> Result<(), error::Error> {
+        use std::io::Write;
+
         result_file.write(serde_json::to_string(&self.exec_sandbox()?)?.as_bytes())?;
         Ok(())
     }
 
-    /// 先 fork 一个子进程再执行程序，避免主进程终止导致整个进程终止
+    /// Unix only: 先 fork 一个子进程再执行程序，避免主进程终止导致整个进程终止
+    #[cfg(all(unix))]
     fn exec_fork(&self) -> Result<Termination, error::Error> {
+        use crate::error::msg_error;
+        use std::io::{Seek, SeekFrom};
+        use tempfile::tempfile;
+
+        use nix::sys::wait::{waitpid, WaitStatus};
+        use nix::unistd::fork;
+        use nix::unistd::ForkResult;
+
         let mut tmp = tempfile()?;
 
         match unsafe { fork() } {
@@ -185,16 +197,9 @@ pub trait ExecSandBox {
                 }
             }
             Ok(ForkResult::Child) => match self.exec_sandbox_fork(&mut tmp) {
-                Ok(_) => unsafe { libc::_exit(0) },
-                Err(_) => unsafe { libc::_exit(1) },
+                Ok(_) => unsafe { nix::libc::_exit(0) },
+                Err(_) => unsafe { nix::libc::_exit(1) },
             },
         }
     }
-}
-
-fn vec_str_to_vec_cstr(strs: &Vec<String>) -> Result<Vec<CString>, NulError> {
-    strs.iter()
-        .map(|s| CString::new((*s).clone()))
-        .into_iter()
-        .collect()
 }
