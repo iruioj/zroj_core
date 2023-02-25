@@ -106,7 +106,7 @@ fn main() {
         },
     };
 
-    let mut cargodata = fs::read_to_string("Cargo.toml")
+    let cargodata = fs::read_to_string("Cargo.toml")
         .expect("读取当前目录下的 Cargo.toml 失败")
         .parse::<toml::Table>()
         .expect("解析 toml 文件出错");
@@ -159,7 +159,7 @@ fn main() {
             // Reject( "J) 当前做的修改和上一次提交干的事情差不多，但是上一次提交已经同步到远程服务器上",),
         ];
 
-        let (commit_type, ver_change) = match Select::new("你对项目做的修改可以归纳为：", options)
+        let (commit_type, _) = match Select::new("你对项目做的修改可以归纳为：", options)
             .prompt()
             .expect("选择类型时出现错误")
         {
@@ -196,7 +196,12 @@ fn main() {
             format!("{}: {}", commit_type, message)
         };
 
-        {
+        if dry_run {
+            println!("{}: 本次操作并未执行", "[INFO]".green());
+            return ();
+        }
+
+        /* {
             let ver = cargodata
                 .get_mut("workspace")
                 .expect("get workspace failed")
@@ -211,7 +216,8 @@ fn main() {
                 panic!("版本号不是字符串")
             };
             // dbg!(origin_ver.to_string());
-
+            // 版本更新不能直接改，否则多人合作会冲突
+            todo!();
             if let Some(vc) = ver_change {
                 match vc {
                     VersionChange::Minor => {
@@ -225,14 +231,10 @@ fn main() {
                 }
             }
             *ver = toml::Value::String(origin_ver.to_string());
-        }
+        } */
 
-        if dry_run {
-            println!("{}: 本次操作并未执行", "[INFO]".green());
-            return ();
-        }
 
-        fs::write("Cargo.toml", cargodata.to_string()).expect("更新 Cargo.toml 时出错");
+        // fs::write("Cargo.toml", cargodata.to_string()).expect("更新 Cargo.toml 时出错");
 
         Command::new("git")
             .args(["add", "Cargo.toml"])
