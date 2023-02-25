@@ -13,6 +13,7 @@ use nix::{
     },
     unistd::{execve, fork, ForkResult, Pid},
 };
+use core::panic;
 use std::{ffi::CString, time::Instant};
 
 /// 执行单个可执行文件
@@ -112,6 +113,7 @@ pub struct SingletonBuilder {
 
 impl SingletonBuilder {
     /// 新建一个 builder
+    #[cold]
     pub fn new() -> Self {
         SingletonBuilder {
             limits: vec![],
@@ -121,33 +123,38 @@ impl SingletonBuilder {
         }
     }
     /// 设置可执行文件的路径
+    #[cold]
     pub fn exec_path<T: std::string::ToString>(&mut self, str: T) -> &mut Self {
         self.exec_path = Some(str.to_string());
         self
     }
     /// 设置可执行文件的参数，注意从第二个参数开始才是传递给进程的参数，
     /// 第一个参数代表可执行文件本身的运行时名字
+    #[cold]
     pub fn arguments(&mut self, args: Vec<String>) -> &mut Self {
         self.arguments = Some(args);
         self
     }
     /// 设置环境变量
+    #[cold]
     pub fn envs(&mut self, args: Vec<String>) -> &mut Self {
         self.envs = Some(args);
         self
     }
     /// 添加资源限制
+    #[cold]
     pub fn add_limit(&mut self, lim: Limitation) -> &mut Self {
         self.limits.push(lim);
         self
     }
     /// 完成构建
+    #[cold]
     pub fn finish(self) -> Singleton {
         Singleton {
             limits: self.limits,
             exec_path: match self.exec_path {
                 Some(s) => s,
-                None => "".to_string(),
+                None => panic!("singleton 缺少可执行文件的路径"),
             },
             arguments: match self.arguments {
                 Some(args) => args,
@@ -206,6 +213,9 @@ macro_rules! sigton {
     ("ln" $self:ident cmd : $( $args:expr ),+ ) => {
         $self.arguments(vec![$( $args.to_string() ),*])
     };
+    ("ln" $self:ident env : $( $args:expr ),+ ) => {
+        $self.envs(vec![$( $args.to_string() ),*])
+    };
     ("ln" $self:ident lim cpu_time : $soft:expr,$hard:expr) => {
         $self.add_limit($crate::Limitation::CpuTime($soft, $hard))
     };
@@ -231,15 +241,22 @@ macro_rules! sigton {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{error,Status};
     use crate::ExecSandBox;
     use crate::TimeLimitExceededKind;
+    // use super::un
 
-    #[allow(unused)]
-    #[cfg_attr(target_os = "linux", test)]
+    #[test]
+    #[cfg_attr(not(unix), ignore = "not unix os")]
     fn singleton_free() -> Result<(), error::Error> {
+        let ls_path = if cfg!(target_os = "linux") {
+            "/usr/bin/ls"
+        } else {
+            "/bin/ls"
+        };
+        
         let singleton = sigton! {
-            exec: "/usr/bin/ls";
+            exec: ls_path;
             cmd: "ls" "." "-l";
         };
         let term = singleton.exec_fork()?;
@@ -248,13 +265,18 @@ mod tests {
         Ok(())
     }
 
-    #[allow(unused)]
-    #[cfg_attr(target_os = "linux", test)]
+    #[test]
+    #[cfg_attr(not(unix), ignore = "not unix os")]
     fn singleton_tle_real() -> Result<(), error::Error> {
+        let sleep_path = if cfg!(target_os = "linux") {
+            "/usr/bin/sleep"
+        } else {
+            "/bin/sleep"
+        };
         // sleep 5 秒，触发 TLE
         // sleep 不会占用 CPU，因此触发 real time tle
         let singleton = sigton! {
-            exec: "/usr/bin/sleep";
+            exec: sleep_path;
             cmd: "sleep" "2";
             lim cpu_time: 1000 3000;
             lim real_time: 1000;
@@ -264,7 +286,28 @@ mod tests {
             term.status,
             Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
         );
-        println!("termination: {:?}", term);
+        // println!("termination: {:?}", term);
+        Ok(())
+    }
+
+    #[test]
+    #[cfg_attr(not(unix), ignore = "not unix os")]
+    fn singleton_env() -> Result<(), error::Error> {
+        let env_path = if cfg!(target_os = "linux") {
+            "/usr/bin/env"
+        } else {
+            "/bin/env"
+        };
+        
+        let singleton = sigton! {
+            exec: env_path;
+            cmd: "env";
+            env: "DIR=/usr" "A=b"
+        };
+
+        let term = singleton.exec_fork()?;
+        assert_eq!(term.status, Status::Ok);
+        // println!("termination: {:?}", term);
         Ok(())
     }
 }
