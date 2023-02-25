@@ -3,3 +3,4 @@
 /rfcs
 *.profdata
 *.profraw
+local.*
