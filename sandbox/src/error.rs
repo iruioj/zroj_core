@@ -54,6 +54,7 @@ impl From<std::ffi::NulError> for Error {
     }
 }
 
+/// return a Result error containing a message
 pub fn msg_error<T>(msg: String) -> Result<T, Error> {
     Err(Error { msg: msg.clone() })
 }
