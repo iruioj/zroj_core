@@ -6,6 +6,8 @@
 
 - [如何撰写项目文档](https://blog.guillaume-gomez.fr/articles/2020-03-12+Guide+on+how+to+write+documentation+for+a+Rust+crate)
 - [如何撰写 macro](https://doc.rust-lang.org/reference/macros-by-example.html)
+- 生成文档：`cargo doc --no-deps --open`
+- 如何测试：`cargo test --tests`，或者使用 `cargo test --tests -- --nocapture` 来显示测试时的调试输出。
 
 ### Download Rust Nightly for Code Coverage (Not required)
 
