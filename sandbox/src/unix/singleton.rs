@@ -16,6 +16,7 @@ use nix::{
 use std::{ffi::CString, time::Instant};
 
 /// 执行单个可执行文件
+#[derive(Debug)]
 pub struct Singleton {
     limits: Vec<Limitation>,
     exec_path: String,
@@ -100,34 +101,163 @@ impl crate::ExecSandBox for Singleton {
         }
     }
 }
+
+/// 创建一个 Singleton，请使用对应的 macro [`crate::sigton`].
+pub struct SingletonBuilder {
+    limits: Vec<Limitation>,
+    exec_path: Option<String>,
+    arguments: Option<Vec<String>>,
+    envs: Option<Vec<String>>,
+}
+
+impl SingletonBuilder {
+    /// 新建一个 builder
+    pub fn new() -> Self {
+        SingletonBuilder {
+            limits: vec![],
+            exec_path: None,
+            arguments: None,
+            envs: None,
+        }
+    }
+    /// 设置可执行文件的路径
+    pub fn exec_path<T: std::string::ToString>(&mut self, str: T) -> &mut Self {
+        self.exec_path = Some(str.to_string());
+        self
+    }
+    /// 设置可执行文件的参数，注意从第二个参数开始才是传递给进程的参数，
+    /// 第一个参数代表可执行文件本身的运行时名字
+    pub fn arguments(&mut self, args: Vec<String>) -> &mut Self {
+        self.arguments = Some(args);
+        self
+    }
+    /// 设置环境变量
+    pub fn envs(&mut self, args: Vec<String>) -> &mut Self {
+        self.envs = Some(args);
+        self
+    }
+    /// 添加资源限制
+    pub fn add_limit(&mut self, lim: Limitation) -> &mut Self {
+        self.limits.push(lim);
+        self
+    }
+    /// 完成构建
+    pub fn finish(self) -> Singleton {
+        Singleton {
+            limits: self.limits,
+            exec_path: match self.exec_path {
+                Some(s) => s,
+                None => "".to_string(),
+            },
+            arguments: match self.arguments {
+                Some(args) => args,
+                None => vec![],
+            },
+            envs: match self.envs {
+                Some(envs) => envs,
+                None => vec![],
+            },
+        }
+    }
+}
+
+/// 使用宏规则来快速初始化 Singleton.
+///
+/// 目前支持的命令语法有：
+///
+/// - 指定可执行文件：`exec: {path}`;
+/// - 指定完整的执行命令：`cmd: {args...}`;
+/// - 限制 CPU 执行时间、虚拟内存、栈空间、输出内存、文件指针数：
+///   `lim cpu_time|virtual_memory|stack|output|fileno: {soft} {hard}`;
+/// - 限制实际运行时间、实际使用内存：`lim real_time|real_memory: {time}`;
+///
+/// 时间的单位是毫秒，内存的单位是字节。无效指令会被自动忽略。
+///
+/// Example:
+///
+/// ```rust
+/// use sandbox::sigton;
+/// let s = sigton! {
+///     exec: "/usr/bin/sleep";
+///     cmd: "sleep" "2";
+///     lim cpu_time: 1000 3000;
+///     lim real_time: 2000;
+///     lim real_memory: 256 * 1024 * 1024;
+///     lim virtual_memory: 256 * 1024 * 1024 1024 * 1024 * 1024;
+///     lim stack: 256 * 1024 * 1024 1024 * 1024 * 1024;
+///     lim output: 256 * 1024 * 1024 1024 * 1024 * 1024;
+///     lim fileno: 10 10;
+/// };
+/// ```
+#[macro_export]
+macro_rules! sigton {
+    ($( $( $cmds:ident )+ $(: $( $args:expr )*)? );*$(;)?) => {
+        // 使用新建代码块的方式解决定义域问题
+        {
+            let mut __singleton__ = $crate::unix::SingletonBuilder::new();
+            $( sigton!("ln" __singleton__ $( $cmds )+ $(: $( $args ),* )? ) );*;
+            __singleton__.finish()
+        }
+    };
+    // 解析子命令，$self 表示定义的 __singleton__
+    ("ln" $self:ident exec : $arg:expr) => {
+        $self.exec_path($arg)
+    };
+    ("ln" $self:ident cmd : $( $args:expr ),+ ) => {
+        $self.arguments(vec![$( $args.to_string() ),*])
+    };
+    ("ln" $self:ident lim cpu_time : $soft:expr,$hard:expr) => {
+        $self.add_limit($crate::Limitation::CpuTime($soft, $hard))
+    };
+    ("ln" $self:ident lim real_time : $val:expr) => {
+        $self.add_limit($crate::Limitation::RealTime($val))
+    };
+    ("ln" $self:ident lim virtual_memory: $soft:expr,$hard:expr) => {
+        $self.add_limit($crate::Limitation::VirtualMemory($soft, $hard))
+    };
+    ("ln" $self:ident lim stack: $soft:expr,$hard:expr) => {
+        $self.add_limit($crate::Limitation::StackMemory($soft, $hard))
+    };
+    ("ln" $self:ident lim real_memory : $val:expr) => {
+        $self.add_limit($crate::Limitation::RealMemory($val))
+    };
+    ("ln" $self:ident lim output: $soft:expr,$hard:expr) => {
+        $self.add_limit($crate::Limitation::OutputMemory($soft, $hard))
+    };
+    ("ln" $self:ident lim fileno: $soft:expr,$hard:expr) => {
+        $self.add_limit($crate::Limitation::Fileno($soft, $hard))
+    };
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::TimeLimitExceededKind;
-    use crate::ExecSandBox;
     use super::*;
+    use crate::ExecSandBox;
+    use crate::TimeLimitExceededKind;
 
-    #[test]
+    #[allow(unused)]
+    #[cfg_attr(target_os = "linux", test)]
     fn singleton_free() -> Result<(), error::Error> {
-        let singleton = Singleton {
-            limits: vec![],
-            exec_path: "/usr/bin/ls".to_string(),
-            arguments: vec!["/usr/bin/ls".to_string(), "/home/sshwy".to_string()],
-            envs: vec![],
+        let singleton = sigton! {
+            exec: "/usr/bin/ls";
+            cmd: "ls" "." "-l";
         };
         let term = singleton.exec_fork()?;
         assert_eq!(term.status, Status::Ok);
         println!("termination: {:?}", term);
         Ok(())
     }
-    #[test]
+
+    #[allow(unused)]
+    #[cfg_attr(target_os = "linux", test)]
     fn singleton_tle_real() -> Result<(), error::Error> {
         // sleep 5 秒，触发 TLE
         // sleep 不会占用 CPU，因此触发 real time tle
-        let singleton = Singleton {
-            limits: vec![Limitation::CpuTime(1000, 3000), Limitation::RealTime(1000)],
-            exec_path: "/usr/bin/sleep".to_string(),
-            arguments: vec!["sleep".to_string(), "2".to_string()],
-            envs: vec![],
+        let singleton = sigton! {
+            exec: "/usr/bin/sleep";
+            cmd: "sleep" "2";
+            lim cpu_time: 1000 3000;
+            lim real_time: 1000;
         };
         let term = singleton.exec_fork()?;
         assert_eq!(
