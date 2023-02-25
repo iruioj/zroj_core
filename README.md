@@ -4,6 +4,10 @@
 
 ## How to Contribute
 
+- [如何撰写项目文档](https://blog.guillaume-gomez.fr/articles/2020-03-12+Guide+on+how+to+write+documentation+for+a+Rust+crate)
+- [如何撰写 macro](https://doc.rust-lang.org/reference/macros-by-example.html)
+
+
 ### Development Tools
 
 - 请使用 VS Code 作为编辑器，并安装 rust-analyzer 插件。

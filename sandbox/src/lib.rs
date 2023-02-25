@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 //! Sandbox 库负责在限制的条件下执行可执行文件并返回执行的结果
 //!
 //! 为了避免繁琐的编译过程和开发环境搭建，本库将会基于 yaoj-judger 用 Rust 重写。
@@ -8,15 +10,15 @@ use std::{
     fmt::Debug,
 };
 
+/// 沙盒运行过程中产生的错误（系统错误）
 pub mod error;
-
 /// Unix 系统下的沙盒 API
 #[cfg(all(unix))]
 pub mod unix;
 
 /// 对进程施加各种类型的资源限制
 #[derive(Serialize, Deserialize, Debug)]
-enum Limitation {
+pub enum Limitation {
     /// 限制实际运行时间，一般是用来做一个大保底
     RealTime(u32),
     /// 限制 CPU 的运行时间，一般用来衡量程序的运行时间，单位：ms
@@ -28,7 +30,7 @@ enum Limitation {
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
     VirtualMemory(u32, u32),
     /// 程序执行完后才统计内存占用情况 （byte）
-    ActualMemory(u32),
+    RealMemory(u32),
     /// byte
     ///
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
@@ -54,7 +56,7 @@ fn check_limit(term: &Termination, lim: &Limitation) -> Option<Status> {
             return Some(Status::TimeLimitExceeded(TimeLimitExceededKind::Real));
         }
     }
-    if let Limitation::ActualMemory(ml) = lim {
+    if let Limitation::RealMemory(ml) = lim {
         if term.memory > *ml as i64 {
             return Some(Status::MemoryLimitExceeded(MemoryLimitExceededKind::Real));
         }
@@ -89,9 +91,13 @@ pub enum Status {
     Ok,
     /// with error code and signal name
     RuntimeError(i32, Option<String>),
+    /// 超出内存限制
     MemoryLimitExceeded(MemoryLimitExceededKind),
+    /// 超出时间限制
     TimeLimitExceeded(TimeLimitExceededKind),
+    /// 输出文件大小超出限制
     OutputLimitExceeded,
+    /// 调用了被禁止的系统调用
     DangerousSyscall,
 }
 
