@@ -7,6 +7,53 @@
 - [如何撰写项目文档](https://blog.guillaume-gomez.fr/articles/2020-03-12+Guide+on+how+to+write+documentation+for+a+Rust+crate)
 - [如何撰写 macro](https://doc.rust-lang.org/reference/macros-by-example.html)
 
+### Download Rust Nightly for Code Coverage (Not required)
+
+```bash
+rustup toolchain install nightly
+rustup default nightly # 设置默认工具链
+rustup default stable # 切换回稳定版
+```
+
+guidelines: [Instrumentation-based Code Coverage](https://doc.rust-lang.org/rustc/instrument-coverage.html)
+
+briefly:
+
+```bash
+cargo clean
+
+RUSTFLAGS="-C instrument-coverage" \
+    LLVM_PROFILE_FILE="sandbox.profraw" \
+    cargo test -p sandbox --lib --tests
+
+llvm-profdata merge -sparse sandbox.profraw -o sandbox.profdata
+
+llvm-cov show \
+    $( \
+      for file in \
+        $( \
+          RUSTFLAGS="-C instrument-coverage" \
+            LLVM_PROFILE_FILE="sandbox.profraw" \
+            cargo test -p sandbox --lib --tests --no-run --message-format=json \
+              | jq -r "select(.profile.test == true) | .filenames[]" \
+              | grep -v dSYM - \
+        ); \
+      do \
+        printf "%s %s " -object $file; \
+      done \
+    ) \
+  --instr-profile=sandbox.profdata --summary-only \
+  --ignore-filename-regex='/.cargo/registry'
+  # and/or other options
+
+# 也可以先 build 再手动执行
+llvm-cov report \
+    --use-color --ignore-filename-regex='/.cargo/registry' \
+    --instr-profile=sandbox.profdata \
+    --object target/debug/deps/sandbox-33088a01f9584a57
+# --object 可以多次指定
+```
+
 
 ### Development Tools
 
