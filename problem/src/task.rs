@@ -1,3 +1,6 @@
+use serde_derive::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
 pub struct SubTask<T> {
     /// 子任务的显示名称
     pub name: String, 
@@ -10,24 +13,14 @@ pub struct SubTask<T> {
     pub score: f32
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct TestCase<T> {
     pub name: String, 
     pub test: T
 }
 
-impl <T> SubTask<T> {
-    fn get_tests(&self) -> &Vec<T> {
-        &self.tests
-    }
-
-    fn get_tests_mul(&mut self) -> &mut Vec<T> {
-        &mut self.tests
-    }
-
-    
-}
-
+#[derive(Serialize, Deserialize)]
 pub enum Tasks<T> {
-    Subtasks(Vec<SubTask<T>>), 
+    Subtasks(Vec<SubTask<T>>, Vec<(usize, usize)>), 
     TestCases(Vec<TestCase<T>>)
 }
