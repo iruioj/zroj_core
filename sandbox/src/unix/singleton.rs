@@ -1,5 +1,5 @@
 use crate::{
-    error::{msg_err, UniError},
+    error::{msg_err, SandboxError},
     unix::Limitation,
     vec_str_to_vec_cstr, MemoryLimitExceededKind, Status, Termination, TimeLimitExceededKind,
 };
@@ -28,7 +28,7 @@ pub struct Singleton {
 }
 
 impl Singleton {
-    fn exec_child(&self) -> Result<(), UniError> {
+    fn exec_child(&self) -> Result<(), SandboxError> {
         setpgid(Pid::from_raw(0), Pid::from_raw(0))?;
         // 提前计算好需要的东西
         let (path, args, env) = (
@@ -55,7 +55,7 @@ impl Singleton {
         execve(path, args, env)?;
         Ok(())
     }
-    fn exec_parent(&self, child: Pid, start: Instant) -> Result<Termination, UniError> {
+    fn exec_parent(&self, child: Pid, start: Instant) -> Result<Termination, SandboxError> {
         // let mut elapse = None;
         use std::sync::mpsc;
         let (tx, rx) = mpsc::channel();
@@ -158,7 +158,7 @@ impl Singleton {
 }
 
 impl crate::ExecSandBox for Singleton {
-    fn exec_sandbox(&self) -> Result<crate::Termination, UniError> {
+    fn exec_sandbox(&self) -> Result<crate::Termination, SandboxError> {
         let start = Instant::now();
         match unsafe { fork() } {
             Err(_) => msg_err("fork failed"),
@@ -271,11 +271,7 @@ impl SingletonBuilder {
     lim_fn!(stack_memory, 2);
     lim_fn!(output_memory, 2);
     lim_fn!(fileno, 2);
-    // #[cold]
-    // pub fn real_time(&mut self, val: u64) -> &mut Self {
-    //     self.limits.real_time = Some(val);
-    //     self
-    // }
+
     /// 完成构建
     #[cold]
     pub fn finish(self) -> Singleton {
@@ -302,8 +298,8 @@ impl SingletonBuilder {
 ///   `lim cpu_time|virtual_memory|stack|output|fileno: {soft} {hard}`;
 /// - 限制实际运行时间、实际使用内存：`lim real_time|real_memory: {time}`;
 ///
-/// `exec`、`cmd` 和 `env` 可以接受任何实现了 [Into]<ArgStr> 的类型。
-/// 按照官方文档，对于类型 T 你只需要对 ArgStr 实现 [From]<T> trait 就可以自动实现 [Into] trait。
+/// `exec`、`cmd` 和 `env` 可以接受任何实现了 [Into]&lt;ArgStr> 的类型。
+/// 按照官方文档，对于类型 T 你只需要对 ArgStr 实现 [From]&lt;T> trait 就可以自动实现 [Into] trait。
 ///
 /// 时间的单位是毫秒，内存的单位是字节。
 ///
@@ -377,7 +373,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_free() -> Result<(), super::UniError> {
+    fn singleton_free() -> Result<(), super::SandboxError> {
         let ls_path = if cfg!(target_os = "linux") {
             "/usr/bin/ls"
         } else {
@@ -396,7 +392,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_tle_real() -> Result<(), super::UniError> {
+    fn singleton_tle_real() -> Result<(), super::SandboxError> {
         let sleep_path = if cfg!(target_os = "linux") {
             "/usr/bin/sleep"
         } else {
@@ -421,7 +417,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_env() -> Result<(), super::UniError> {
+    fn singleton_env() -> Result<(), super::SandboxError> {
         let env_path = if cfg!(target_os = "linux") {
             "/usr/bin/env"
         } else {

@@ -3,7 +3,7 @@ use tempfile::tempdir;
 
 #[test]
 #[cfg_attr(not(target_os = "linux"), ignore = "not linux")]
-fn gcc_linux() -> Result<(), sandbox::UniError> {
+fn gcc_linux() -> Result<(), sandbox::SandboxError> {
     use sandbox::{sigton, ExecSandBox, Status};
 
     let dir = tempdir()?;

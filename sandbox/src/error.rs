@@ -1,26 +1,23 @@
 use std::fmt::{Debug, Display};
 
-/// 一个通用的错误类型
+/// 沙盒运行过程中产生的错误
 #[derive(Debug)]
-pub enum UniError {
-    /// 基于信息的错误
-    Msg(String),
-}
+pub struct SandboxError (String);
 
-impl<'a> Display for UniError {
+impl<'a> Display for SandboxError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let UniError::Msg(str) = self;
+        let SandboxError(str) = self;
         write!(f, "Error: {}", str)
     }
 }
-impl std::error::Error for UniError{}
+impl std::error::Error for SandboxError{}
 
 macro_rules! impl_err {
     ($( $t:ty )+) => {
         $(
-            impl From<$t> for UniError {
+            impl From<$t> for SandboxError {
                 fn from(value: $t) -> Self {
-                    UniError::Msg(format!("{:?}", value))
+                    SandboxError(format!("{:?}", value))
                 }
             }
         )+
@@ -41,6 +38,6 @@ impl_err!(
 );
 
 /// return a Result error containing a message
-pub fn msg_err<'a, T, M: Into<String>>(msg: M) -> Result<T, UniError> {
-    Err(UniError::Msg(msg.into()))
+pub fn msg_err<'a, T, M: Into<String>>(msg: M) -> Result<T, SandboxError> {
+    Err(SandboxError(msg.into()))
 }

@@ -12,12 +12,12 @@ use std::{
 };
 
 /// 沙盒运行过程中产生的错误（系统错误）
-pub mod error;
-pub use error::UniError;
+mod error;
+pub use error::SandboxError;
+
 /// Unix 系统下的沙盒 API
 #[cfg(all(unix))]
 pub mod unix;
-
 
 /// TLE 的具体类型
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -68,35 +68,12 @@ impl From<nix::sys::signal::Signal> for Status {
 pub struct Termination {
     /// 终止状态
     pub status: Status,
-    /// 实际运行时间
+    /// 实际运行时间，单位 ms
     pub real_time: u64,
-    /// CPU 占用时间
+    /// CPU 占用时间，单位 ms
     pub cpu_time: u64,
-    /// 实际占用内存
+    /// 实际占用内存，单位 byte
     pub memory: u64,
-}
-impl Termination {
-    fn _new() -> Self {
-        Termination {
-            status: Status::Ok,
-            real_time: 0,
-            cpu_time: 0,
-            memory: 0,
-        }
-    }
-}
-
-#[cfg(all(unix))]
-impl From<nix::sys::signal::Signal> for Termination {
-    fn from(signal: nix::sys::signal::Signal) -> Self {
-        // 存在优化的可能，即通过 signal 判断状态
-        Self {
-            status: Status::from(signal),
-            real_time: 0,
-            cpu_time: 0,
-            memory: 0,
-        }
-    }
 }
 
 fn vec_str_to_vec_cstr(strs: &Vec<String>) -> Result<Vec<CString>, NulError> {
@@ -106,17 +83,16 @@ fn vec_str_to_vec_cstr(strs: &Vec<String>) -> Result<Vec<CString>, NulError> {
         .collect()
 }
 
-/// 在沙箱中执行一系列的任务，返回相应的结果
+/// 在沙箱中执行一系列的任务，返回相应的结果。这里沙箱是指通过系统 API 
+/// 对进程的资源和调用进行限制。
 pub trait ExecSandBox {
-    /// 在实现时需要考虑 async-signal-safe，详见
-    ///
+    /// unix: 在实现时需要考虑 async-signal-safe，详见
     /// <https://docs.rs/nix/latest/nix/unistd/fn.fork.html#safety>
-    ///
-    fn exec_sandbox(&self) -> Result<Termination, error::UniError>;
+    fn exec_sandbox(&self) -> Result<Termination, SandboxError>;
 
     /// Unix Only: 在执行 exec_fork 内部执行此函数，如果失败会直接返回 Error，子进程会返回异常
     #[cfg(all(unix))]
-    fn exec_sandbox_fork(&self, result_file: &mut std::fs::File) -> Result<(), error::UniError> {
+    fn exec_sandbox_fork(&self, result_file: &mut std::fs::File) -> Result<(), SandboxError> {
         use std::io::Write;
 
         result_file.write(serde_json::to_string(&self.exec_sandbox()?)?.as_bytes())?;
@@ -125,7 +101,7 @@ pub trait ExecSandBox {
 
     /// Unix only: 先 fork 一个子进程再执行程序，避免主进程终止导致整个进程终止
     #[cfg(all(unix))]
-    fn exec_fork(&self) -> Result<Termination, error::UniError> {
+    fn exec_fork(&self) -> Result<Termination, SandboxError> {
         use crate::error::msg_err;
         use std::io::{Seek, SeekFrom};
         use tempfile::tempfile;
@@ -148,10 +124,7 @@ pub trait ExecSandBox {
                     }
                     WaitStatus::Exited(pid, code) => {
                         if code != 0 {
-                            return msg_err(format!(
-                                "主进程异常，code = {}，pid = {}",
-                                code, pid
-                            ));
+                            return msg_err(format!("主进程异常，code = {}，pid = {}", code, pid));
                         }
                         // 从开头读取
                         tmp.seek(SeekFrom::Start(0))?;
