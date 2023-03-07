@@ -1,36 +1,35 @@
 use actix_web::{get, post, web::{self, get}, HttpResponse, Responder, Error};
+use async_graphql::{Context, EmptySubscription, FieldResult, Object, Schema};
+use async_graphql_actix_web::{GraphQLRequest, GraphQLResponse};
 
+pub struct Query;
 
-#[post("/register")]
-async fn register() -> impl Responder {
-    // should return json
-    HttpResponse::Ok().body(format!("api: Register Success"))
-}
-#[post("/login")]
-async fn login() -> impl Responder {
-    HttpResponse::Ok().body(format!("api: Login Success"))
-}
-
-// ?action=addtional_file
-// ?action=test_data&filename={filename}
-#[get("get_data/{pid}")] 
-async fn get_data(pid: web::Path<u32>) -> impl Responder {
-    HttpResponse::Ok().body(format!("api: GET problem data pid: {}", pid))
+#[Object]
+impl Query {
+    //owners query
+    async fn test(&self, input: String) -> FieldResult <String> {
+        Ok(format!("Query `{}` Success",input))
+    }
 }
 
-// ?action=addtional_file
-// ?action=test_data&filename={filename}
-// body = data(bytes)
-#[post("post_data/{pid}")]
-async fn post_data(pid: web::Path<u32>) -> impl Responder {
-    HttpResponse::Ok().body(format!("api: POST problem data pid: {}", pid))
+pub struct Mutation;
+#[Object]
+impl Mutation {
+    async fn test(&self, input: String) -> FieldResult <String> {
+        Ok(format!("Modification `{}` Success",input))
+    }
 }
+async fn index(schema: web::Data<ProjectSchema>, req: GraphQLRequest) -> GraphQLResponse {
+    schema.execute(req.into_inner()).await.into()
+}
+pub type ProjectSchema = Schema<Query, Mutation, EmptySubscription>;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg .service(register)
-        .service(login)
-        .service(get_data)
-        .service(post_data) ;
+    let schema_data = Schema::build(Query, Mutation, EmptySubscription)
+        //.data(db)
+        .finish();
+    cfg .app_data(schema_data.clone())
+        .service(web::resource("/").to(index));
 }
 
 
