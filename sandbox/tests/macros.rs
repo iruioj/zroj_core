@@ -1,8 +1,10 @@
-use sandbox::sigton;
 
 #[test]
+#[cfg(all(unix))]
 #[cfg_attr(not(unix), ignore = "not unix os")]
 fn text_macros() {
+    use sandbox::sigton;
+
     // sigton!{
     //     exec: "/usr/bin/sleep";
     //     cmd: "sleep" "2";
