@@ -13,6 +13,7 @@ mod problem;
 mod config;
 mod schema;
 mod database;
+mod manager;
 use config::ServerConfig;
 #[macro_use]
 extern crate diesel;
@@ -24,7 +25,7 @@ async fn main() -> std::io::Result<()> {
     let session_container = web::Data::new(SessionContainer::new());
     let server_config: ServerConfig = config::load();
     let user_database = web::Data::new(database::UserDatabase::new(&server_config.database_url));
-    let manager = web::Data::new(problem::ProblemManager::new(&server_config));
+    let manager = web::Data::new(manager::ProblemManager::new(&server_config));
     eprintln!("server listening on http://{}:{}", server_config.host, server_config.port);
     HttpServer::new(move || {
         App::new()

@@ -1,13 +1,13 @@
 //! app 模块可以创建 OJ 后端的应用路由配置.
-use crate::{database::UserDatabase, problem::ProblemManager};
 use actix_web::{
     web::{self, ServiceConfig},
     HttpResponse,
 };
 use crate::{
+    database::UserDatabase,
     admin,
     auth::{self, SessionContainer},
-    problem,
+    manager::{self, ProblemManager},
 };
 
 async fn default_route() -> HttpResponse {
@@ -24,7 +24,7 @@ pub fn new(
     manager: web::Data <ProblemManager>
 ) -> impl FnOnce(&mut ServiceConfig) {
     move |app: &mut web::ServiceConfig| {
-        app.service(problem::service(session_container.clone(), manager))
+        app.service(manager::service(session_container.clone(), manager))
             // api have access to server_config
             // .service(api::service(server_config.clone()))
             .service(admin::service())

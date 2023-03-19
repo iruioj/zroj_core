@@ -1,7 +1,7 @@
 //! Auth 模块负责用户的鉴权.
 use std::{collections::HashMap, sync::RwLock};
 use actix_web::{
-    error::{self},
+    error::{self, ErrorInternalServerError},
     post, web
 };
 use serde::Serialize;
@@ -29,15 +29,14 @@ impl SessionContainer {
         Self(RwLock::new(HashMap::<SessionID, SessionData>::new()))
     }
     /// 根据用户名获取密码哈希
-    fn get(&self, id: SessionID) -> actix_web::Result<SessionData> {
+    fn get(&self, id: SessionID) -> actix_web::Result<Option <SessionData> > {
         let mp = self
             .0
             .read()
             .map_err(|e| error::ErrorInternalServerError(e.to_string()))?;
-        let res = mp
-            .get(&id)
-            .ok_or(error::ErrorBadRequest("Invalid session id. Please check your browser and clear your cookie"))?;
-        Ok(res.clone())
+        let res: Option <SessionData> = mp
+            .get(&id).map(|d| d.clone());
+        Ok(res)
     }
     fn set(&self, id: SessionID, data: SessionData) -> actix_web::Result<()> {
         let mut mp = self
@@ -53,17 +52,22 @@ impl SessionContainer {
 /// fetch a session-id or create a new one
 pub fn fetch_sessionid(session: &Session, session_container: &web::Data <SessionContainer>) -> actix_web::Result <SessionID> {
     if let Some(sessionid) = session.get::<SessionID> ("session-id")? {
-        Ok(sessionid)
-    } else {
-        let sessionid = SessionID::new_v4(); // generate a random session-id
-        session.insert("session-id", sessionid)?;
-        session_container.set(sessionid, SessionData{login_state: LoginState::NotLoggedIn})?;
-        Ok(sessionid)
+        if let Some(_) = session_container.get(sessionid)? {
+            return Ok(sessionid);
+        }
     }
+    let sessionid = SessionID::new_v4(); // generate a random session-id
+    session.insert("session-id", sessionid)?;
+    session_container.set(sessionid, SessionData{login_state: LoginState::NotLoggedIn})?;
+    Ok(sessionid)
 }
 pub fn fetch_login_state(session: &Session, session_container: &web::Data <SessionContainer>) -> actix_web::Result <LoginState> {
     let sessionid = fetch_sessionid(session, session_container)?;
-    Ok(session_container.get(sessionid)?.login_state)
+    if let Some(session_data) = session_container.get(sessionid)? {
+        Ok(session_data.login_state)
+    } else {
+        Err(ErrorInternalServerError("Session control failed"))
+    }
 }
 
 fn valid_username(username: &String) -> Result <(), String> {
