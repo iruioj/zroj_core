@@ -1,3 +1,6 @@
 /target
 /Cargo.lock
 /rfcs
+*.profdata
+*.profraw
+local.*

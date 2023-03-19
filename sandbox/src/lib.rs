@@ -1,3 +1,6 @@
+#![warn(missing_docs)]
+// #![feature(doc_auto_cfg)] // uncomment it to generate documents with platform-wide tag
+
 //! Sandbox 库负责在限制的条件下执行可执行文件并返回执行的结果
 //!
 //! 为了避免繁琐的编译过程和开发环境搭建，本库将会基于 yaoj-judger 用 Rust 重写。
@@ -8,59 +11,13 @@ use std::{
     fmt::Debug,
 };
 
+/// 沙盒运行过程中产生的错误（系统错误）
 pub mod error;
-
+pub use error::UniError;
 /// Unix 系统下的沙盒 API
 #[cfg(all(unix))]
 pub mod unix;
 
-/// 对进程施加各种类型的资源限制
-#[derive(Serialize, Deserialize, Debug)]
-enum Limitation {
-    /// 限制实际运行时间，一般是用来做一个大保底
-    RealTime(u32),
-    /// 限制 CPU 的运行时间，一般用来衡量程序的运行时间，单位：ms
-    ///
-    /// soft limit 和 hard limit，一般以 soft 为衡量标准
-    CpuTime(u32, u32),
-    /// 可以导致数组开大就会 MLE 的结果，单位：byte
-    ///
-    /// soft limit 和 hard limit，一般以 soft 为衡量标准
-    VirtualMemory(u32, u32),
-    /// 程序执行完后才统计内存占用情况 （byte）
-    ActualMemory(u32),
-    /// byte
-    ///
-    /// soft limit 和 hard limit，一般以 soft 为衡量标准
-    StackMemory(u32, u32),
-    /// byte
-    ///
-    /// soft limit 和 hard limit，一般以 soft 为衡量标准
-    OutputMemory(u32, u32),
-    /// 限制文件指针数
-    ///
-    /// soft limit 和 hard limit，一般以 soft 为衡量标准
-    Fileno(u32, u32),
-}
-
-/// 在子进程正常退出的情况下，检查资源限制对结果的影响
-///
-/// 不包括 OLE
-///
-/// 如果发现不满足限制，返回对应的 status。
-fn check_limit(term: &Termination, lim: &Limitation) -> Option<Status> {
-    if let Limitation::RealTime(tl) = lim {
-        if term.real_time > *tl as i64 {
-            return Some(Status::TimeLimitExceeded(TimeLimitExceededKind::Real));
-        }
-    }
-    if let Limitation::ActualMemory(ml) = lim {
-        if term.memory > *ml as i64 {
-            return Some(Status::MemoryLimitExceeded(MemoryLimitExceededKind::Real));
-        }
-    }
-    None
-}
 
 /// TLE 的具体类型
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -89,9 +46,13 @@ pub enum Status {
     Ok,
     /// with error code and signal name
     RuntimeError(i32, Option<String>),
+    /// 超出内存限制
     MemoryLimitExceeded(MemoryLimitExceededKind),
+    /// 超出时间限制
     TimeLimitExceeded(TimeLimitExceededKind),
+    /// 输出文件大小超出限制
     OutputLimitExceeded,
+    /// 调用了被禁止的系统调用
     DangerousSyscall,
 }
 
@@ -105,10 +66,14 @@ impl From<nix::sys::signal::Signal> for Status {
 /// 终止时的信息
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Termination {
-    status: Status,
-    real_time: i64,
-    cpu_time: i64,
-    memory: i64,
+    /// 终止状态
+    pub status: Status,
+    /// 实际运行时间
+    pub real_time: u64,
+    /// CPU 占用时间
+    pub cpu_time: u64,
+    /// 实际占用内存
+    pub memory: u64,
 }
 impl Termination {
     fn _new() -> Self {
@@ -147,11 +112,11 @@ pub trait ExecSandBox {
     ///
     /// <https://docs.rs/nix/latest/nix/unistd/fn.fork.html#safety>
     ///
-    fn exec_sandbox(&self) -> Result<Termination, error::Error>;
+    fn exec_sandbox(&self) -> Result<Termination, error::UniError>;
 
     /// Unix Only: 在执行 exec_fork 内部执行此函数，如果失败会直接返回 Error，子进程会返回异常
     #[cfg(all(unix))]
-    fn exec_sandbox_fork(&self, result_file: &mut std::fs::File) -> Result<(), error::Error> {
+    fn exec_sandbox_fork(&self, result_file: &mut std::fs::File) -> Result<(), error::UniError> {
         use std::io::Write;
 
         result_file.write(serde_json::to_string(&self.exec_sandbox()?)?.as_bytes())?;
@@ -160,8 +125,8 @@ pub trait ExecSandBox {
 
     /// Unix only: 先 fork 一个子进程再执行程序，避免主进程终止导致整个进程终止
     #[cfg(all(unix))]
-    fn exec_fork(&self) -> Result<Termination, error::Error> {
-        use crate::error::msg_error;
+    fn exec_fork(&self) -> Result<Termination, error::UniError> {
+        use crate::error::msg_err;
         use std::io::{Seek, SeekFrom};
         use tempfile::tempfile;
 
@@ -172,18 +137,18 @@ pub trait ExecSandBox {
         let mut tmp = tempfile()?;
 
         match unsafe { fork() } {
-            Err(_) => msg_error("fork failed".to_string()),
+            Err(_) => msg_err("fork failed"),
             Ok(ForkResult::Parent { child, .. }) => {
                 match waitpid(child, None)? {
                     WaitStatus::Signaled(pid, signal, _) => {
-                        msg_error(format!("主进程被杀死，pid = {}, signal = {}", pid, signal))
+                        msg_err(format!("主进程被杀死，pid = {}, signal = {}", pid, signal))
                     }
                     WaitStatus::Stopped(pid, signal) => {
-                        msg_error(format!("主进程被停止，pid = {}, signal = {}", pid, signal))
+                        msg_err(format!("主进程被停止，pid = {}, signal = {}", pid, signal))
                     }
                     WaitStatus::Exited(pid, code) => {
                         if code != 0 {
-                            return msg_error(format!(
+                            return msg_err(format!(
                                 "主进程异常，code = {}，pid = {}",
                                 code, pid
                             ));
@@ -193,7 +158,7 @@ pub trait ExecSandBox {
                         let termination = serde_json::from_reader(tmp)?;
                         Ok(termination)
                     }
-                    _ => msg_error("未知的等待结果".to_string()),
+                    _ => msg_err("未知的等待结果"),
                 }
             }
             Ok(ForkResult::Child) => match self.exec_sandbox_fork(&mut tmp) {
