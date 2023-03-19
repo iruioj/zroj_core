@@ -1,13 +1,13 @@
 //! Auth 模块负责用户的鉴权.
 use std::{collections::HashMap, sync::RwLock};
 use actix_web::{
-    error::{self, ErrorBadRequest},
-    post, web, HttpResponse,
+    error::{self},
+    post, web
 };
 use serde::Serialize;
 use serde_derive::Deserialize;
 use actix_session::Session;
-use crate::schema::{self, users, User, LoginPayload, ResponseMsg, RegisterPayload};
+use crate::schema::{User, LoginPayload, ResponseMsg, RegisterPayload};
 use crate::MysqlPool;
 use crate::database::UserDatabase;
 type SessionID = uuid::Uuid;
@@ -60,8 +60,17 @@ pub fn fetch_session(session: &Session, session_container: &web::Data <SessionCo
     }
 }
 
-fn valid_username(username: &String) -> bool {
-    todo!()
+fn valid_username(username: &String) -> Result <(), String> {
+    if username.chars().any(|c| { !(c.is_alphanumeric() || c == '_') }) {
+        return Err(String::from("Username contains invalid character"));
+    }
+    if username.len() > 20 {
+        return Err(String::from("Username is too long"));
+    }
+    if username.len() < 6 {
+        return Err(String::from("Username is too long"));
+    }
+    Ok(())
 }
 
 #[post("/login")]
@@ -71,14 +80,13 @@ async fn login(
     session_container: web::Data <SessionContainer>,
     user_database: web::Data <UserDatabase>,
 ) -> actix_web::Result <web::Json <ResponseMsg> > {
-    if !valid_username(&payload.username) {
-        return Ok(web::Json(ResponseMsg { ok: false, msg: String::from("Invalid username") } ));
+    if let Err(msg) = valid_username(&payload.username) {
+        return Ok(web::Json(ResponseMsg { ok: false, msg: format!("Invalid username: {}", msg) } ));
     }
     let id = fetch_session(&session, &session_container);
     eprintln!("login request: {:?}", payload);
-    let user = user_database.query_by_username(&payload.username).await;
-    if let Ok(result) = user {
-        if result.password_hash != payload.password_hash {
+    if let Some(result) = user_database.query_by_username(&payload.username).await? {
+        if result.password_hash != payload.password_hash { 
             Ok(web::Json(ResponseMsg { ok: false, msg: String::from("password not correct") }))
         } else {
             Ok(web::Json(ResponseMsg { ok: true, msg: String::from("ok") }))
@@ -95,27 +103,20 @@ async fn register(
     session_container: web::Data <SessionContainer>,
     user_database: web::Data <UserDatabase>,
 ) -> actix_web::Result <web::Json <ResponseMsg> > {
+    if let Err(msg) = valid_username(&payload.username) {
+        return Ok(web::Json(ResponseMsg { ok: false, msg: format!("Invalid username: {}", msg) } ));
+    }
     let sessionid = fetch_session(&session, &session_container);
     eprintln!("register req: {:?}", &payload);
     if !email_address::EmailAddress::is_valid(&payload.email) {
         return Ok(web::Json(ResponseMsg { ok: false, msg: String::from("Invalid email address") } ));
     }
-    if !valid_username(&payload.username) {
-        return Ok(web::Json(ResponseMsg { ok: false, msg: String::from("Invalid username") } ));
-    }
     if let Ok(result) = user_database.query_by_username(&payload.username).await {
         return Ok(web::Json(ResponseMsg { ok: false, msg: String::from("User already exists") } ));
     }
-    let insert = user_database.insert(&payload.username, &payload.password_hash, &payload.email).await;
-    match(insert) {
-        Ok(result) => {
-            session_container.set(sessionid, SessionData::userid(result.id))?;
-            Ok(web::Json(ResponseMsg { ok: true, msg: String::from("Registration success") }))
-        } 
-        Err(e) => {
-            Ok(web::Json(ResponseMsg { ok: false, msg : e.to_string() } ))
-        }
-    }
+    let result = user_database.insert(&payload.username, &payload.password_hash, &payload.email).await?;
+    session_container.set(sessionid, SessionData::userid(result.id))?;
+    Ok(web::Json(ResponseMsg { ok: true, msg: String::from("Registration success") }))
 }
 
 pub fn service(session_containter: web::Data<SessionContainer>, user_database: web::Data <UserDatabase>) -> actix_web::Scope {

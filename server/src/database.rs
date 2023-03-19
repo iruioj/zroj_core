@@ -1,35 +1,12 @@
 //! imp struct for different database queries
 use crate::schema::{users, User, NewUser};
-use crate::{MysqlPool};
-use std::fmt::{Display, Formatter, Result as FmtResult};
-use std::error::Error;
-use diesel::result::Error as DieselError;
+use crate::{MysqlPool, MysqlPooledConnection};
+use actix_web::{error::ErrorInternalServerError, Result};
 use diesel::{
     self, prelude::*,
     r2d2::{ConnectionManager, Pool},
     mysql::{MysqlConnection}, 
 };
-
-
-#[derive(Debug)]
-pub struct DbError(String);
-
-impl Display for DbError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", self.0)
-    }  
-}
-impl std::convert::From <DieselError> for DbError {
-    fn from(err: DieselError) -> Self {
-        DbError(format!("InternalError occured while database query: {}", err.to_string()))
-    }
-}
-impl std::convert::From <r2d2::Error> for DbError {
-    fn from(err: r2d2::Error) -> Self {
-        DbError(format!("InternalError occured in connection pool: {}", err.to_string()))
-    }
-}
-impl Error for DbError {}
 
 #[derive(Clone)]
 pub struct UserDatabase(MysqlPool);
@@ -42,22 +19,41 @@ impl UserDatabase {
                     .expect("fail to establish connection pool")
         }
     }
-    pub async fn query_by_username(&self, username: &String) -> Result <User, DbError> {
-        let conn = self.0.get()?;
-        users::table
+    async fn get_conn(&self) -> Result <MysqlPooledConnection> {
+        self.0.get().map_err(|e| ErrorInternalServerError(format!("Pool connection error: {}", e.to_string())))
+    }
+    pub async fn query_by_username(&self, username: &String) -> Result <Option <User> > {
+        let conn = self.get_conn().await?;
+        let result = users::table
             .filter(users::username.eq(username))
-            .first :: <User> (&conn)
-            .map_err(|e| { DbError::from(e) })
+            .first :: <User> (&conn);
+        match result {
+            Ok(user) => Ok(Some(user)),
+            Err(e) => {
+                match e  {
+                    diesel::result::Error::NotFound => Ok(None),
+                    _ => Err(ErrorInternalServerError(format!("Database error: {}", e.to_string())))
+                }
+            }
+        }
     }
-    pub async fn query_by_userid(&self, userid: i32) -> Result <User, DbError> {
-        let conn = self.0.get()?;
-        users::table
+    pub async fn query_by_userid(&self, userid: i32) -> Result <Option <User> > {
+        let conn = self.get_conn().await?;
+        let result = users::table
             .filter(users::id.eq(userid))
-            .first(&conn)
-            .map_err(|e| { DbError::from(e) })
+            .first(&conn);
+        match result {
+            Ok(user) => Ok(Some(user)),
+            Err(e) => {
+                match e {
+                    diesel::result::Error::NotFound => Ok(None),
+                    _ => Err(ErrorInternalServerError(format!("Database error: {}", e.to_string())))
+                }
+            }
+        }
     }
-    pub async fn insert(&self, username: &String, password_hash: &String, email: &String) -> Result <User, DbError> {
-        let conn = self.0.get()?;
+    pub async fn insert(&self, username: &String, password_hash: &String, email: &String) -> Result <User> {
+        let conn = self.get_conn().await?;
         conn.transaction(|| {
             let new_user = NewUser {
                 username: username,
@@ -67,11 +63,10 @@ impl UserDatabase {
             diesel::insert_into(users::table)
                 .values(&new_user)
                 .execute(&conn) ?;
-            let inserted_user = users::table
+            users::table
                 .order(users::id.desc())
-                .first(&conn);
-            inserted_user
-        }) .map_err(|e| { DbError::from(e) })
+                .first :: <User> (&conn)
+        }).map_err(|e| ErrorInternalServerError(format!("Database Error: {}", e.to_string())))
     }
 }
 

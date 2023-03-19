@@ -4,8 +4,13 @@ use actix_session::{Session};
 #[derive(serde::Serialize, Clone, Debug)]
 struct ProblemData {
     /// statement should be a json parsed from multiple user input parts
-    statement: String,
+    stmt: String,
 }
+
+
+
+
+
 
 #[get("/{pid}")]
 async fn index(pid: web::Path<u32>, session: Session) -> impl Responder {
