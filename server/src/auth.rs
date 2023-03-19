@@ -10,10 +10,11 @@ use actix_session::Session;
 use crate::schema::{LoginPayload, ResponseMsg, RegisterPayload, response_msg};
 use crate::database::UserDatabase;
 type SessionID = uuid::Uuid;
+pub type UserID = i32;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LoginState {
-    UserId(i32),
+    UserID(UserID),
     NotLoggedIn
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -94,7 +95,7 @@ async fn login(
         if result.password_hash != payload.password_hash { 
             return response_msg(false, "Password not correct");
         } else {
-            session_container.set(sessionid, SessionData{login_state : LoginState::UserId(result.id)})?;
+            session_container.set(sessionid, SessionData{login_state : LoginState::UserID(result.id)})?;
             return response_msg(true, "Login success");
         }
     } else {
@@ -121,7 +122,7 @@ async fn register(
         return response_msg(false, "User already exists");
     }
     let result = user_database.insert(&payload.username, &payload.password_hash, &payload.email).await?;
-    session_container.set(sessionid, SessionData{login_state : LoginState::UserId(result.id)})?;
+    session_container.set(sessionid, SessionData{login_state : LoginState::UserID(result.id)})?;
     response_msg(true, "Registration success")
 }
 

@@ -52,6 +52,7 @@ pub struct RegisterPayload {
     pub password_hash: String,
 }
 
+
 /// format of json msg response
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResponseMsg {
@@ -65,17 +66,21 @@ pub fn response_msg <T: std::fmt::Display> (ok: bool, msg: T) -> actix_web::Resu
 
 /// format of json data response
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ResponseJsonData {
+pub struct ResponseJsonData <T> {
     pub ok: bool,
     /// 用于标识本次登陆的会话
     pub msg: String,
-    pub data: String,
+    pub data: Option <T>,
 }
-pub fn response_json_data <T1,T2> (ok: bool, msg: T1, data: T2) 
-    -> actix_web::Result <web::Json <ResponseJsonData> > 
+pub fn response_json_data_false <T1,T2> (msg: T1) 
+    -> actix_web::Result <web::Json <ResponseJsonData <T2> > > 
 where 
     T1: std::fmt::Display,
-    T2: std::fmt::Display,
 {
-    Ok(web::Json(ResponseJsonData { ok, msg: msg.to_string(), data: data.to_string()}))
+    Ok(web::Json(ResponseJsonData { ok: false, msg: msg.to_string(), data: None}))
+}
+pub fn response_json_data_true <T> (data: T) 
+    -> actix_web::Result <web::Json <ResponseJsonData <T> > > 
+{
+    Ok(web::Json(ResponseJsonData { ok: false, msg: "ok".to_string(), data: Some(data)}))
 }
