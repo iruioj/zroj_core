@@ -7,17 +7,18 @@ use actix_web::{
 use serde::Serialize;
 use serde_derive::Deserialize;
 use actix_session::Session;
-use crate::schema::{User, LoginPayload, ResponseMsg, RegisterPayload};
-use crate::MysqlPool;
+use crate::schema::{LoginPayload, ResponseMsg, RegisterPayload, response_msg};
 use crate::database::UserDatabase;
 type SessionID = uuid::Uuid;
-use diesel::prelude::*;
-use diesel::{Queryable,Insertable,table};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum LoginState {
+    UserId(i32),
+    NotLoggedIn
+}
 #[derive(Debug, Serialize, Deserialize, Clone)]
-enum SessionData {
-    userid(i32),
-    not_logged_in
+struct SessionData {
+    login_state: LoginState
 }
 
 /// session data container
@@ -27,7 +28,7 @@ impl SessionContainer {
         Self(RwLock::new(HashMap::<SessionID, SessionData>::new()))
     }
     /// 根据用户名获取密码哈希
-    pub fn get(&self, id: SessionID) -> actix_web::Result<SessionData> {
+    fn get(&self, id: SessionID) -> actix_web::Result<SessionData> {
         let mp = self
             .0
             .read()
@@ -37,7 +38,7 @@ impl SessionContainer {
             .ok_or(error::ErrorBadRequest("Invalid session id. Please check your browser and clear your cookie"))?;
         Ok(res.clone())
     }
-    pub fn set(&self, id: SessionID, data: SessionData) -> actix_web::Result<()> {
+    fn set(&self, id: SessionID, data: SessionData) -> actix_web::Result<()> {
         let mut mp = self
             .0
             .write()
@@ -49,15 +50,19 @@ impl SessionContainer {
 
 // or session.get_session_key() instead 
 /// fetch a session-id or create a new one
-pub fn fetch_session(session: &Session, session_container: &web::Data <SessionContainer>) -> SessionID {
-    if let Some(sessionid) = session.get::<SessionID> ("session-id").unwrap() {
-        sessionid
+pub fn fetch_sessionid(session: &Session, session_container: &web::Data <SessionContainer>) -> actix_web::Result <SessionID> {
+    if let Some(sessionid) = session.get::<SessionID> ("session-id")? {
+        Ok(sessionid)
     } else {
         let sessionid = SessionID::new_v4(); // generate a random session-id
-        session.insert("session-id", sessionid);
-        session_container.set(sessionid, SessionData::not_logged_in);
-        sessionid
+        session.insert("session-id", sessionid)?;
+        session_container.set(sessionid, SessionData{login_state: LoginState::NotLoggedIn})?;
+        Ok(sessionid)
     }
+}
+pub fn fetch_login_state(session: &Session, session_container: &web::Data <SessionContainer>) -> actix_web::Result <LoginState> {
+    let sessionid = fetch_sessionid(session, session_container)?;
+    Ok(session_container.get(sessionid)?.login_state)
 }
 
 fn valid_username(username: &String) -> Result <(), String> {
@@ -81,18 +86,19 @@ async fn login(
     user_database: web::Data <UserDatabase>,
 ) -> actix_web::Result <web::Json <ResponseMsg> > {
     if let Err(msg) = valid_username(&payload.username) {
-        return Ok(web::Json(ResponseMsg { ok: false, msg: format!("Invalid username: {}", msg) } ));
+        return response_msg(false, format!("Invalid username: {}", msg));
     }
-    let id = fetch_session(&session, &session_container);
+    let sessionid = fetch_sessionid(&session, &session_container)?;
     eprintln!("login request: {:?}", payload);
     if let Some(result) = user_database.query_by_username(&payload.username).await? {
         if result.password_hash != payload.password_hash { 
-            Ok(web::Json(ResponseMsg { ok: false, msg: String::from("password not correct") }))
+            return response_msg(false, "Password not correct");
         } else {
-            Ok(web::Json(ResponseMsg { ok: true, msg: String::from("ok") }))
+            session_container.set(sessionid, SessionData{login_state : LoginState::UserId(result.id)})?;
+            return response_msg(true, "Login success");
         }
     } else {
-        Ok(web::Json(ResponseMsg { ok: false, msg: String::from("user does not exist") }))
+        return response_msg(false, "User does not exist");
     }
 }
 
@@ -104,23 +110,23 @@ async fn register(
     user_database: web::Data <UserDatabase>,
 ) -> actix_web::Result <web::Json <ResponseMsg> > {
     if let Err(msg) = valid_username(&payload.username) {
-        return Ok(web::Json(ResponseMsg { ok: false, msg: format!("Invalid username: {}", msg) } ));
+        return response_msg(false, format!("Invalid username: {}", msg));
     }
-    let sessionid = fetch_session(&session, &session_container);
+    let sessionid = fetch_sessionid(&session, &session_container)?;
     eprintln!("register req: {:?}", &payload);
     if !email_address::EmailAddress::is_valid(&payload.email) {
-        return Ok(web::Json(ResponseMsg { ok: false, msg: String::from("Invalid email address") } ));
+        return response_msg(false, "Invalid email address");
     }
-    if let Ok(result) = user_database.query_by_username(&payload.username).await {
-        return Ok(web::Json(ResponseMsg { ok: false, msg: String::from("User already exists") } ));
+    if let Some(_) = user_database.query_by_username(&payload.username).await? {
+        return response_msg(false, "User already exists");
     }
     let result = user_database.insert(&payload.username, &payload.password_hash, &payload.email).await?;
-    session_container.set(sessionid, SessionData::userid(result.id))?;
-    Ok(web::Json(ResponseMsg { ok: true, msg: String::from("Registration success") }))
+    session_container.set(sessionid, SessionData{login_state : LoginState::UserId(result.id)})?;
+    response_msg(true, "Registration success")
 }
 
 pub fn service(session_containter: web::Data<SessionContainer>, user_database: web::Data <UserDatabase>) -> actix_web::Scope {
-    web::scope("/auth")
+    web::scope("/api/auth")
         .app_data(session_containter)
         .app_data(user_database)
         .service(login)

@@ -16,7 +16,7 @@ impl UserDatabase {
             0: Pool::builder()
                     .max_size(15)
                     .build(ConnectionManager::<MysqlConnection>::new(url))
-                    .expect("fail to establish connection pool")
+                    .expect("fail to establish database connection pool")
         }
     }
     async fn get_conn(&self) -> Result <MysqlPooledConnection> {

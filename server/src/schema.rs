@@ -1,6 +1,7 @@
 use serde::Serialize;
 use serde_derive::Deserialize;
 use diesel::{Queryable,Insertable,table};
+use actix_web::web;
 
 table! {
     users (id) {
@@ -51,10 +52,30 @@ pub struct RegisterPayload {
     pub password_hash: String,
 }
 
-/// format of json msg
+/// format of json msg response
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResponseMsg {
     pub ok: bool,
     /// 用于标识本次登陆的会话
     pub msg: String,
+}
+pub fn response_msg <T: std::fmt::Display> (ok: bool, msg: T) -> actix_web::Result <web::Json <ResponseMsg> > {
+    Ok(web::Json(ResponseMsg { ok, msg: msg.to_string() }))
+}
+
+/// format of json data response
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResponseJsonData {
+    pub ok: bool,
+    /// 用于标识本次登陆的会话
+    pub msg: String,
+    pub data: String,
+}
+pub fn response_json_data <T1,T2> (ok: bool, msg: T1, data: T2) 
+    -> actix_web::Result <web::Json <ResponseJsonData> > 
+where 
+    T1: std::fmt::Display,
+    T2: std::fmt::Display,
+{
+    Ok(web::Json(ResponseJsonData { ok, msg: msg.to_string(), data: data.to_string()}))
 }

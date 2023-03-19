@@ -1,8 +1,8 @@
 // use actix_web::dev::Server;
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App, HttpServer};
 use diesel::{
-   r2d2 :: {ConnectionManager, Pool, PoolError, PooledConnection}, 
+   r2d2 :: {ConnectionManager, Pool, PooledConnection}, 
    mysql :: {MysqlConnection}, 
 };
 use crate::auth::SessionContainer;
@@ -24,6 +24,7 @@ async fn main() -> std::io::Result<()> {
     let session_container = web::Data::new(SessionContainer::new());
     let server_config: ServerConfig = config::load();
     let user_database = web::Data::new(database::UserDatabase::new(&server_config.database_url));
+    let manager = web::Data::new(problem::ProblemManager::new(&server_config));
     eprintln!("server listening on http://{}:{}", server_config.host, server_config.port);
     HttpServer::new(move || {
         App::new()
@@ -34,7 +35,7 @@ async fn main() -> std::io::Result<()> {
                     CookieSessionStore::default(),
                     server_config.secret_key.clone(),
                 )
-            ).configure(app::new(session_container.clone(), user_database.clone()))
+            ).configure(app::new(session_container.clone(), user_database.clone(), manager.clone()))
     })
     .bind((server_config.host, server_config.port))?
     .run()
