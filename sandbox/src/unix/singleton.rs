@@ -172,19 +172,24 @@ impl crate::ExecSandBox for Singleton {
 }
 
 /// 在构建 Singleton 时的参数类型，主要用于 [`crate::sigton`].
-pub struct ArgStr(pub String);
+pub enum Arg {
+    /// 单个参数
+    Str(String),
+    /// 多个参数
+    Vec(Vec<String>),
+}
 
-impl From<String> for ArgStr {
+impl From<String> for Arg {
     fn from(value: String) -> Self {
-        ArgStr(value)
+        Arg::Str(value)
     }
 }
-impl From<&str> for ArgStr {
+impl From<&str> for Arg {
     fn from(value: &str) -> Self {
-        ArgStr(value.to_string())
+        Arg::Str(value.to_string())
     }
 }
-impl From<&PathBuf> for ArgStr {
+impl From<&PathBuf> for Arg {
     fn from(value: &PathBuf) -> Self {
         match value.to_str() {
             Some(s) => s.into(),
@@ -192,9 +197,19 @@ impl From<&PathBuf> for ArgStr {
         }
     }
 }
-impl From<PathBuf> for ArgStr {
+impl From<PathBuf> for Arg {
     fn from(value: PathBuf) -> Self {
         (&value).into()
+    }
+}
+impl From<&Vec<String>> for Arg {
+    fn from(value: &Vec<String>) -> Self {
+        value.to_owned().into()
+    }
+}
+impl From<Vec<String>> for Arg {
+    fn from(value: Vec<String>) -> Self {
+        Arg::Vec(value)
     }
 }
 
@@ -244,24 +259,33 @@ impl SingletonBuilder {
     }
     /// 设置可执行文件的路径
     #[cold]
-    pub fn exec_path<T: Into<ArgStr>>(&mut self, str: T) -> &mut Self {
-        let ArgStr(s) = str.into();
-        self.exec_path = Some(s);
+    pub fn exec_path<T: Into<Arg>>(&mut self, str: T) -> &mut Self {
+        match str.into() as Arg {
+            Arg::Str(s) => self.exec_path = Some(s),
+            Arg::Vec(_) => panic!("invalid exec_path")
+        };
         self
     }
     /// 在参数列表末尾添加一个参数
     #[inline]
-    pub fn push_arg<T: Into<ArgStr>>(&mut self, arg: T) -> &mut Self {
-        let ArgStr(s) = arg.into();
-        self.arguments.push(s);
+    pub fn push_arg<T: Into<Arg>>(&mut self, arg: T) -> &mut Self {
+        match arg.into() as Arg {
+            Arg::Str(s) => self.arguments.push(s),
+            Arg::Vec(mut v) => self.arguments.append(&mut v),
+        };
         self
     }
     /// 添加一个环境变量
     #[inline]
-    pub fn add_env<T: Into<ArgStr>>(&mut self, val: T) -> &mut Self {
-        let ArgStr(s) = val.into();
-        self.envs.push(s);
+    pub fn add_env<T: Into<Arg>>(&mut self, val: T) -> &mut Self {
+        match val.into() as Arg {
+            Arg::Str(s) => self.envs.push(s),
+            Arg::Vec(mut v) => self.envs.append(&mut v),
+        };
         self
+        // let Arg(s) = val.into();
+        // self.envs.push(s);
+        // self
     }
 
     lim_fn!(real_time);
@@ -302,8 +326,8 @@ impl SingletonBuilder {
 ///   `lim cpu_time|virtual_memory|stack|output|fileno: {soft} {hard}`;
 /// - 限制实际运行时间、实际使用内存：`lim real_time|real_memory: {time}`;
 ///
-/// `exec`、`cmd` 和 `env` 可以接受任何实现了 [Into]<ArgStr> 的类型。
-/// 按照官方文档，对于类型 T 你只需要对 ArgStr 实现 [From]<T> trait 就可以自动实现 [Into] trait。
+/// `exec`、`cmd` 和 `env` 可以接受任何实现了 [Into]<Arg> 的类型。
+/// 按照官方文档，对于类型 T 你只需要对 Arg 实现 [From]<T> trait 就可以自动实现 [Into] trait。
 ///
 /// 时间的单位是毫秒，内存的单位是字节。
 ///
@@ -330,7 +354,7 @@ macro_rules! sigton {
         // 使用新建代码块的方式解决定义域问题
         {
             let mut __singleton__ = $crate::unix::SingletonBuilder::new();
-            $( sigton!("ln" __singleton__ $( $cmds )+ $(: $( $args ),* )? ) );*;
+            $( $crate::sigton!("ln" __singleton__ $( $cmds )+ $(: $( $args ),* )? ) );*;
             __singleton__.finish()
         }
     };
