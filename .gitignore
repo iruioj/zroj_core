@@ -4,3 +4,6 @@
 *.profdata
 *.profraw
 local.*
+web/node_modules
+web/.yarn
+web/.nuxt
