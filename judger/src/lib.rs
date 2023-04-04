@@ -13,16 +13,17 @@ mod env;
 mod error;
 mod one_off;
 
-pub use one_off::OneOff;
 pub use error::Error;
-use std::path::PathBuf;
-use crate::env::which;
+pub use one_off::OneOff;
 
 /// 一个测试点提交的可能的返回状态
 #[derive(Debug)]
 pub enum Status {
     Accepted,
-    CompileError,
+    /// 编译失败，发生了无法处理的错误
+    CompileFailed(sandbox::UniError),
+    /// 编译错误，多半是选手问题
+    CompileError(sandbox::Status),
     CustomMessage(String),
     DangerousSyscall,
     JudgementError,
@@ -64,34 +65,64 @@ pub struct JudgeResult {
     // answer: TruncStr,
 }
 
-pub trait LangOption {
-    // 添加一个指令。比如说 O2，cpp17，nostd 等等的 flag
-    // fn add_directive(&mut self, directive: String) -> &mut Self;
+pub mod lang {
+    use std::path::PathBuf;
 
-    /// 生成一个编译指令
-    #[cfg(all(unix))]
-    fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton;
-}
+    pub trait LangOption {
+        // 添加一个指令。比如说 O2，cpp17，nostd 等等的 flag
+        // fn add_directive(&mut self, directive: String) -> &mut Self;
 
-pub struct GnuCpp17O2 {}
+        /// 生成一个编译指令
+        #[cfg(all(unix))]
+        fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton;
+    }
 
-impl LangOption for GnuCpp17O2 {
-    fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
-        let gpp = which("g++").unwrap();
-        sandbox::sigton! {
-            exec: gpp;
-            cmd: "g++" "-std=c++17" "-O2" source "-o" dest;
-            lim cpu_time: 10000 10000;
-            lim real_time: 10000;
-            lim real_memory: 1024 * 1024 * 1024;
-            lim virtual_memory: 1024 * 1024 * 1024 1024 * 1024 * 1024;
-            lim stack: 1024 * 1024 * 1024 1024 * 1024 * 1024;
-            lim output: 64 * 1024 * 1024 64 * 1024 * 1024;
-            lim fileno: 50 50;
+    /// 使用 g++ 编译 C++ 源文件
+    pub struct GnuCpp {
+        extra_args: Vec<String>,
+    }
+
+    impl GnuCpp {
+        pub fn new(args: Vec<&'static str>) -> Self {
+            let extra_args: Vec<String> = args.into_iter().map(|s| s.to_string()).collect();
+            GnuCpp { extra_args }
         }
     }
-}
 
+    impl LangOption for GnuCpp {
+        fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
+            let mut envs = Vec::new();
+            for (key, value) in std::env::vars() {
+                envs.push(format!("{}={}", key, value));
+            }
+            let envs = envs;
+            // eprintln!("envs = {:?}", envs);
+
+            let gpp = crate::env::which("g++").unwrap();
+            sandbox::sigton! {
+                exec: gpp;
+                cmd: "g++" self.extra_args.clone() source "-o" dest;
+                env: envs;
+                lim cpu_time: 10000 10000; // 10s
+                lim real_time: 10000;
+                lim real_memory: 1024 * 1024 * 1024;
+                lim virtual_memory: 1024 * 1024 * 1024 1024 * 1024 * 1024;
+                lim stack: 1024 * 1024 * 1024 1024 * 1024 * 1024;
+                lim output: 64 * 1024 * 1024 64 * 1024 * 1024;
+                lim fileno: 50 50;
+            }
+        }
+    }
+    pub fn gnu_cpp20_o2() -> GnuCpp {
+        GnuCpp::new(vec!["-std=c++2a", "-O2"])
+    }
+    pub fn gnu_cpp17_o2() -> GnuCpp {
+        GnuCpp::new(vec!["-std=c++17", "-O2"])
+    }
+    pub fn gnu_cpp14_o2() -> GnuCpp {
+        GnuCpp::new(vec!["-std=c++14", "-O2"])
+    }
+}
 // 支持的语言
 // pub enum LangOption {
 //     // C with directives separated by ','

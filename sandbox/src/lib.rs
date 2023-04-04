@@ -20,7 +20,7 @@ pub mod unix;
 
 
 /// TLE 的具体类型
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum TimeLimitExceededKind {
     /// 内核时间与用户时间之和
     Cpu,
@@ -29,7 +29,7 @@ pub enum TimeLimitExceededKind {
 }
 
 /// MLE 的具体类型
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum MemoryLimitExceededKind {
     /// 虚拟内存
     Virtual,
@@ -40,7 +40,7 @@ pub enum MemoryLimitExceededKind {
 }
 
 /// 执行的结果状态，只是一个初步的分析，适用于绝大多数情况
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum Status {
     /// All Correct
     Ok,
