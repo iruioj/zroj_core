@@ -1,5 +1,6 @@
 [workspace]
-members = ["sandbox", "tools", "contest", "problem", "server"]
+
+members = ["sandbox", "tools", "contest", "problem", "server", "judger"]
 
 [workspace.package]
 authors = ["ZROJ Team"]
