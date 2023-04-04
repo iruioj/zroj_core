@@ -199,6 +199,8 @@ pub enum Arg {
     Str(String),
     /// 多个参数
     Vec(Vec<String>),
+    /// 缺省值
+    Nothing,
 }
 
 impl From<String> for Arg {
@@ -234,6 +236,25 @@ impl From<Vec<String>> for Arg {
         Arg::Vec(value)
     }
 }
+
+macro_rules! impl_option {
+    ($typename:ty) => {
+        impl From<Option<$typename>> for Arg {
+            fn from(value: Option<$typename>) -> Self {
+                if let Some(value) = value {
+                    value.into()
+                } else {
+                    Arg::Nothing
+                }
+            }
+        }
+    };
+}
+
+impl_option!(String);
+impl_option!(&str);
+impl_option!(PathBuf);
+impl_option!(&PathBuf);
 
 /// 创建一个 Singleton，请使用对应的 macro [`crate::sigton`].
 pub struct SingletonBuilder {
@@ -287,6 +308,7 @@ impl SingletonBuilder {
         match str.into() as Arg {
             Arg::Str(s) => self.exec_path = Some(s),
             Arg::Vec(_) => panic!("invalid exec_path"),
+            Arg::Nothing => {}
         };
         self
     }
@@ -295,6 +317,7 @@ impl SingletonBuilder {
         match arg.into() as Arg {
             Arg::Str(s) => self.arguments.push(s),
             Arg::Vec(mut v) => self.arguments.append(&mut v),
+            Arg::Nothing => {}
         };
         self
     }
@@ -303,23 +326,26 @@ impl SingletonBuilder {
         match val.into() as Arg {
             Arg::Str(s) => self.envs.push(s),
             Arg::Vec(mut v) => self.envs.append(&mut v),
+            Arg::Nothing => {}
         };
         self
     }
     #[doc(hidden)]
     pub fn set_stdin(&mut self, val: impl Into<Arg>) -> &mut Self {
-        self.stdin = Some(match val.into() as Arg {
-            Arg::Str(s) => s,
+        self.stdin = match val.into() as Arg {
+            Arg::Str(s) => Some(s),
             Arg::Vec(_) => panic!("invalid args"),
-        });
+            Arg::Nothing => None,
+        };
         self
     }
     #[doc(hidden)]
     pub fn set_stdout(&mut self, val: impl Into<Arg>) -> &mut Self {
-        self.stdout = Some(match val.into() as Arg {
-            Arg::Str(s) => s,
+        self.stdout = match val.into() as Arg {
+            Arg::Str(s) => Some(s),
             Arg::Vec(_) => panic!("invalid args"),
-        });
+            Arg::Nothing => None,
+        };
         self
     }
 

@@ -39,7 +39,7 @@ pub enum Status {
 
 /// 裁剪过的文本内容，包括省略的字节数。
 #[derive(Debug)]
-pub struct TruncStr(String, i32);
+pub struct TruncStr(pub String, pub i32);
 
 impl From<String> for TruncStr {
     fn from(value: String) -> Self {
@@ -60,8 +60,8 @@ pub struct JudgeResult {
     pub time: u64,
     pub memory: u64,
     // stdin: TruncStr,
-    // stdout: TruncStr,
-    // stderr: TruncStr,
+    pub stdout: TruncStr,
+    pub stderr: TruncStr,
     // answer: TruncStr,
 }
 

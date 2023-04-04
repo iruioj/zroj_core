@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use sandbox::ExecSandBox;
+use sandbox::{sigton, ExecSandBox};
 
 use crate::{lang::LangOption, Error, JudgeResult, Status};
 
@@ -14,31 +14,26 @@ use crate::{lang::LangOption, Error, JudgeResult, Status};
 pub struct OneOff<L: LangOption> {
     lang: L,
     source: PathBuf,
+    stdin: Option<PathBuf>,
     /// 工作目录
     working_dir: PathBuf,
     // compile_args: Vec<String>,
-    // stdin: Option<PathBuf>,
     // time_limit: u64,
     // memory_limit: u64,
 }
 
 impl<L: LangOption> OneOff<L> {
     /// 新建一个 OneOff，工作目录默认为 cwd（生成可执行文件的路径）
-    pub fn new(source: PathBuf, lang: L) -> Self {
+    pub fn new(source: PathBuf, stdin: Option<PathBuf>, lang: L) -> Self {
         return Self {
             lang,
             source,
+            stdin,
             working_dir: std::env::current_dir().unwrap(),
-            // compile_args: Vec::new(),
-            // stdin: None,
             // time_limit: 1000,
             // memory_limit: 256 * 1024 * 1024,
         };
     }
-    // pub fn set_args(&mut self, args: Vec<String>) -> &mut Self {
-    //     self.compile_args = args;
-    //     self
-    // }
     pub fn set_wd(&mut self, dir: PathBuf) -> &mut Self {
         self.working_dir = dir;
         self
@@ -62,6 +57,8 @@ impl<L: LangOption> OneOff<L> {
                         msg: e.to_string().into(),
                         time: 0,
                         memory: 0,
+                        stdout: "".into(),
+                        stderr: "".into(),
                     })
                 }
             };
@@ -71,14 +68,37 @@ impl<L: LangOption> OneOff<L> {
                     msg: format!("{:?}", term.status).into(),
                     time: term.real_time,
                     memory: term.memory,
+                    stdout: "".into(),
+                    stderr: "".into(),
                 });
             }
+            eprintln!("编译成功");
+            let out = self.working_dir.join("main.output");
+            let s = sigton! {
+                exec: dest;
+                stdin: self.stdin.clone();
+                stdout: out.clone();
+            };
+            let term = s.exec_fork()?;
+
+            let judge_status = match term.status {
+                sandbox::Status::Ok => Status::Accepted,
+                sandbox::Status::RuntimeError(_, _) => Status::RuntimeError,
+                sandbox::Status::MemoryLimitExceeded(_) => Status::MemoryLimitExceeded,
+                sandbox::Status::TimeLimitExceeded(_) => Status::TimeLimitExceeded,
+                sandbox::Status::OutputLimitExceeded => Status::OutputLimitExceeded,
+                sandbox::Status::DangerousSyscall => Status::DangerousSyscall,
+            };
 
             Ok(JudgeResult {
-                status: Status::Accepted,
-                msg: "compile succeed".into(),
+                status: judge_status,
+                msg: "".into(),
                 time: term.real_time,
                 memory: term.memory,
+                stdout: std::fs::read_to_string(out)
+                    .map_err(|e| Error::IOError(e))?
+                    .into(),
+                stderr: "".into(),
             })
         } else {
             todo!()
