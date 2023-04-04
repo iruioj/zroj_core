@@ -6,8 +6,9 @@ use crate::{
 use core::panic;
 use nix::{
     errno::Errno,
+    fcntl::{self, OFlag},
     libc,
-    sys::{resource::getrusage, wait::waitpid},
+    sys::{resource::getrusage, stat::Mode, wait::waitpid},
     sys::{
         resource::{setrlimit, Resource, UsageWho},
         signal::{self, Signal},
@@ -25,6 +26,10 @@ pub struct Singleton {
     exec_path: String,
     arguments: Vec<String>,
     envs: Vec<String>,
+    /// 为 None 表示不提供/不获取 读入/输出
+    stdin: Option<String>,
+    stdout: Option<String>,
+    // stderr: Option<String>,
 }
 
 impl Singleton {
@@ -36,6 +41,23 @@ impl Singleton {
             &vec_str_to_vec_cstr(&self.arguments)?,
             &vec_str_to_vec_cstr(&self.envs)?,
         );
+
+        if let Some(stdin) = &self.stdin {
+            let fd: std::os::fd::RawFd = fcntl::open(
+                stdin.as_str(),
+                OFlag::O_RDONLY,
+                nix::sys::stat::Mode::S_IRUSR,
+            )?;
+            nix::unistd::dup2(fd, libc::STDIN_FILENO).unwrap();
+        }
+        if let Some(stdout) = &self.stdout {
+            let fd: std::os::fd::RawFd = fcntl::open(
+                stdout.as_str(),
+                OFlag::O_WRONLY | OFlag::O_TRUNC | OFlag::O_CREAT,
+                Mode::S_IRUSR | Mode::S_IWUSR,
+            )?;
+            nix::unistd::dup2(fd, libc::STDOUT_FILENO).unwrap();
+        }
 
         if let Some((s, h)) = self.limits.cpu_time {
             setrlimit(Resource::RLIMIT_CPU, s / 1000, h / 1000)?;
@@ -56,9 +78,9 @@ impl Singleton {
         Ok(())
     }
     fn exec_parent(&self, child: Pid, start: Instant) -> Result<Termination, UniError> {
-        // let mut elapse = None;
         use std::sync::mpsc;
         let (tx, rx) = mpsc::channel();
+        // 如果有实际运行时间限制，就开一个计时线程
         let handle = self.limits.real_time.map(|tl| {
             let child_inhandle = child.clone();
             let st = start.clone();
@@ -219,6 +241,8 @@ pub struct SingletonBuilder {
     exec_path: Option<String>,
     arguments: Vec<String>,
     envs: Vec<String>,
+    stdin: Option<String>,
+    stdout: Option<String>,
 }
 
 macro_rules! lim_fn {
@@ -239,8 +263,7 @@ macro_rules! lim_fn {
 }
 
 impl SingletonBuilder {
-    /// 新建一个 builder
-    #[cold]
+    #[doc(hidden)]
     pub fn new() -> Self {
         SingletonBuilder {
             limits: Limitation {
@@ -252,22 +275,22 @@ impl SingletonBuilder {
                 output_memory: None,
                 fileno: None,
             },
+            stdin: None,
+            stdout: None,
             exec_path: None,
             arguments: Vec::new(),
             envs: Vec::new(),
         }
     }
-    /// 设置可执行文件的路径
-    #[cold]
+    #[doc(hidden)]
     pub fn exec_path<T: Into<Arg>>(&mut self, str: T) -> &mut Self {
         match str.into() as Arg {
             Arg::Str(s) => self.exec_path = Some(s),
-            Arg::Vec(_) => panic!("invalid exec_path")
+            Arg::Vec(_) => panic!("invalid exec_path"),
         };
         self
     }
-    /// 在参数列表末尾添加一个参数
-    #[inline]
+    #[doc(hidden)]
     pub fn push_arg<T: Into<Arg>>(&mut self, arg: T) -> &mut Self {
         match arg.into() as Arg {
             Arg::Str(s) => self.arguments.push(s),
@@ -275,17 +298,29 @@ impl SingletonBuilder {
         };
         self
     }
-    /// 添加一个环境变量
-    #[inline]
+    #[doc(hidden)]
     pub fn add_env<T: Into<Arg>>(&mut self, val: T) -> &mut Self {
         match val.into() as Arg {
             Arg::Str(s) => self.envs.push(s),
             Arg::Vec(mut v) => self.envs.append(&mut v),
         };
         self
-        // let Arg(s) = val.into();
-        // self.envs.push(s);
-        // self
+    }
+    #[doc(hidden)]
+    pub fn set_stdin(&mut self, val: impl Into<Arg>) -> &mut Self {
+        self.stdin = Some(match val.into() as Arg {
+            Arg::Str(s) => s,
+            Arg::Vec(_) => panic!("invalid args"),
+        });
+        self
+    }
+    #[doc(hidden)]
+    pub fn set_stdout(&mut self, val: impl Into<Arg>) -> &mut Self {
+        self.stdout = Some(match val.into() as Arg {
+            Arg::Str(s) => s,
+            Arg::Vec(_) => panic!("invalid args"),
+        });
+        self
     }
 
     lim_fn!(real_time);
@@ -295,13 +330,8 @@ impl SingletonBuilder {
     lim_fn!(stack_memory, 2);
     lim_fn!(output_memory, 2);
     lim_fn!(fileno, 2);
-    // #[cold]
-    // pub fn real_time(&mut self, val: u64) -> &mut Self {
-    //     self.limits.real_time = Some(val);
-    //     self
-    // }
-    /// 完成构建
-    #[cold]
+
+    #[doc(hidden)]
     pub fn finish(self) -> Singleton {
         Singleton {
             limits: self.limits,
@@ -309,6 +339,8 @@ impl SingletonBuilder {
                 Some(s) => s,
                 None => panic!("singleton 缺少可执行文件的路径"),
             },
+            stdin: self.stdin,
+            stdout: self.stdout,
             arguments: self.arguments,
             envs: self.envs,
         }
@@ -322,6 +354,8 @@ impl SingletonBuilder {
 /// - 指定可执行文件：`exec: {path}`;
 /// - 指定完整的执行命令：`cmd: {args...}`;
 /// - 设置环境变量：`env: {vars...};`
+/// - 设置读入文件重定向：`stdin: {path}`
+/// - 设置输出文件重定向：`stdout: {path}`
 /// - 限制 CPU 执行时间、虚拟内存、栈空间、输出内存、文件指针数：
 ///   `lim cpu_time|virtual_memory|stack|output|fileno: {soft} {hard}`;
 /// - 限制实际运行时间、实际使用内存：`lim real_time|real_memory: {time}`;
@@ -361,6 +395,12 @@ macro_rules! sigton {
     // 解析子命令，$self 表示定义的 __singleton__
     ("ln" $self:ident exec : $arg:expr) => {
         $self.exec_path($arg)
+    };
+    ("ln" $self:ident stdin : $arg:expr) => {
+        $self.set_stdin($arg)
+    };
+    ("ln" $self:ident stdout : $arg:expr) => {
+        $self.set_stdout($arg)
     };
     ("ln" $self:ident cmd : $( $args:expr ),+ ) => {
         // $self.arguments(vec![$( $arg ),*])
