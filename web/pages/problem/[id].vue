@@ -17,7 +17,7 @@ int main() {
 <template>
   <div>
     <div class="w-[700px] m-auto">
-      <div class="mt-8 mb-4 text-4xl text-red-800 font-medium">#{{ $route.params.id }} 树上 KMP</div>
+      <div class="mt-8 mb-4 text-4xl text-brand font-medium">#{{ $route.params.id }} 树上 KMP</div>
 
       <AppButtonGroup class="my-4">
         <AppButton>提交</AppButton>

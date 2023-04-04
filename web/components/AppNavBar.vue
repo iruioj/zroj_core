@@ -11,13 +11,15 @@ import {
 
 <template>
   <header class="
-  sticky top-0 z-30 bg-white
-  flex items-center border-b border-slate-900/10 dark:border-slate-50/[0.06]">
-    <div class="inline-block px-4 font-bold text-xl text-brand">ZROJ</div>
-    <NavButton to="/" :icon="HomeIcon">Home</NavButton>
+    sticky top-0 z-30 bg-white
+    flex items-center border-b border-slate-900/10 dark:border-slate-50/[0.06]">
+    <NuxtLink to="/">
+      <div class="inline-block px-4 font-bold text-xl text-brand">ZROJ</div>
+    </NuxtLink>
+    <!-- <NavButton to="/" :icon="HomeIcon">Home</NavButton> -->
     <NavButton to="/problem/1" :icon="ListIcon">Problems</NavButton>
     <!-- <NavButton to="/" :icon="QuizIcon">Contests</NavButton> -->
     <NavButton to="/submission/2" :icon="AssignmentIcon">Submissions</NavButton>
-    <!-- <NavButton to="/about" :icon="AboutIcon">About</NavButton> -->
+    <NavButton to="/oneoff" :icon="AboutIcon">Custom Test</NavButton>
   </header>
 </template>
