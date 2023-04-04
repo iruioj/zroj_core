@@ -78,6 +78,13 @@ impl<L: LangOption> OneOff<L> {
                 exec: dest;
                 stdin: self.stdin.clone();
                 stdout: out.clone();
+                lim cpu_time: 2000 2000; // 2s
+                lim real_time: 2000;
+                lim real_memory: 512 * 1024 * 1024;
+                lim virtual_memory: 512 * 1024 * 1024 512 * 1024 * 1024;
+                lim stack: 512 * 1024 * 1024 612 * 1024 * 1024;
+                lim output: 64 * 1024 * 1024 64 * 1024 * 1024;
+                lim fileno: 6 6;
             };
             let term = s.exec_fork()?;
 
