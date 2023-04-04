@@ -104,7 +104,7 @@ async fn view_problem(
     }
     let login_state = fetch_login_state(&session, &session_container)?;
     if let LoginState::UserID(uid) = login_state {
-        if(manager.check_access(*pid, uid)? >= ProblemAccess::View) {
+        if manager.check_access(*pid, uid)? >= ProblemAccess::View {
             response_json_data_true(manager.fetch_view_data(*pid)?)
         } else {
             response_json_data_false("You do not have access to this problem")

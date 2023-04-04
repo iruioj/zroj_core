@@ -4,3 +4,4 @@
 *.profdata
 *.profraw
 local.*
+**/.DS_STORE
