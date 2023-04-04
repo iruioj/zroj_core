@@ -4,8 +4,10 @@ use std::path::PathBuf;
 
 use sandbox::ExecSandBox;
 
-use crate::{Error, JudgeResult, LangOption, Status};
+use crate::{lang::LangOption, Error, JudgeResult, Status};
 
+/// OneOff 用于执行自定义测试，流程包含：编译、运行可执行文件。
+///
 /// OneOff 只需要处理简单的时空限制即可
 /// OneOff 假定你已经在 working_dir（默认当前目录）准备好了相关的原始文件
 #[cfg(all(unix))]
@@ -21,6 +23,7 @@ pub struct OneOff<L: LangOption> {
 }
 
 impl<L: LangOption> OneOff<L> {
+    /// 新建一个 OneOff，工作目录默认为 cwd（生成可执行文件的路径）
     pub fn new(source: PathBuf, lang: L) -> Self {
         return Self {
             lang,
@@ -45,6 +48,7 @@ impl<L: LangOption> OneOff<L> {
     //     self
     // }
     pub fn exec(&self) -> Result<JudgeResult, Error> {
+        eprintln!("source = {}", self.source.display());
         if cfg!(all(unix)) {
             // 可执行文件名
             let dest = self.working_dir.join("main");
@@ -54,13 +58,21 @@ impl<L: LangOption> OneOff<L> {
                 Ok(r) => r,
                 Err(e) => {
                     return Ok(JudgeResult {
-                        status: Status::CompileError,
+                        status: Status::CompileFailed(e.clone()),
                         msg: e.to_string().into(),
                         time: 0,
                         memory: 0,
                     })
                 }
             };
+            if term.status != sandbox::Status::Ok {
+                return Ok(JudgeResult {
+                    status: Status::CompileError(term.status.clone()),
+                    msg: format!("{:?}", term.status).into(),
+                    time: term.real_time,
+                    memory: term.memory,
+                });
+            }
 
             Ok(JudgeResult {
                 status: Status::Accepted,

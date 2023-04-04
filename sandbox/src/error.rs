@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 
 /// 一个通用的错误类型
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum UniError {
     /// 基于信息的错误
     Msg(String),
