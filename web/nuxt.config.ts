@@ -1,5 +1,3 @@
-import { processExpression } from "@vue/compiler-core";
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: [
@@ -12,6 +10,6 @@ export default defineNuxtConfig({
     // Keys within public are also exposed client-side
     public: {
       apiBase: '/api'
-    }
-  }
+    },
+  },
 })

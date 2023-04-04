@@ -11,11 +11,8 @@
     "@nuxtjs/tailwindcss": "^6.6.0",
     "@types/highlight.js": "^10.1.0",
     "@types/node": "^18.15.3",
-    "ace-builds": "^1.16.0",
     "highlight.js": "^11.7.0",
-    "nuxt": "^3.3.1",
-    "shiki": "^0.14.1",
-    "tailwindcss": "^3.2.7",
-    "vue3-ace-editor": "^2.2.2"
+    "nuxt": "^3.3.3",
+    "tailwindcss": "^3.2.7"
   }
 }
