@@ -9,6 +9,7 @@ pub enum Error {
     /// 找到了命令，但是是一个 symlink
     CmdSymLink,
     Sandbox(sandbox::UniError),
+    IOError(std::io::Error)
 }
 
 impl From<sandbox::UniError> for Error {
@@ -24,6 +25,7 @@ impl<'a> Display for Error {
             Error::CmdNotFound => write!(f, "Command not found"),
             Error::CmdSymLink => write!(f, "Command found but is symlink"),
             Error::Sandbox(e) => write!(f, "sandbox error: {}", e),
+            Error::IOError(e) => write!(f, "io error: {}", e),
         }
     }
 }

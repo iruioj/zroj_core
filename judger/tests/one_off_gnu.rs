@@ -4,7 +4,9 @@ mod one_off {
 
     use judger::{lang::gnu_cpp17_o2, Error, OneOff, Status};
 
-    const A_PLUS_B_RAW: &str = r#"
+    #[test]
+    fn test_gnu_cpp() -> Result<(), Error> {
+        let a_plus_b_raw = r#"
 #include <iostream>
 
 using namespace std;
@@ -16,22 +18,25 @@ int main() {
     return 0;
 }
 "#;
+        let input_content = "1 2";
 
-    #[test]
-    fn test_gnu_cpp() -> Result<(), Error> {
         let dir = tempfile::tempdir().unwrap();
-        
+
         let src = dir.path().join("main.cpp");
         let mut fsrc = File::create(&src).unwrap();
-        write!(fsrc, "{}", A_PLUS_B_RAW).unwrap();
+        write!(fsrc, "{}", a_plus_b_raw).unwrap();
 
-        let mut one = OneOff::new(src.into(), gnu_cpp17_o2());
+        let inp = dir.path().join("input.txt");
+        let mut finp = File::create(&inp).unwrap();
+        write!(finp, "{}", input_content).unwrap();
+
+        let mut one = OneOff::new(src.into(), inp.into(), gnu_cpp17_o2());
         one.set_wd(dir.path().to_path_buf());
 
-        eprintln!("cwd: {}", std::env::current_dir().unwrap().display());
         let res = one.exec()?;
         if let Status::Accepted = res.status {
             eprintln!("res = {:?}", res);
+            assert_eq!(res.stdout.0, "3\n");
         } else {
             panic!("compile failed")
         }
