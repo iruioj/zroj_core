@@ -1,6 +1,5 @@
 <!-- 卡片布局 -->
-<script lang="ts" setup>
-</script>
+<script lang="ts" setup></script>
 
 <template>
   <div class="border border-black/20 rounded">
