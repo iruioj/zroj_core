@@ -1,23 +1,12 @@
 <!-- 题目描述页面 -->
-<script setup lang="ts">
-import { ref } from 'vue'
-
-const content = ref(`#include<bits/stdc++.h>
-
-using namespace std;
-int f(vector<int> a, string b) {
-    return 120ull;
-}
-int main() {
-    int a, b;
-    return 0;
-}`)
-</script>
+<script setup lang="ts"></script>
 
 <template>
   <div>
     <div class="w-[700px] m-auto">
-      <div class="mt-8 mb-4 text-4xl text-brand font-medium">#{{ $route.params.id }} 树上 KMP</div>
+      <div class="mt-8 mb-4 text-4xl text-brand font-medium">
+        #{{ $route.params.id }} 树上 KMP
+      </div>
 
       <AppButtonGroup class="my-4">
         <AppButton>提交</AppButton>

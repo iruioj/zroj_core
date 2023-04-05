@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // import CodeEditor from '@/components/CodeEditor.vue'
-import { ref } from 'vue'
+import { ref } from "vue";
 import {
   DoneIcon,
   PersonIcon,
@@ -9,7 +9,7 @@ import {
   TimerIcon,
   MemoryIcon,
   ExpandMoreIcon,
-} from '../../components/icons'
+} from "../../components/icons";
 
 const raw = ref(`#include <bits/stdc++.h>
 #define FOR(a, b, c) for (int a = (int)(b); a <= (int)(c); a++)
@@ -109,71 +109,71 @@ template <const int N, const int M> struct DirectedMST {
     return vt;
   }
 };
-`)
+`);
 
 const data = {
-  type: 'subtasks',
+  type: "subtasks",
   subtasks: [
     {
-      verdict: 'Accepted',
+      verdict: "Accepted",
       tests: [
         {
-          verdict: 'Accepted',
+          verdict: "Accepted",
           time: 114,
           memory: 514,
         },
         {
-          verdict: 'Accepted',
+          verdict: "Accepted",
           time: 114,
           memory: 514,
         },
         {
-          verdict: 'Accepted',
+          verdict: "Accepted",
           time: 114,
           memory: 514,
         },
       ],
     },
     {
-      verdict: 'Accepted',
+      verdict: "Accepted",
       tests: [
         {
-          verdict: 'Accepted',
+          verdict: "Accepted",
           time: 114,
           memory: 514,
         },
         {
-          verdict: 'Accepted',
+          verdict: "Accepted",
           time: 114,
           memory: 514,
         },
       ],
     },
     {
-      verdict: 'Time Limit Exceeded',
+      verdict: "Time Limit Exceeded",
       tests: [
         {
-          verdict: 'Time Limit Exceeded',
+          verdict: "Time Limit Exceeded",
           time: null,
           memory: 514,
         },
         {
-          verdict: 'Skipped',
+          verdict: "Skipped",
           time: null,
           memory: null,
         },
       ],
     },
     {
-      verdict: 'Skipped',
+      verdict: "Skipped",
       tests: [
-        { verdict: 'Skipped', time: null, memory: null },
-        { verdict: 'Skipped', time: null, memory: null },
-        { verdict: 'Skipped', time: null, memory: null },
+        { verdict: "Skipped", time: null, memory: null },
+        { verdict: "Skipped", time: null, memory: null },
+        { verdict: "Skipped", time: null, memory: null },
       ],
     },
   ],
-}
+};
 </script>
 
 <template>
@@ -190,24 +190,31 @@ const data = {
 
       <div>
         <template v-for="(subtask, index) in data.subtasks" :key="index">
-          <div class="px-2 py-1 mb-1 rounded border cursor-pointer border-red-800 flex">
+          <div
+            class="px-2 py-1 mb-1 rounded border cursor-pointer border-red-800 flex"
+          >
             <div>Subtask #{{ index + 1 }}</div>
             <div class="flex mx-2 py-1">
               <template v-for="(test, j) in subtask.tests" :key="j">
-                <div :class="[
-                  'mr-1 w-4 h-4 border-2 rounded border-red-800',
-                  test.verdict === 'Accepted' ? 'rounded-full' : '',
-                  test.verdict === 'Skipped'
-                    ? 'rounded-full border-dotted'
-                    : '',
-                ]"></div>
+                <div
+                  :class="[
+                    'mr-1 w-4 h-4 border-2 rounded border-red-800',
+                    test.verdict === 'Accepted' ? 'rounded-full' : '',
+                    test.verdict === 'Skipped'
+                      ? 'rounded-full border-dotted'
+                      : '',
+                  ]"
+                ></div>
               </template>
             </div>
             <div class="grow"></div>
             <ExpandMoreIcon fill="#991b1b" class="w-6 h-6" />
           </div>
-          <div v-for="(test, j) in subtask.tests" :key="j"
-            class="px-2 py-1 mb-1 mx-2 rounded border cursor-pointer border-red-800">
+          <div
+            v-for="(test, j) in subtask.tests"
+            :key="j"
+            class="px-2 py-1 mb-1 mx-2 rounded border cursor-pointer border-red-800"
+          >
             Testcase #{{ j + 1 }} Verdict: {{ test.verdict }}
           </div>
         </template>
