@@ -14,7 +14,7 @@ const submitCode = () => {
 </script>
 
 <template>
-  <div class="w-[700px] m-auto">
+  <PageContainer>
     <div class="mt-8 mb-4 text-4xl text-brand font-medium">自定义测试</div>
     <textarea
       ref="sourceRef"
@@ -29,5 +29,5 @@ const submitCode = () => {
     >
       提交
     </button>
-  </div>
+  </PageContainer>
 </template>
