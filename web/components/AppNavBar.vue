@@ -11,7 +11,7 @@ import NavButton from "./NavButton.vue";
     </NuxtLink>
     <div class="flex">
       <!-- <NavButton to="/" :icon="HomeIcon">Home</NavButton> -->
-      <NavButton to="/problem/1">Problems</NavButton>
+      <NavButton to="/problemset">Problems</NavButton>
       <!-- <NavButton to="/" :icon="QuizIcon">Contests</NavButton> -->
       <NavButton to="/submission/2">Submissions</NavButton>
       <NavButton to="/oneoff">Custom Test</NavButton>

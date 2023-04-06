@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import SectionContainer from "~/components/SectionContainer.vue";
-
 const announcements = [
   {
     id: 1,
@@ -65,7 +63,7 @@ const topUsers = [
 </script>
 
 <template>
-  <div class="w-[700px] m-auto">
+  <PageContainer>
     <SectionContainer title="公告">
       <ul class="p-2">
         <li
@@ -74,12 +72,7 @@ const topUsers = [
           class="py-2 border-b border-dashed border-b-black/20 last:border-b-0"
         >
           <div class="inline-block flex">
-            <NuxtLink
-              :to="an.link"
-              class="text-brand-dark grow underline decoration-brand/0 hover:decoration-brand underline-offset-4 transition ease-in-out duration-200"
-            >
-              {{ an.title }}</NuxtLink
-            >
+            <TextLink :to="an.link">{{ an.title }}</TextLink>
             <div>
               by
               <NuxtLink
@@ -97,31 +90,33 @@ const topUsers = [
     <SectionContainer title="排行榜（活跃用户）">
       <div class="p-2">
         <table class="w-full">
-          <thead class="text-brand-dark">
-            <th>#</th>
-            <th>用户</th>
-            <th>格言</th>
-            <th>Rating</th>
+          <thead>
+            <TableHeaderRow>
+              <th class="pb-2">#</th>
+              <th class="pb-2">用户</th>
+              <th class="pb-2">格言</th>
+              <th class="pb-2">Rating</th>
+            </TableHeaderRow>
           </thead>
-          <tr
-            v-for="u in topUsers"
-            :key="u.username"
-            class="border-b border-dashed border-b-black/20 last:border-b-0"
-          >
-            <td class="py-2 text-center w-8">{{ u.rank }}</td>
-            <td class="p-2 text-center w-4">
-              <NuxtLink :to="u.link" class="font-bold hover:text-brand"
-                >{{ u.username
-                }}<sup v-if="u.aleph_count"
-                  >ℵ<sup v-if="u.aleph_count > 1">{{ u.aleph_count }}</sup></sup
-                ></NuxtLink
-              >
-            </td>
-            <td class="py-2 text-center">{{ u.motto }}</td>
-            <td class="py-2 text-center w-12">{{ u.rating }}</td>
-          </tr>
+          <tbody>
+            <TableRow v-for="u in topUsers" :key="u.username">
+              <td class="py-2 text-center w-8">{{ u.rank }}</td>
+              <td class="p-2 text-center w-4">
+                <NuxtLink :to="u.link" class="font-bold hover:text-brand"
+                  >{{ u.username
+                  }}<sup v-if="u.aleph_count"
+                    >ℵ<sup v-if="u.aleph_count > 1">{{
+                      u.aleph_count
+                    }}</sup></sup
+                  ></NuxtLink
+                >
+              </td>
+              <td class="py-2 text-center">{{ u.motto }}</td>
+              <td class="py-2 text-center w-12">{{ u.rating }}</td>
+            </TableRow>
+          </tbody>
         </table>
       </div>
     </SectionContainer>
-  </div>
+  </PageContainer>
 </template>
