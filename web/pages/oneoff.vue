@@ -1,33 +1,34 @@
 <script lang="ts" setup>
 const sourceRef = ref<HTMLElement | null>(null);
 const code = ref("");
-const autoResize = () => {
-  const e = sourceRef.value;
-  if (e) {
-    e.style.height = e.scrollHeight + "px";
-  }
-};
 const submitCode = () => {
   console.log(code.value);
 };
+
+const langs = [
+  {
+    title: "C++14",
+    value: "gnu-cpp14",
+  },
+  {
+    title: "C++14 (O2)",
+    value: "gnu-cpp14-o2",
+  },
+];
 // https://coolors.co/gradient-maker/c70000-ec6600
 </script>
 
 <template>
   <PageContainer>
-    <div class="mt-8 mb-4 text-4xl text-brand font-medium">自定义测试</div>
+    <div class="mt-8 mb-4 text-2xl text-brand font-medium">自定义测试</div>
+    <div class="flex my-2">
+      <InputSelect :items="langs" placeholder="选择语言" class="w-32" />
+      <UBtn class="mx-2" @click="submitCode">提交</UBtn>
+    </div>
     <textarea
       ref="sourceRef"
       v-model="code"
-      class="font-mono w-full overflow-hidden border border-slate-400 rounded outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
-      @input="autoResize"
+      class="border border-slate-400 w-full overflow-y-auto font-mono p-2 h-128 outline-brand rounded"
     ></textarea>
-
-    <button
-      class="focus:ring-offset-2 focus:ring-2 focus:ring-brand rounded border border-brand px-3 py-1.5 text-brand hover:bg-brand hover:text-white ease-in-out duration-200 transition"
-      @click="submitCode"
-    >
-      提交
-    </button>
   </PageContainer>
 </template>

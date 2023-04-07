@@ -10,23 +10,42 @@ if (r.name === "problem-id-submit") {
     path: "/problem/" + r.params.id + "/submit/source",
   });
 }
+
+const langs = [
+  {
+    title: "C++14",
+    value: "gnu-cpp14",
+  },
+  {
+    title: "C++14 (O2)",
+    value: "gnu-cpp14-o2",
+  },
+  {
+    title: "Python 3",
+    value: "python",
+  },
+  {
+    title: "Rust",
+    value: "rust",
+  },
+];
 </script>
 
 <template>
   <div>
     <div class="flex mt-2 mb-4">
-      <div>选择语言</div>
-      <button class="px-2">提交</button>
+      <InputSelect :items="langs" placeholder="选择语言" class="w-32" />
+      <UBtn class="mx-2">提交</UBtn>
       <div class="grow"></div>
       <RouterTabsBar
         :items="[
           {
-            title: '提交源代码',
+            title: '代码',
             key: 'problem-id-submit-source',
             link: '/problem/' + $route.params.id + '/submit/source',
           },
           {
-            title: '提交文件',
+            title: '文件',
             key: 'problem-id-submit-file',
             link: '/problem/' + $route.params.id + '/submit/file',
           },

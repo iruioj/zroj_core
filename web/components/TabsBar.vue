@@ -15,7 +15,7 @@ defineProps<{
       <NuxtLink
         :to="item.link"
         :class="[
-          'px-2 underline hover:decoration-brand underline-offset-8 transition duration-200 ease-in-out cursor-pointer hover:text-brand',
+          'px-2 underline hover:decoration-brand underline-offset-8 transition-colors cursor-pointer hover:text-brand',
           activeKey === item.key
             ? 'decoration-brand text-brand'
             : 'decoration-brand/0 text-slate-700',
