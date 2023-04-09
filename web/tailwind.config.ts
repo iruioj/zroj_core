@@ -1,5 +1,6 @@
 import color from "tailwindcss/colors";
 import { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin"
 
 const config: Partial<Config> = {
   theme: {
@@ -65,5 +66,15 @@ const config: Partial<Config> = {
       },
     },
   },
+  plugins: [
+    plugin(function ({ addBase, addComponents, addUtilities, theme }) {
+      addBase({
+        'input:autofill': {
+          '-webkit-box-shadow': '0 0 0 30px ' + theme('colors.white') + ' inset !important',
+          '-webkit-text-fill-color': `${theme('colors.brand')} !important`,
+        }
+      })
+    })
+  ],
 };
 export default config;
