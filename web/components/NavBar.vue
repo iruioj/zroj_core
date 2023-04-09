@@ -10,11 +10,16 @@ import NavButton from "./NavButton.vue";
       <div class="inline-block px-4 font-bold text-xl text-brand">ZROJ</div>
     </NuxtLink>
     <div class="flex">
-      <!-- <NavButton to="/" :icon="HomeIcon">Home</NavButton> -->
       <NavButton to="/problemset">Problems</NavButton>
       <!-- <NavButton to="/" :icon="QuizIcon">Contests</NavButton> -->
       <NavButton to="/submission/2">Submissions</NavButton>
       <NavButton to="/oneoff">Custom Test</NavButton>
+    </div>
+    <div class="grow"></div>
+    <div>
+      <div class="py-2 px-4">
+        <TextLink to="/auth/signin">Sign In/Up</TextLink>
+      </div>
     </div>
   </header>
 </template>
