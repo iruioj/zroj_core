@@ -2,7 +2,7 @@
 mod one_off {
     use std::{fs::File, io::Write};
 
-    use judger::{lang::gnu_cpp17_o2, Error, OneOff, Status};
+    use judger::{Error, OneOff, Status, lang::Builtin};
 
     #[test]
     fn test_gnu_cpp() -> Result<(), Error> {
@@ -30,7 +30,7 @@ int main() {
         let mut finp = File::create(&inp).unwrap();
         write!(finp, "{}", input_content).unwrap();
 
-        let mut one = OneOff::new(src.into(), inp.into(), gnu_cpp17_o2());
+        let mut one = OneOff::new(src, inp.into(), Builtin::GnuCpp17O2);
         one.set_wd(dir.path().to_path_buf());
 
         let res = one.exec()?;
