@@ -251,7 +251,7 @@ impl CustomTestManager {
 
 
 /// warning: this funtion contains probable leak
-fn parse_source_file_name(mut s: String) -> Result <(String, CodeLang)> {
+fn parse_source_file_name(s: String) -> Result <(String, CodeLang)> {
     if s.contains('/') {
         return Err(error::ErrorBadRequest("Invalid source file name"));
     }
@@ -288,7 +288,7 @@ fn start_custom_test(
         one.set_wd(base);
         let result = one.exec();
         if let Ok(mut guard) = state[uid as usize].write() {
-            *guard = match(result) {
+            *guard = match result {
                 Ok(result) => Some(result),
                 Err(_) => None,
             }
