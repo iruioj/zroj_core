@@ -2,6 +2,8 @@ use std::env;
 use dotenv::dotenv;
 use actix_web::cookie::Key;
 
+use crate::auth::UserID;
+
 fn load_env_default <T>  (key: String, default: T) -> T 
 where
     T: std::str::FromStr + std::fmt::Display,
@@ -41,6 +43,8 @@ pub struct ServerConfig {
     pub problem_statement: String,
     pub problem_data_dir: String,
     pub pid_maximum: u32,
+    pub uid_maximum: UserID,
+    pub judge_count: usize,
 }
 impl ServerConfig {
     /* pub fn set <T> (key: String, value : T) {
@@ -61,6 +65,8 @@ pub fn load() -> ServerConfig {
         problem_statement: load_env_default("problem_statement".to_string(), "stmt.json".to_string()),
         problem_data_dir: load_env_default("problem_data_dir".to_string(), "data/".to_string()),
         pid_maximum: load_env_default("pid_maximum".to_string(), 4000u32),
+        uid_maximum: load_env_default("uid_maximum".to_string(), 4000i32),
+        judge_count: load_env_default("judge_count".to_string(), 8usize),
         secret_key: Key::generate(),
     }
 }

@@ -41,7 +41,7 @@ impl UserDatabase {
         let conn = self.get_conn().await?;
         let result = users::table
             .filter(users::id.eq(userid))
-            .first(&conn);
+            .first(&conn); 
         match result {
             Ok(user) => Ok(Some(user)),
             Err(e) => {

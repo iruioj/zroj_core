@@ -25,7 +25,9 @@ async fn main() -> std::io::Result<()> {
     let session_container = web::Data::new(SessionContainer::new());
     let server_config: ServerConfig = config::load();
     let user_database = web::Data::new(database::UserDatabase::new(&server_config.database_url));
-    let manager = web::Data::new(manager::ProblemManager::new(&server_config));
+    let problem_manager = web::Data::new(manager::ProblemManager::new(&server_config));
+    let custom_test_manager = web::Data::new(manager::CustomTestManager::new(&server_config));
+    let judge_queue = web::Data::new(manager::judge_queue::JudgeQueue::new(server_config.judge_count));
     eprintln!("server listening on http://{}:{}", server_config.host, server_config.port);
     HttpServer::new(move || {
         App::new()
@@ -36,7 +38,13 @@ async fn main() -> std::io::Result<()> {
                     CookieSessionStore::default(),
                     server_config.secret_key.clone(),
                 )
-            ).configure(app::new(session_container.clone(), user_database.clone(), manager.clone()))
+            ).configure(app::new(
+                session_container.clone(),
+                user_database.clone(),
+                problem_manager.clone(),
+                custom_test_manager.clone(),
+                judge_queue.clone()
+            ))
     })
     .bind((server_config.host, server_config.port))?
     .run()

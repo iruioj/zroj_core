@@ -1,7 +1,11 @@
 //! Auth 模块负责用户的鉴权.
 use std::{collections::HashMap, sync::RwLock};
 use actix_web::{
-    error::{self, ErrorInternalServerError},
+    error::{
+        self,
+        ErrorInternalServerError
+    },
+    Result,
     post, web
 };
 use serde::Serialize;
@@ -29,7 +33,7 @@ impl SessionContainer {
         Self(RwLock::new(HashMap::<SessionID, SessionData>::new()))
     }
     /// 根据用户名获取密码哈希
-    fn get(&self, id: SessionID) -> actix_web::Result<Option <SessionData> > {
+    fn get(&self, id: SessionID) -> Result <Option <SessionData> > {
         let mp = self
             .0
             .read()
@@ -38,7 +42,7 @@ impl SessionContainer {
             .get(&id).map(|d| d.clone());
         Ok(res)
     }
-    fn set(&self, id: SessionID, data: SessionData) -> actix_web::Result<()> {
+    fn set(&self, id: SessionID, data: SessionData) -> Result<()> {
         let mut mp = self
             .0
             .write()
@@ -50,7 +54,7 @@ impl SessionContainer {
 
 // or session.get_session_key() instead 
 /// fetch a session-id or create a new one
-pub fn fetch_sessionid(session: &Session, session_container: &web::Data <SessionContainer>) -> actix_web::Result <SessionID> {
+pub fn fetch_sessionid(session: &Session, session_container: &web::Data <SessionContainer>) -> Result <SessionID> {
     if let Some(sessionid) = session.get::<SessionID> ("session-id")? {
         if let Some(_) = session_container.get(sessionid)? {
             return Ok(sessionid);
@@ -61,7 +65,7 @@ pub fn fetch_sessionid(session: &Session, session_container: &web::Data <Session
     session_container.set(sessionid, SessionData{login_state: LoginState::NotLoggedIn})?;
     Ok(sessionid)
 }
-pub fn fetch_login_state(session: &Session, session_container: &web::Data <SessionContainer>) -> actix_web::Result <LoginState> {
+pub fn fetch_login_state(session: &Session, session_container: &web::Data <SessionContainer>) -> Result <LoginState> {
     let sessionid = fetch_sessionid(session, session_container)?;
     if let Some(session_data) = session_container.get(sessionid)? {
         Ok(session_data.login_state)
@@ -69,16 +73,23 @@ pub fn fetch_login_state(session: &Session, session_container: &web::Data <Sessi
         Err(ErrorInternalServerError("Session control failed"))
     }
 }
+pub fn require_login(session: &Session, session_container: &web::Data <SessionContainer>) -> Result <UserID> {
+    let state = fetch_login_state(session, session_container)?;
+    match state {
+        LoginState::UserID(uid)=> Ok(uid),
+        _ => Err(error::ErrorUnauthorized("Please login first")),
+    }
+}
 
-fn valid_username(username: &String) -> Result <(), String> {
+fn validate_username(username: &String) -> actix_web::Result <()> {
     if username.chars().any(|c| { !(c.is_alphanumeric() || c == '_') }) {
-        return Err(String::from("Username contains invalid character"));
+        return Err(error::ErrorBadRequest("Username contains invalid character"));
     }
     if username.len() > 20 {
-        return Err(String::from("Username is too long"));
+        return Err(error::ErrorBadRequest("Username is too long"));
     }
     if username.len() < 6 {
-        return Err(String::from("Username is too long"));
+        return Err(error::ErrorBadRequest("Username is too long"));
     }
     Ok(())
 }
@@ -90,9 +101,7 @@ async fn login(
     session_container: web::Data <SessionContainer>,
     user_database: web::Data <UserDatabase>,
 ) -> actix_web::Result <web::Json <ResponseMsg> > {
-    if let Err(msg) = valid_username(&payload.username) {
-        return response_msg(false, format!("Invalid username: {}", msg));
-    }
+    validate_username(&payload.username)?;
     let sessionid = fetch_sessionid(&session, &session_container)?;
     eprintln!("login request: {:?}", payload);
     if let Some(result) = user_database.query_by_username(&payload.username).await? {
@@ -114,9 +123,7 @@ async fn register(
     session_container: web::Data <SessionContainer>,
     user_database: web::Data <UserDatabase>,
 ) -> actix_web::Result <web::Json <ResponseMsg> > {
-    if let Err(msg) = valid_username(&payload.username) {
-        return response_msg(false, format!("Invalid username: {}", msg));
-    }
+    validate_username(&payload.username)?;
     let sessionid = fetch_sessionid(&session, &session_container)?;
     eprintln!("register req: {:?}", &payload);
     if !email_address::EmailAddress::is_valid(&payload.email) {

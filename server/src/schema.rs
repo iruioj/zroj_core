@@ -1,7 +1,10 @@
-use serde::Serialize;
+use judger::JudgeResult;
+use serde::{Serialize};
 use serde_derive::Deserialize;
 use diesel::{Queryable,Insertable,table};
 use actix_web::web;
+use actix_multipart::form::tempfile::TempFile;
+use actix_multipart::form::MultipartForm;
 
 table! {
     users (id) {
@@ -52,6 +55,21 @@ pub struct RegisterPayload {
     pub password_hash: String,
 }
 
+/// format of custom test post payload
+#[derive(Debug, MultipartForm)]
+pub struct CustomTestPayload {
+    #[multipart]
+    /// source file, file name: any.{lang}.{suf}
+    pub source: TempFile,
+    /// input file
+    #[multipart]
+    pub input: TempFile,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CustomTestResult {
+    pub result: Option <JudgeResult>
+}
 
 /// format of json msg response
 #[derive(Debug, Serialize, Deserialize)]
@@ -64,6 +82,7 @@ pub fn response_msg <T: std::fmt::Display> (ok: bool, msg: T) -> actix_web::Resu
     Ok(web::Json(ResponseMsg { ok, msg: msg.to_string() }))
 }
 
+/*
 /// format of json data response
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResponseJsonData <T> {
@@ -84,3 +103,8 @@ pub fn response_json_data_true <T> (data: T)
 {
     Ok(web::Json(ResponseJsonData { ok: false, msg: "ok".to_string(), data: Some(data)}))
 }
+*/
+
+
+
+

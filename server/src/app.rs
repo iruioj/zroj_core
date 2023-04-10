@@ -7,7 +7,7 @@ use crate::{
     database::UserDatabase,
     admin,
     auth::{self, SessionContainer},
-    manager::{self, ProblemManager},
+    manager::{self, ProblemManager, CustomTestManager},
 };
 
 async fn default_route() -> HttpResponse {
@@ -21,10 +21,17 @@ async fn default_route() -> HttpResponse {
 pub fn new(
     session_container: web::Data <SessionContainer>,
     user_database: web::Data <UserDatabase>,
-    manager: web::Data <ProblemManager>
+    problem_manager: web::Data <ProblemManager>,
+    custom_test_manager: web :: Data <CustomTestManager>,
+    judge_queue: web :: Data <manager::judge_queue::JudgeQueue>,
 ) -> impl FnOnce(&mut ServiceConfig) {
     move |app: &mut web::ServiceConfig| {
-        app.service(manager::service(session_container.clone(), manager))
+        app.service(manager::service(
+            session_container.clone(),
+            problem_manager,
+            custom_test_manager,
+            judge_queue,
+        ))
             // api have access to server_config
             // .service(api::service(server_config.clone()))
             .service(admin::service())
