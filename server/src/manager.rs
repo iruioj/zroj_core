@@ -33,13 +33,13 @@ struct ProblemViewData {
 enum StatementViewData {
     /// given source code and do client side render
     Markdown(StatementSource),
-    /// previous rendered tex into html
+    /// previously rendered tex into html
     LaTex(String)
 }
 
 
 #[derive(Serialize, Debug, Clone, Deserialize)]
-enum CodeLang {
+pub enum CodeLang {
     #[serde(rename = "gnu_cpp20_o2")]
     GnuCpp20O2,
     #[serde(rename = "gnu_cpp17_o2")]

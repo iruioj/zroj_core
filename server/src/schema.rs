@@ -68,6 +68,7 @@ pub struct CustomTestPayload {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CustomTestResult {
+    /// return None if the judging or failed
     pub result: Option <JudgeResult>
 }
 
