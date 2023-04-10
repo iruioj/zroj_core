@@ -15,9 +15,10 @@ mod one_off;
 
 pub use error::Error;
 pub use one_off::OneOff;
+use serde::{Serialize, Deserialize};
 
 /// 一个测试点提交的可能的返回状态
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Status {
     Accepted,
     /// 编译失败，发生了无法处理的错误
@@ -38,7 +39,7 @@ pub enum Status {
 }
 
 /// 裁剪过的文本内容，包括省略的字节数。
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TruncStr(pub String, pub i32);
 
 impl From<String> for TruncStr {
@@ -53,7 +54,7 @@ impl From<&str> for TruncStr {
 }
 
 /// 一个测试点的测试结果
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JudgeResult {
     pub status: Status,
     pub msg: TruncStr,
