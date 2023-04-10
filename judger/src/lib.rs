@@ -122,6 +122,21 @@ pub mod lang {
     pub fn gnu_cpp14_o2() -> GnuCpp {
         GnuCpp::new(vec!["-std=c++14", "-O2"])
     }
+    /// 内置的支持的语言
+    pub enum Builtin {
+        GnuCpp20O2,
+        GnuCpp17O2,
+        GnuCpp14O2,
+    }
+    impl LangOption for Builtin {
+        fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
+            match self {
+                Builtin::GnuCpp20O2 => gnu_cpp20_o2().build_sigton(source, dest),
+                Builtin::GnuCpp17O2 => gnu_cpp17_o2().build_sigton(source, dest),
+                Builtin::GnuCpp14O2 => gnu_cpp14_o2().build_sigton(source, dest),
+            }
+        }
+    }
 }
 // 支持的语言
 // pub enum LangOption {
