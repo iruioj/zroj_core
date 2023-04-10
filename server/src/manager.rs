@@ -331,7 +331,7 @@ async fn custom_test_result(
     manager: web::Data <CustomTestManager>,
 ) -> Result <web::Json <CustomTestResult> > {
     let uid = require_login(&session, &session_container)?;
-    Ok(web::Json(CustomTestResult{result: manager.fetch_result(&uid)?}))
+    Ok(web::Json(CustomTestResult{ result: manager.fetch_result(&uid)? }))
 }
 /*
 #[get("/{pid}/edit")]
