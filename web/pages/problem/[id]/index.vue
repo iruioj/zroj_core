@@ -95,15 +95,15 @@ a`,
 
     <SectionContainer title="样例">
       <div class="px-1 my-2 mb-4 grid grid-cols-2 grid-rows-1" v-for="sample, id in samples" :key="id">
-        <div class="group p-2 hover:bg-brand-light/50 transition-colors cursor-pointer" @click="copyText(sample.input)">
-          <div class="text-brand-dark mb-2 border-b border-dashed flex justify-between">
+        <div class="group p-2 hover:bg-black/[0.14] transition-colors cursor-pointer" @click="copyText(sample.input)">
+          <div class="text-brand-secondary mb-2 border-b border-dashed flex justify-between">
             <div class="text-lg">样例读入 #{{ id + 1 }}</div>
             <div class="text-slate-500 invisible group-hover:visible">点击复制</div>
           </div>
           <pre class="">{{ sample.input }}</pre>
         </div>
-        <div class="group p-2 hover:bg-brand-light/50 transition-colors cursor-pointer" @click="copyText(sample.output)">
-          <div class="text-brand-dark mb-2 border-b border-dashed flex justify-between">
+        <div class="group p-2 hover:bg-black/[0.14] transition-colors cursor-pointer" @click="copyText(sample.output)">
+          <div class="text-brand-secondary mb-2 border-b border-dashed flex justify-between">
             <div class="text-lg">样例输出 #{{ id + 1 }}</div>
             <div class="text-slate-500 invisible group-hover:visible">点击复制</div>
           </div>

@@ -15,7 +15,7 @@ const data = {
   <PageContainer>
     <div class="mt-8 mb-4 flex">
       <div class="grow text-2xl text-brand">
-        #{{ $route.params.id }} {{ data.title }}
+        #{{ data.id }} {{ data.title }}
       </div>
       <RouterTabsBar class="print:hidden"
         :items="[

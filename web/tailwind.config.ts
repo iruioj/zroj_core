@@ -11,14 +11,15 @@ const config: Partial<Config> = {
       xl: "1440px",
     },
     colors: {
-      brand: "#8c0000",
-      "brand-light": "#fee2e2",
-      "brand-dark": "#560000",
+      brand: 'rgb(var(--theme-brand) / <alpha-value>)',
+      'brand-secondary': 'rgb(var(--theme-brand-sec) / <alpha-value>)',
       red: color.red,
       white: color.white,
       slate: color.slate,
       black: color.black,
-      // ...color,
+      back: 'rgb(var(--theme-bg) / <alpha-value>)',
+      // primary: 'rgb(var(--theme-pri) / <alpha-value>)',
+      secondary: 'rgb(var(--theme-sec) / <alpha-value>)',
     },
     fontFamily: {
       sans: [
@@ -72,7 +73,12 @@ const config: Partial<Config> = {
         'input:autofill': {
           '-webkit-box-shadow': '0 0 0 30px ' + theme('colors.white') + ' inset !important',
           '-webkit-text-fill-color': `${theme('colors.brand')} !important`,
-        }
+        },
+        // '@media (prefers-color-scheme: dark)': {
+        //   'html': {
+        //     'background-color': 
+        //   },
+        // },
       })
     })
   ],

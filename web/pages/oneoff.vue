@@ -28,7 +28,7 @@ const langs = [
     <textarea
       ref="sourceRef"
       v-model="code"
-      class="border border-slate-400 w-full overflow-y-auto font-mono p-2 h-128 outline-brand rounded"
+      class="bg-back border border-slate-400 w-full overflow-y-auto font-mono p-2 h-128 outline-brand rounded"
     ></textarea>
   </PageContainer>
 </template>

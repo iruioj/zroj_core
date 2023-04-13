@@ -18,7 +18,7 @@ defineProps<{
           'px-2 underline hover:decoration-brand underline-offset-8 transition-colors cursor-pointer hover:text-brand',
           activeKey === item.key
             ? 'decoration-brand text-brand'
-            : 'decoration-brand/0 text-slate-700',
+            : 'decoration-brand/0 text-secondary',
         ]"
         >{{ item.title }}
       </NuxtLink>
