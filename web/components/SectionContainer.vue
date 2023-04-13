@@ -6,7 +6,7 @@ defineProps<{ title: string }>();
 <template>
   <div class="">
     <div
-      class="px-1 py-2 border-b-4 border-b-brand border-double text-brand font-bold text-lg"
+      class="px-1 py-2 border-b-4 dark:border-brand border-brand border-double text-brand font-bold text-lg"
     >
       {{ title }}
     </div>

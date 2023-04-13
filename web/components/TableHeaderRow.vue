@@ -1,5 +1,5 @@
 <template>
-  <tr class="text-brand-dark">
+  <tr class="text-brand-secondary">
     <slot></slot>
   </tr>
 </template>
