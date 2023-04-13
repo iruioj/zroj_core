@@ -17,7 +17,7 @@ const data = {
       <div class="grow text-2xl text-brand">
         #{{ $route.params.id }} {{ data.title }}
       </div>
-      <RouterTabsBar
+      <RouterTabsBar class="print:hidden"
         :items="[
           {
             title: '题面',

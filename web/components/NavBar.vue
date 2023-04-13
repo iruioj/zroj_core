@@ -9,7 +9,7 @@ import NavButton from "./NavButton.vue";
     <NuxtLink to="/">
       <div class="inline-block px-4 font-bold text-xl text-brand">ZROJ</div>
     </NuxtLink>
-    <div class="flex">
+    <div class="flex print:hidden">
       <NavButton to="/problemset">Problems</NavButton>
       <!-- <NavButton to="/" :icon="QuizIcon">Contests</NavButton> -->
       <NavButton to="/submission/2">Submissions</NavButton>
@@ -17,7 +17,7 @@ import NavButton from "./NavButton.vue";
     </div>
     <div class="grow"></div>
     <div>
-      <div class="py-2 px-4">
+      <div class="py-2 px-4 print:hidden">
         <TextLink to="/auth/signin">Sign In/Up</TextLink>
       </div>
     </div>
