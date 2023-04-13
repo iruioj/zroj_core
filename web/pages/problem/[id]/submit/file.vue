@@ -5,6 +5,7 @@ const onFileChange = () => {
   const files = fileinput.value?.files;
   if (files) {
     cur.value = files[0];
+    (window as any).curf = files[0];
   }
 };
 </script>
@@ -21,6 +22,7 @@ const onFileChange = () => {
       />
       <div v-if="cur" class="py-1 px-2">
         {{ cur.name }} (<SizeNum :bytes="cur.size" />)
+        (<Elapse :elapse="Date.now() - cur.lastModified" />前)
       </div>
     </div>
   </div>
