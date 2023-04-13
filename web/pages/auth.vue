@@ -12,7 +12,8 @@
         link: '/auth/signup'
       }
     ]" />
-
-    <NuxtPage />
+    <div class="px-2">
+      <NuxtPage />
+    </div>
   </PageContainer>
 </template>
