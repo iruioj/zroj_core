@@ -6136,6 +6136,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"monaco-editor-nls@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "monaco-editor-nls@npm:3.0.0"
+  checksum: 935a77ec60a753e518229889360cdf5a666a62d18db9875eb07a20ad17817a009722cc2e56040abf0e85740617cba7482b697e6eab0bf982c61b419afe43416e
+  languageName: node
+  linkType: hard
+
+"monaco-editor@npm:^0.37.1":
+  version: 0.37.1
+  resolution: "monaco-editor@npm:0.37.1"
+  checksum: f2ac123d3044a1386d36ba52bb617ad18fb1c745d515a63258858b41c91bb68b71b57c7e5aff3fc2b3226b22c12ca3ad5b14c117babc85eebcf80317cb10691b
+  languageName: node
+  linkType: hard
+
 "mri@npm:^1.2.0":
   version: 1.2.0
   resolution: "mri@npm:1.2.0"
@@ -6491,6 +6505,19 @@ __metadata:
   bin:
     nuxi: bin/nuxi.mjs
   checksum: 0f0fcf230f4871f9e4b70c90feea3a3ef9b6de5543f6c12f98ee493252021dea9dfe8ad56e3f2651065d37b2220353d0f719c4d1553d7b5f181c1e5076d16d49
+  languageName: node
+  linkType: hard
+
+"nuxt-monaco-editor@npm:^1.2.2":
+  version: 1.2.2
+  resolution: "nuxt-monaco-editor@npm:1.2.2"
+  dependencies:
+    "@nuxt/kit": ^3.3.1
+    monaco-editor-nls: ^3.0.0
+    vite-plugin-static-copy: ^0.13.1
+  peerDependencies:
+    monaco-editor: "*"
+  checksum: e93c6f5520d93844327dd49067e734f008ac1be75c081fc277b37fb9985d02585f230e373197f86ccad28a3d5e37464fe944a9108d6ce8a785a8d0efcced4a90
   languageName: node
   linkType: hard
 
@@ -7921,7 +7948,9 @@ __metadata:
     eslint-config-prettier: ^8
     eslint-plugin-prettier: ^4
     highlight.js: ^11.7.0
+    monaco-editor: ^0.37.1
     nuxt: ^3.4
+    nuxt-monaco-editor: ^1.2.2
     prettier: ^2.8.7
     tailwindcss: ^3
     typescript: ^5.0
@@ -9231,6 +9260,20 @@ __metadata:
     vue-tsc:
       optional: true
   checksum: 9590f7efb968a294bf575be0c106a4d9d4000d86a6a5870debb52a5a38ef25334f7e2fb65d21a522a6bca59e7767709ba752746c72aa28ff53d0f1f32fe17d50
+  languageName: node
+  linkType: hard
+
+"vite-plugin-static-copy@npm:^0.13.1":
+  version: 0.13.1
+  resolution: "vite-plugin-static-copy@npm:0.13.1"
+  dependencies:
+    chokidar: ^3.5.3
+    fast-glob: ^3.2.11
+    fs-extra: ^11.1.0
+    picocolors: ^1.0.0
+  peerDependencies:
+    vite: ^3.0.0 || ^4.0.0
+  checksum: dc2281174ac5255740bfdaadd5aac84416fa086a5a6529c6f5a6d4f914cb9b6d8219e3d86df07cbf40a510a6afe385156356f4cb172a0896d5d47e0858f901be
   languageName: node
   linkType: hard
 

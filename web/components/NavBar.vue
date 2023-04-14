@@ -21,7 +21,7 @@ import NavButton from "./NavButton.vue";
         </div>
       </div>
     </div>
-    <div class="mx-2 print:hidden sm:hidden border-t border-slate-900/10 dark:border-slate-50/[0.06]">
+    <div class="text-xs mx-2 print:hidden sm:hidden border-t border-slate-900/10 dark:border-slate-50/[0.06]">
       <NavButton to="/problemset">Problems</NavButton>
       <NavButton to="/contests">Contests</NavButton>
       <NavButton to="/submission/2">Submissions</NavButton>
