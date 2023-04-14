@@ -1,10 +1,208 @@
-import { faker } from '@faker-js/faker'
+import { faker } from "@faker-js/faker";
+
+export type Status =
+  | {
+      name: "wrong_answer";
+    }
+  | {
+      name: "partial";
+      payload: [number, number];
+    };
+
+export interface TaskResult {
+  status: Status;
+  time: number;
+  memory: number;
+  payload: [string, { str: string; limit: number; truncated: number }][];
+}
+
+export interface SubtaskResult {
+  status: Status;
+  time: number;
+  memory: number;
+  tasks: TaskResult[];
+}
+
+export interface JudgeResult {
+  status: Status;
+  time: number;
+  memory: number;
+  detail: {
+    Subtask?: SubtaskResult[];
+    Tests?: TaskResult[];
+  };
+}
 
 export function genTestcases() {
-  return []
+  return [];
 }
-export function genSubtask() {
-  const n_task = faker.datatype.number({ min: 3, max: 8 })
+export function genSubtask(): JudgeResult {
+  return {
+    status: {
+      name: "wrong_answer",
+    },
+    time: 114,
+    memory: 514,
+    detail: {
+      Subtask: [
+        {
+          status: {
+            name: "wrong_answer",
+          },
+          time: 114,
+          memory: 514,
+          tasks: [
+            {
+              status: {
+                name: "partial",
+                payload: [1.0, 2.0],
+              },
+              time: 114,
+              memory: 514,
+              payload: [
+                [
+                  "stdin",
+                  {
+                    str: "1 2",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+                [
+                  "stdout",
+                  {
+                    str: "2",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+                [
+                  "answer",
+                  {
+                    str: "3",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+              ],
+            },
+            {
+              status: {
+                name: "partial",
+                payload: [1.0, 2.0],
+              },
+              time: 114,
+              memory: 514,
+              payload: [
+                [
+                  "stdin",
+                  {
+                    str: "1 2",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+                [
+                  "stdout",
+                  {
+                    str: "2",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+                [
+                  "answer",
+                  {
+                    str: "3",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+              ],
+            },
+          ],
+        },
+        {
+          status: {
+            name: "wrong_answer",
+          },
+          time: 114,
+          memory: 514,
+          tasks: [
+            {
+              status: {
+                name: "partial",
+                payload: [1.0, 2.0],
+              },
+              time: 114,
+              memory: 514,
+              payload: [
+                [
+                  "stdin",
+                  {
+                    str: "1 2",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+                [
+                  "stdout",
+                  {
+                    str: "2",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+                [
+                  "answer",
+                  {
+                    str: "3",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+              ],
+            },
+            {
+              status: {
+                name: "partial",
+                payload: [1.0, 2.0],
+              },
+              time: 114,
+              memory: 514,
+              payload: [
+                [
+                  "stdin",
+                  {
+                    str: "1 2",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+                [
+                  "stdout",
+                  {
+                    str: "2",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+                [
+                  "answer",
+                  {
+                    str: "3",
+                    limit: 1024,
+                    truncated: 0,
+                  },
+                ],
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
+  /* const n_task = faker.datatype.number({ min: 3, max: 8 })
   let records = []
   for (let i = 0; i < n_task; i++) {
     const n_case = faker.datatype.number({ min: 2, max: 10 })
@@ -33,28 +231,19 @@ export function genSubtask() {
       children: case_records
     })
   }
-  return records
+  return records */
 }
 
-export function genSubmission(seed: number, subtask = true) {
-  faker.seed(seed)
+export function genSubmission(seed: number) {
+  faker.seed(seed);
   return {
     meta: {
-      status: [
-        'Accepted',
-        'Wrong Answer',
-        'Time Limit Exceeded'
-      ][faker.datatype.number({ min: 0, max: 2 })],
       author: faker.internet.userName(),
-      time: faker.datatype.number({ max: 5000 }),
-      memory: faker.datatype.number({ max: 1024 * 1024 * 1024 }),
-      lang: [
-        'C/C++', 'Python', 'Rust'
-      ][faker.datatype.number({ min: 0, max: 2 })]
+      lang: ["C/C++", "Python", "Rust"][
+        faker.datatype.number({ min: 0, max: 2 })
+      ],
     },
-    detail: subtask ? genSubtask(
-    ) : genTestcases(
-      // faker.datatype.number({ min: 10, max: 30 }),
-    )
-  }
+    detail: genSubtask(), // subtask ? genSubtask() : genTestcases()
+    // faker.datatype.number({ min: 10, max: 30 }),
+  };
 }

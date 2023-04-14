@@ -31,4 +31,12 @@
     }
   }
 }
+
+@layer components {
+  .border-theme {
+    @apply border-slate-900/10 dark:border-[#2d2e31];
+    /* @apply border-slate-900/10 dark:border-slate-50/[0.06]; */
+  }
+  /* ... */
+}
 </style>

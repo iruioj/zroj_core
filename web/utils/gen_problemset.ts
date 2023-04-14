@@ -1,8 +1,8 @@
-import { faker } from '@faker-js/faker'
+import { faker } from "@faker-js/faker";
 
 export function genProbMeta() {
   const id = faker.datatype.number({
-    max: 99
+    max: 99,
   });
   const like = faker.datatype.boolean();
   return {
@@ -13,15 +13,15 @@ export function genProbMeta() {
     like,
     dislike: !like && faker.datatype.boolean(),
     accepted: faker.datatype.boolean(), // false or undefined
-  }
+  };
 }
 
 export function genProbSet(len: number) {
-  faker.seed(0)
-  let lst = []
-  for(let i = 0; i < len; i++) {
-    lst.push(genProbMeta())
+  faker.seed(0);
+  const lst = [];
+  for (let i = 0; i < len; i++) {
+    lst.push(genProbMeta());
   }
-  lst.sort((a, b) => a.id - b.id)
-  return lst
+  lst.sort((a, b) => a.id - b.id);
+  return lst;
 }

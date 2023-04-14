@@ -21,8 +21,9 @@ const onFileChange = () => {
         @change="onFileChange"
       />
       <div v-if="cur" class="py-1 px-2">
-        {{ cur.name }} (<SizeNum :bytes="cur.size" />)
-        (<Elapse :elapse="Date.now() - cur.lastModified" />前)
+        {{ cur.name }} (<SizeNum :bytes="cur.size" />) (<Elapse
+          :elapse="Date.now() - cur.lastModified"
+        />前)
       </div>
     </div>
   </div>

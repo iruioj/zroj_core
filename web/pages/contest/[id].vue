@@ -4,29 +4,32 @@ const data = {
   title: "丽泽上林入门组训练赛day21",
 };
 
-async function* allfiles(dirHandle: any, prefix=''): AsyncGenerator<[string, FileSystemFileHandle]> {
-  prefix += dirHandle.name + '/'
+async function* allfiles(
+  dirHandle: any,
+  prefix = ""
+): AsyncGenerator<[string, FileSystemFileHandle]> {
+  prefix += dirHandle.name + "/";
   for await (const [_, value] of dirHandle.entries()) {
-    if (value.kind ==='file') {
-      yield [prefix + value.name, value]
+    if (value.kind === "file") {
+      yield [prefix + value.name, value];
     } else {
-      yield * allfiles(value, prefix)
+      yield* allfiles(value, prefix);
     }
   }
 }
 
 const onBind = async () => {
-  if ('showDirectoryPicker' in window) {
-    let picker: any = window.showDirectoryPicker
+  if ("showDirectoryPicker" in window) {
+    const picker: any = window.showDirectoryPicker;
     const dirHandle: any = await picker();
     // for await (const [key, value] of dirHandle.entries()) {
     //   console.log({ key, value })
     // }
     for await (const [path, file] of allfiles(dirHandle)) {
-      console.log(path)
+      console.log(path);
     }
   }
-}
+};
 </script>
 
 <template>
