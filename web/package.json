@@ -12,6 +12,7 @@
     "lintfix": "prettier --write --list-different . && yarn lint:js --fix"
   },
   "devDependencies": {
+    "@faker-js/faker": "^7.6.0",
     "@nuxtjs/eslint-config-typescript": "^12",
     "@nuxtjs/tailwindcss": "^6",
     "@types/highlight.js": "^10.1.0",

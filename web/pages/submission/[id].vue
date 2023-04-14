@@ -111,69 +111,72 @@ template <const int N, const int M> struct DirectedMST {
 };
 `);
 
-const data = {
-  type: "subtasks",
-  subtasks: [
-    {
-      verdict: "Accepted",
-      tests: [
-        {
-          verdict: "Accepted",
-          time: 114,
-          memory: 514,
-        },
-        {
-          verdict: "Accepted",
-          time: 114,
-          memory: 514,
-        },
-        {
-          verdict: "Accepted",
-          time: 114,
-          memory: 514,
-        },
-      ],
-    },
-    {
-      verdict: "Accepted",
-      tests: [
-        {
-          verdict: "Accepted",
-          time: 114,
-          memory: 514,
-        },
-        {
-          verdict: "Accepted",
-          time: 114,
-          memory: 514,
-        },
-      ],
-    },
-    {
-      verdict: "Time Limit Exceeded",
-      tests: [
-        {
-          verdict: "Time Limit Exceeded",
-          time: null,
-          memory: 514,
-        },
-        {
-          verdict: "Skipped",
-          time: null,
-          memory: null,
-        },
-      ],
-    },
-    {
-      verdict: "Skipped",
-      tests: [
-        { verdict: "Skipped", time: null, memory: null },
-        { verdict: "Skipped", time: null, memory: null },
-        { verdict: "Skipped", time: null, memory: null },
-      ],
-    },
-  ],
-};
+// const data = {
+//   type: "subtasks",
+//   subtasks: [
+//     {
+//       verdict: "Accepted",
+//       tests: [
+//         {
+//           verdict: "Accepted",
+//           time: 114,
+//           memory: 514,
+//         },
+//         {
+//           verdict: "Accepted",
+//           time: 114,
+//           memory: 514,
+//         },
+//         {
+//           verdict: "Accepted",
+//           time: 114,
+//           memory: 514,
+//         },
+//       ],
+//     },
+//     {
+//       verdict: "Accepted",
+//       tests: [
+//         {
+//           verdict: "Accepted",
+//           time: 114,
+//           memory: 514,
+//         },
+//         {
+//           verdict: "Accepted",
+//           time: 114,
+//           memory: 514,
+//         },
+//       ],
+//     },
+//     {
+//       verdict: "Time Limit Exceeded",
+//       tests: [
+//         {
+//           verdict: "Time Limit Exceeded",
+//           time: null,
+//           memory: 514,
+//         },
+//         {
+//           verdict: "Skipped",
+//           time: null,
+//           memory: null,
+//         },
+//       ],
+//     },
+//     {
+//       verdict: "Skipped",
+//       tests: [
+//         { verdict: "Skipped", time: null, memory: null },
+//         { verdict: "Skipped", time: null, memory: null },
+//         { verdict: "Skipped", time: null, memory: null },
+//       ],
+//     },
+//   ],
+// };
+
+const data = genSubmission(3)
+// console.log(genSubmission(3))
 </script>
 
 <template>
@@ -189,35 +192,55 @@ const data = {
       </div>
 
       <div>
-        <template v-for="(subtask, index) in data.subtasks" :key="index">
-          <div
-            class="px-2 py-1 mb-1 rounded border cursor-pointer border-red-800 flex"
-          >
-            <div>Subtask #{{ index + 1 }}</div>
-            <div class="flex mx-2 py-1">
-              <template v-for="(test, j) in subtask.tests" :key="j">
-                <div
-                  :class="[
-                    'mr-1 w-4 h-4 border-2 rounded border-red-800',
-                    test.verdict === 'Accepted' ? 'rounded-full' : '',
-                    test.verdict === 'Skipped'
-                      ? 'rounded-full border-dotted'
-                      : '',
-                  ]"
-                ></div>
+        <table class="w-full">
+          <tbody>
+            <template v-for="record, rid in data.detail" :key="rid">
+              <tr>
+                <template v-for="item, cid in record.self" :key="cid">
+                  <td v-if="typeof item === 'string'">{{ item }}</td>
+                  <td v-else :colspan="item.span == -1 ? record.self.length - cid : !item.span ? 1 : item.span">{{
+                    item.content }}</td>
+                </template>
+              </tr>
+              <template v-if="record.children">
+                <tr v-for="crec, crid in record.children" :key="crid">
+                  <template v-for="item, cid in crec.self" :key="cid">
+                    <td v-if="typeof item === 'string'">{{ item }}</td>
+                  </template>
+                </tr>
               </template>
+            </template>
+          </tbody>
+        </table>
+        <!-- <template v-for="(subtask, index) in data.subtasks" :key="index">
+            <div
+              class="px-2 py-1 mb-1 rounded border cursor-pointer border-red-800 flex"
+            >
+              <div>Subtask #{{ index + 1 }}</div>
+              <div class="flex mx-2 py-1">
+                <template v-for="(test, j) in subtask.tests" :key="j">
+                  <div
+                    :class="[
+                      'mr-1 w-4 h-4 border-2 rounded border-red-800',
+                      test.verdict === 'Accepted' ? 'rounded-full' : '',
+                      test.verdict === 'Skipped'
+                        ? 'rounded-full border-dotted'
+                        : '',
+                    ]"
+                  ></div>
+                </template>
+              </div>
+              <div class="grow"></div>
+              <ExpandMoreIcon fill="#991b1b" class="w-6 h-6" />
             </div>
-            <div class="grow"></div>
-            <ExpandMoreIcon fill="#991b1b" class="w-6 h-6" />
-          </div>
-          <div
-            v-for="(test, j) in subtask.tests"
-            :key="j"
-            class="px-2 py-1 mb-1 mx-2 rounded border cursor-pointer border-red-800"
-          >
-            Testcase #{{ j + 1 }} Verdict: {{ test.verdict }}
-          </div>
-        </template>
+            <div
+              v-for="(test, j) in subtask.tests"
+              :key="j"
+              class="px-2 py-1 mb-1 mx-2 rounded border cursor-pointer border-red-800"
+            >
+              Testcase #{{ j + 1 }} Verdict: {{ test.verdict }}
+            </div>
+          </template> -->
       </div>
 
       <CodeBlock :raw="raw" lang="cpp" />
