@@ -17,7 +17,8 @@ const data = {
       <div class="grow text-2xl text-brand">
         #{{ data.id }} {{ data.title }}
       </div>
-      <RouterTabsBar class="print:hidden"
+      <RouterTabsBar
+        class="print:hidden"
         :items="[
           {
             title: '题面',

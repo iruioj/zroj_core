@@ -14,5 +14,8 @@ const rendered = hljs.highlight(props.raw, { language: props.lang });
 </script>
 
 <template>
-  <pre class="text-sm p-2 mb-4 rounded border border-slate-300 bg-black/[0.04] whitespace-pre-wrap" v-html="rendered.value"></pre>
+  <pre
+    class="w-full text-sm p-2 mb-4 rounded border border-theme bg-black/[0.04] whitespace-pre-wrap"
+    v-html="rendered.value"
+  ></pre>
 </template>

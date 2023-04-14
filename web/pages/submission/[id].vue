@@ -1,15 +1,5 @@
 <script setup lang="ts">
-// import CodeEditor from '@/components/CodeEditor.vue'
 import { ref } from "vue";
-import {
-  DoneIcon,
-  PersonIcon,
-  CodeIcon,
-  GlobeAsiaIcon,
-  TimerIcon,
-  MemoryIcon,
-  ExpandMoreIcon,
-} from "../../components/icons";
 
 const raw = ref(`#include <bits/stdc++.h>
 #define FOR(a, b, c) for (int a = (int)(b); a <= (int)(c); a++)
@@ -111,139 +101,93 @@ template <const int N, const int M> struct DirectedMST {
 };
 `);
 
-// const data = {
-//   type: "subtasks",
-//   subtasks: [
-//     {
-//       verdict: "Accepted",
-//       tests: [
-//         {
-//           verdict: "Accepted",
-//           time: 114,
-//           memory: 514,
-//         },
-//         {
-//           verdict: "Accepted",
-//           time: 114,
-//           memory: 514,
-//         },
-//         {
-//           verdict: "Accepted",
-//           time: 114,
-//           memory: 514,
-//         },
-//       ],
-//     },
-//     {
-//       verdict: "Accepted",
-//       tests: [
-//         {
-//           verdict: "Accepted",
-//           time: 114,
-//           memory: 514,
-//         },
-//         {
-//           verdict: "Accepted",
-//           time: 114,
-//           memory: 514,
-//         },
-//       ],
-//     },
-//     {
-//       verdict: "Time Limit Exceeded",
-//       tests: [
-//         {
-//           verdict: "Time Limit Exceeded",
-//           time: null,
-//           memory: 514,
-//         },
-//         {
-//           verdict: "Skipped",
-//           time: null,
-//           memory: null,
-//         },
-//       ],
-//     },
-//     {
-//       verdict: "Skipped",
-//       tests: [
-//         { verdict: "Skipped", time: null, memory: null },
-//         { verdict: "Skipped", time: null, memory: null },
-//         { verdict: "Skipped", time: null, memory: null },
-//       ],
-//     },
-//   ],
-// };
-
-const data = genSubmission(3)
-// console.log(genSubmission(3))
+const data = genSubmission(3);
+const activeTask = ref([-1, -1]);
 </script>
 
 <template>
-  <div>
-    <div class="w-[700px] m-auto">
-      <div class="meta grid grid-cols-3 gap-1 my-1">
-        <AppBadge :icon="DoneIcon">Accepted</AppBadge>
-        <AppBadge :icon="PersonIcon">Sshwy</AppBadge>
-        <AppBadge :icon="CodeIcon">1.2kb</AppBadge>
-        <AppBadge :icon="GlobeAsiaIcon">C/C++</AppBadge>
-        <AppBadge :icon="TimerIcon">114ms</AppBadge>
-        <AppBadge :icon="MemoryIcon">514ms</AppBadge>
-      </div>
-
-      <div>
-        <table class="w-full">
-          <tbody>
-            <template v-for="record, rid in data.detail" :key="rid">
+  <PageContainer>
+    <div>
+      <table
+        class="border-collapse w-full my-2 text-sm sm:text-md border border-theme"
+      >
+        <thead>
+          <tr class="border border-theme">
+            <th class="border border-theme py-1 w-20">ID</th>
+            <th class="border border-theme py-1 text-left px-1">Verdict</th>
+            <th class="border border-theme py-1">Time</th>
+            <th class="border border-theme py-1">Memory</th>
+          </tr>
+        </thead>
+        <tbody v-if="data.detail.detail.Subtask">
+          <template
+            v-for="(subtask, sid) in data.detail.detail.Subtask"
+            :key="sid"
+          >
+            <tr>
+              <td class="border border-theme py-1 px-1 text-center">
+                Subtask #{{ sid + 1 }}
+              </td>
+              <td class="border border-theme py-1 px-2">
+                {{ subtask.status.name }}
+              </td>
+              <td class="border border-theme py-1 text-center">
+                {{ subtask.time }}
+              </td>
+              <td class="border border-theme py-1 text-center">
+                {{ subtask.memory }}
+              </td>
+            </tr>
+            <template v-for="(task, tid) in subtask.tasks" :key="tid">
               <tr>
-                <template v-for="item, cid in record.self" :key="cid">
-                  <td v-if="typeof item === 'string'">{{ item }}</td>
-                  <td v-else :colspan="item.span == -1 ? record.self.length - cid : !item.span ? 1 : item.span">{{
-                    item.content }}</td>
-                </template>
+                <td
+                  class="border border-theme py-1 px-1 text-center select-none cursor-pointer"
+                  :rowspan="1 + 2 * task.payload.length"
+                  @click="activeTask = [sid, tid]"
+                >
+                  Test #{{ tid + 1 }}
+                </td>
+                <td class="border border-theme py-1 px-2">
+                  {{ task.status.name }}
+                </td>
+                <td class="border border-theme py-1 text-center">
+                  {{ task.time }}
+                </td>
+                <td class="border border-theme py-1 text-center">
+                  {{ task.memory }}
+                </td>
               </tr>
-              <template v-if="record.children">
-                <tr v-for="crec, crid in record.children" :key="crid">
-                  <template v-for="item, cid in crec.self" :key="cid">
-                    <td v-if="typeof item === 'string'">{{ item }}</td>
-                  </template>
+              <template
+                v-for="([title, content], id) in task.payload"
+                :key="id"
+              >
+                <tr
+                  :class="
+                    !(activeTask[0] == sid && activeTask[1] == tid) &&
+                    'collapse'
+                  "
+                >
+                  <!-- <td class="border-r border-black/[0.2]"></td> -->
+                  <td class="px-2 border border-theme" colspan="3">{{ title }}</td>
+                </tr>
+                <tr
+                  :class="[
+                    !(activeTask[0] == sid && activeTask[1] == tid) &&
+                      'collapse',
+                  ]"
+                >
+                  <!-- <td class="border-r border-black/[0.2]"></td> -->
+                  <td colspan="3" class="border border-theme">
+                    <pre class="p-2">{{ content.str }}</pre>
+                  </td>
                 </tr>
               </template>
             </template>
-          </tbody>
-        </table>
-        <!-- <template v-for="(subtask, index) in data.subtasks" :key="index">
-            <div
-              class="px-2 py-1 mb-1 rounded border cursor-pointer border-red-800 flex"
-            >
-              <div>Subtask #{{ index + 1 }}</div>
-              <div class="flex mx-2 py-1">
-                <template v-for="(test, j) in subtask.tests" :key="j">
-                  <div
-                    :class="[
-                      'mr-1 w-4 h-4 border-2 rounded border-red-800',
-                      test.verdict === 'Accepted' ? 'rounded-full' : '',
-                      test.verdict === 'Skipped'
-                        ? 'rounded-full border-dotted'
-                        : '',
-                    ]"
-                  ></div>
-                </template>
-              </div>
-              <div class="grow"></div>
-              <ExpandMoreIcon fill="#991b1b" class="w-6 h-6" />
-            </div>
-            <div
-              v-for="(test, j) in subtask.tests"
-              :key="j"
-              class="px-2 py-1 mb-1 mx-2 rounded border cursor-pointer border-red-800"
-            >
-              Testcase #{{ j + 1 }} Verdict: {{ test.verdict }}
-            </div>
-          </template> -->
-      </div>
-
-      <CodeBlock :raw="raw" lang="cpp" />
+          </template>
+        </tbody>
+      </table>
     </div>
-  </div>
+
+    <CodeBlock :raw="raw" lang="cpp" />
+  </PageContainer>
 </template>

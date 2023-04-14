@@ -9,6 +9,6 @@ module.exports = {
     parser: "@typescript-eslint/parser",
   },
   extends: ["@nuxtjs/eslint-config-typescript", "plugin:prettier/recommended"],
-  plugins: [],
+  plugins: ["@typescript-eslint/eslint-plugin"],
   rules: {},
 };

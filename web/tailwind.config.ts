@@ -1,6 +1,6 @@
 import color from "tailwindcss/colors";
 import { Config } from "tailwindcss";
-import plugin from "tailwindcss/plugin"
+import plugin from "tailwindcss/plugin";
 
 const config: Partial<Config> = {
   theme: {
@@ -11,15 +11,15 @@ const config: Partial<Config> = {
       xl: "1440px",
     },
     colors: {
-      brand: 'rgb(var(--theme-brand) / <alpha-value>)',
-      'brand-secondary': 'rgb(var(--theme-brand-sec) / <alpha-value>)',
+      brand: "rgb(var(--theme-brand) / <alpha-value>)",
+      "brand-secondary": "rgb(var(--theme-brand-sec) / <alpha-value>)",
       red: color.red,
       white: color.white,
       slate: color.slate,
       black: color.black,
-      back: 'rgb(var(--theme-bg) / <alpha-value>)',
+      back: "rgb(var(--theme-bg) / <alpha-value>)",
       // primary: 'rgb(var(--theme-pri) / <alpha-value>)',
-      secondary: 'rgb(var(--theme-sec) / <alpha-value>)',
+      secondary: "rgb(var(--theme-sec) / <alpha-value>)",
     },
     fontFamily: {
       sans: [
@@ -68,19 +68,20 @@ const config: Partial<Config> = {
     },
   },
   plugins: [
-    plugin(function ({ addBase, addComponents, addUtilities, theme }) {
+    plugin(function ({ addBase, theme }) {
       addBase({
-        'input:autofill': {
-          '-webkit-box-shadow': '0 0 0 30px ' + theme('colors.white') + ' inset !important',
-          '-webkit-text-fill-color': `${theme('colors.brand')} !important`,
+        "input:autofill": {
+          "-webkit-box-shadow":
+            "0 0 0 30px " + theme("colors.white") + " inset !important",
+          "-webkit-text-fill-color": `${theme("colors.brand")} !important`,
         },
         // '@media (prefers-color-scheme: dark)': {
         //   'html': {
-        //     'background-color': 
+        //     'background-color':
         //   },
         // },
-      })
-    })
+      });
+    }),
   ],
 };
 export default config;
