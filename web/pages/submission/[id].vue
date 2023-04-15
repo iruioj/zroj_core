@@ -109,14 +109,39 @@ const activeTask = ref([-1, -1]);
   <PageContainer>
     <div>
       <table
-        class="border-collapse w-full my-2 text-sm sm:text-md border border-theme"
+        class="border-collapse w-full my-2 text-sm sm:text-md border border-table"
       >
         <thead>
-          <tr class="border border-theme">
-            <th class="border border-theme py-1 w-20">ID</th>
-            <th class="border border-theme py-1 text-left px-1">Verdict</th>
-            <th class="border border-theme py-1">Time</th>
-            <th class="border border-theme py-1">Memory</th>
+          <tr>
+            <th class="text-brand border py-1 w-20">ID</th>
+            <th class="text-brand border py-1 text-left px-1">Verdict</th>
+            <th class="text-brand border py-1 px-1">Author</th>
+            <th class="text-brand border py-1 px-1">Lang</th>
+            <th class="text-brand border py-1">Time</th>
+            <th class="text-brand border py-1">Memory</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="border py-1 w-20 text-center">#1</td>
+            <td class="border py-1 text-left px-1">Wrong Answer</td>
+            <td class="border py-1 px-1 text-center">{{ data.meta.author }}</td>
+            <td class="border py-1 px-1 text-center">{{ data.meta.lang }}</td>
+            <td class="border py-1 text-center">114</td>
+            <td class="border py-1 text-center">514</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table
+        class="border-collapse w-full my-2 text-sm sm:text-md border border-table"
+      >
+        <thead>
+          <tr>
+            <th class="text-brand border py-1 w-20">ID</th>
+            <th class="text-brand border py-1 text-left px-1">Verdict</th>
+            <th class="text-brand border py-1">Time</th>
+            <th class="text-brand border py-1">Memory</th>
           </tr>
         </thead>
         <tbody v-if="data.detail.detail.Subtask">
@@ -125,35 +150,35 @@ const activeTask = ref([-1, -1]);
             :key="sid"
           >
             <tr>
-              <td class="border border-theme py-1 px-1 text-center">
+              <td class="border py-1 px-1 text-center">
                 Subtask #{{ sid + 1 }}
               </td>
-              <td class="border border-theme py-1 px-2">
+              <td class="border py-1 px-2">
                 {{ subtask.status.name }}
               </td>
-              <td class="border border-theme py-1 text-center">
+              <td class="border py-1 text-center">
                 {{ subtask.time }}
               </td>
-              <td class="border border-theme py-1 text-center">
+              <td class="border py-1 text-center">
                 {{ subtask.memory }}
               </td>
             </tr>
             <template v-for="(task, tid) in subtask.tasks" :key="tid">
               <tr>
                 <td
-                  class="border border-theme py-1 px-1 text-center select-none cursor-pointer"
+                  class="border py-1 px-1 text-center select-none cursor-pointer"
                   :rowspan="1 + 2 * task.payload.length"
                   @click="activeTask = [sid, tid]"
                 >
                   Test #{{ tid + 1 }}
                 </td>
-                <td class="border border-theme py-1 px-2">
+                <td class="border py-1 px-2">
                   {{ task.status.name }}
                 </td>
-                <td class="border border-theme py-1 text-center">
+                <td class="border py-1 text-center">
                   {{ task.time }}
                 </td>
-                <td class="border border-theme py-1 text-center">
+                <td class="border py-1 text-center">
                   {{ task.memory }}
                 </td>
               </tr>
@@ -167,8 +192,9 @@ const activeTask = ref([-1, -1]);
                     'collapse'
                   "
                 >
-                  <!-- <td class="border-r border-black/[0.2]"></td> -->
-                  <td class="px-2 border border-theme" colspan="3">{{ title }}</td>
+                  <td class="text-brand font-bold px-2 border" colspan="3">
+                    {{ title }}
+                  </td>
                 </tr>
                 <tr
                   :class="[
@@ -176,8 +202,7 @@ const activeTask = ref([-1, -1]);
                       'collapse',
                   ]"
                 >
-                  <!-- <td class="border-r border-black/[0.2]"></td> -->
-                  <td colspan="3" class="border border-theme">
+                  <td colspan="3" class="border">
                     <pre class="p-2">{{ content.str }}</pre>
                   </td>
                 </tr>

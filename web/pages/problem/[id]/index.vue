@@ -99,7 +99,7 @@ a`,
       <div
         v-for="(sample, id) in samples"
         :key="id"
-        class="px-1 my-2 mb-4 grid grid-cols-2 grid-rows-1"
+        class="px-1 my-2 mb-4 grid sm:grid-cols-2"
       >
         <div
           class="group p-2 hover:bg-black/[0.14] transition-colors cursor-pointer"

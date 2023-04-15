@@ -47,7 +47,7 @@ const onChangeLang = (item: Pick<(typeof langs)[0], "title" | "value">) => {
       <UBtn class="mx-2" @click="onSubmit">提交</UBtn>
     </div>
     <div class="sm:hidden">请使用电脑/调大窗口尺寸以使用自定义测试</div>
-    <MonacoEditor
+    <LazyMonacoEditor
       v-model="value"
       class="invisible sm:visible h-128 border border-slate-400 w-full"
       :lang="lang"

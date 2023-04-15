@@ -92,10 +92,10 @@ const topUsers = [
         <table class="w-full">
           <thead>
             <TableHeaderRow>
-              <th class="pb-2">#</th>
-              <th class="pb-2">用户</th>
-              <th class="pb-2">格言</th>
-              <th class="pb-2">Rating</th>
+              <th class="text-brand pb-2">#</th>
+              <th class="text-brand pb-2">用户</th>
+              <th class="text-brand pb-2">格言</th>
+              <th class="text-brand pb-2">Rating</th>
             </TableHeaderRow>
           </thead>
           <tbody>
