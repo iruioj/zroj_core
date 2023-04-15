@@ -8,5 +8,6 @@ edition.workspace = true
 [dependencies]
 sandbox = { path = "../sandbox" }
 tempfile = "3.5.0"
-serde_derive = "1.0.154"
-serde = "1.0.154"
+serde_derive = "1.0"
+serde = "1.0"
+serde_json = "1.0"

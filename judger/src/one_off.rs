@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use sandbox::{sigton, ExecSandBox};
 
-use crate::{lang::LangOption, Error, JudgeResult, Status};
+use crate::{lang::LangOption, Error, Status, TaskResult};
 
 /// OneOff 用于执行自定义测试，流程包含：编译、运行可执行文件。
 ///
@@ -15,9 +15,8 @@ pub struct OneOff<L: LangOption> {
     lang: L,
     source: PathBuf,
     stdin: Option<PathBuf>,
-    /// 工作目录
+    /// 工作目录，默认值为 [`std::env::current_dir()`]
     working_dir: PathBuf,
-    // compile_args: Vec<String>,
     // time_limit: u64,
     // memory_limit: u64,
 }
@@ -38,39 +37,19 @@ impl<L: LangOption> OneOff<L> {
         self.working_dir = dir;
         self
     }
-    // pub fn set_stdin(&mut self, file: PathBuf) -> &mut Self {
-    //     self.stdin = Some(file);
-    //     self
-    // }
-    pub fn exec(&self) -> Result<JudgeResult, Error> {
+    pub fn exec(&self) -> Result<TaskResult, Error> {
         eprintln!("source = {}", self.source.display());
         if cfg!(all(unix)) {
             // 可执行文件名
             let dest = self.working_dir.join("main");
 
             let cpl = self.lang.build_sigton(&self.source, &dest);
-            let term = match cpl.exec_sandbox() {
-                Ok(r) => r,
-                Err(e) => {
-                    return Ok(JudgeResult {
-                        status: Status::CompileFailed(e.clone()),
-                        msg: e.to_string().into(),
-                        time: 0,
-                        memory: 0,
-                        stdout: "".into(),
-                        stderr: "".into(),
-                    })
-                }
-            };
-            if term.status != sandbox::Status::Ok {
-                return Ok(JudgeResult {
-                    status: Status::CompileError(term.status.clone()),
-                    msg: format!("{:?}", term.status).into(),
-                    time: term.real_time,
-                    memory: term.memory,
-                    stdout: "".into(),
-                    stderr: "".into(),
-                });
+            let term = cpl.exec_sandbox()?;
+            let st = term.status.clone();
+            if st != sandbox::Status::Ok {
+                let mut r: TaskResult = term.into();
+                r.status = Status::CompileError(st);
+                return Ok(r);
             }
             eprintln!("编译成功");
             let out = self.working_dir.join("main.output");
@@ -87,26 +66,11 @@ impl<L: LangOption> OneOff<L> {
                 lim fileno: 6 6;
             };
             let term = s.exec_fork()?;
-
-            let judge_status = match term.status {
-                sandbox::Status::Ok => Status::Accepted,
-                sandbox::Status::RuntimeError(_, _) => Status::RuntimeError,
-                sandbox::Status::MemoryLimitExceeded(_) => Status::MemoryLimitExceeded,
-                sandbox::Status::TimeLimitExceeded(_) => Status::TimeLimitExceeded,
-                sandbox::Status::OutputLimitExceeded => Status::OutputLimitExceeded,
-                sandbox::Status::DangerousSyscall => Status::DangerousSyscall,
-            };
-
-            Ok(JudgeResult {
-                status: judge_status,
-                msg: "".into(),
-                time: term.real_time,
-                memory: term.memory,
-                stdout: std::fs::read_to_string(out)
+            let mut r: TaskResult = term.into();
+            r.payload.push(("stdout".to_string(), std::fs::read_to_string(out)
                     .map_err(|e| Error::IOError(e))?
-                    .into(),
-                stderr: "".into(),
-            })
+                    .into()));
+            Ok(r)
         } else {
             todo!()
         }
