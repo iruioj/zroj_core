@@ -1,3 +1,4 @@
+<!-- 使用 aleph 指示 hydration -->
 <script setup lang="ts">
 import NavButton from "./NavButton.vue";
 </script>
@@ -8,7 +9,12 @@ import NavButton from "./NavButton.vue";
   >
     <div class="flex items-center">
       <NuxtLink to="/">
-        <div class="inline-block px-4 font-bold text-xl text-brand">ZROJ</div>
+        <div class="inline-block px-4 font-bold text-xl text-brand">
+          ZROJ
+          <ClientOnly>
+            <sup class="text-brand" title="hydration complete">ℵ</sup>
+          </ClientOnly>
+        </div>
       </NuxtLink>
       <div class="print:hidden hidden sm:flex">
         <NavButton to="/problemset">Problems</NavButton>

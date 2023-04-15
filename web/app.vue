@@ -1,7 +1,6 @@
 <script setup lang="ts">
-const config = useRuntimeConfig();
 useHead({
-  title: config.debug === "production" ? "Zhengrui Online Judge" : "ZROJ (dev)",
+  title: useAppConfig().title,
 });
 </script>
 <template>

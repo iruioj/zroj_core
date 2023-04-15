@@ -1,3 +1,4 @@
+<!-- 考虑到服务端和客户端的时区可能不同，设置为客户端渲染组件 -->
 <script setup lang="ts">
 const props = defineProps<{
   time: number;
