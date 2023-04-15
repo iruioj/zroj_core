@@ -2,6 +2,7 @@
   <div class="w-screen h-screen bg-back overflow-auto">
     <NavBar />
     <NuxtPage />
+    <FootBar />
   </div>
 </template>
 <style>
@@ -17,7 +18,7 @@
     --theme-brand: 140 0 0;
     --theme-brand-sec: 86 0 0;
   }
-  * {
+  html {
     color: rgb(var(--theme-pri));
   }
 
@@ -38,7 +39,9 @@
   .border-table th {
     @apply border-[#e7e7e9] dark:border-[#2d2e31];
 
-    /* @apply border-slate-900/10 dark:border-slate-50/[0.06]; */
+  }
+  .border-theme {
+    @apply border-slate-900/10 dark:border-slate-50/[0.06];
   }
   /* ... */
 }

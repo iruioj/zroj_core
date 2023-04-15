@@ -10,7 +10,7 @@ const date = computed(() => new Date(props.time));
   <span>
     <span>
       <span>{{ date.getFullYear() }}</span
-      >-<span>{{ date.getMonth() }}</span
+      >-<span>{{ date.getMonth() + 1 }}</span
       >-<span>{{ date.getDate() }}</span>
     </span>
     <span class="pl-1">

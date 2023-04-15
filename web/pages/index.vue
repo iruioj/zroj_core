@@ -6,7 +6,7 @@ const announcements = [
     link: "http://www.zhengruioi.com/blog/2",
     author: "zhengruioi",
     author_link: "http://www.zhengruioi.com/user/profile/zhengruioi",
-    date: "2022-03-04 21:46:54",
+    date: new Date("2022-03-04 21:46:54").getTime(),
   },
   {
     id: 2,
@@ -14,7 +14,7 @@ const announcements = [
     link: "http://www.zhengruioi.com/blog/2",
     author: "zhengruioi",
     author_link: "http://www.zhengruioi.com/user/profile/zhengruioi",
-    date: "2022-03-04 21:46:54",
+    date: new Date("2022-03-04 21:46:54").getTime(),
   },
   {
     id: 3,
@@ -22,7 +22,7 @@ const announcements = [
     link: "http://www.zhengruioi.com/blog/2",
     author: "zhengruioi",
     author_link: "http://www.zhengruioi.com/user/profile/zhengruioi",
-    date: "2022-03-04 21:46:54",
+    date: new Date("2022-03-04 21:46:54").getTime(),
   },
 ];
 
@@ -69,7 +69,7 @@ const topUsers = [
         <li
           v-for="an in announcements"
           :key="an.id"
-          class="py-2 border-b border-dashed border-b-black/20 last:border-b-0"
+          class="py-2 border-b border-theme last:border-b-0"
         >
           <div class="inline-block flex">
             <TextLink :to="an.link">{{ an.title }}</TextLink>
@@ -77,11 +77,11 @@ const topUsers = [
               by
               <NuxtLink
                 :to="an.author_link"
-                class="font-bold text-black hover:text-brand"
+                class="font-bold hover:text-brand"
                 >{{ an.author }}
               </NuxtLink>
             </div>
-            <div class="pl-2">更新于 {{ an.date }}</div>
+            <div class="pl-2">更新于 <DateTime :time="an.date" /></div>
           </div>
         </li>
       </ul>
@@ -92,10 +92,10 @@ const topUsers = [
         <table class="w-full">
           <thead>
             <TableHeaderRow>
-              <th class="text-brand pb-2">#</th>
-              <th class="text-brand pb-2">用户</th>
-              <th class="text-brand pb-2">格言</th>
-              <th class="text-brand pb-2">Rating</th>
+              <th class="pb-2">#</th>
+              <th class="pb-2">用户</th>
+              <th class="pb-2">格言</th>
+              <th class="pb-2">Rating</th>
             </TableHeaderRow>
           </thead>
           <tbody>

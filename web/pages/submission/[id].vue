@@ -112,13 +112,13 @@ const activeTask = ref([-1, -1]);
         class="border-collapse w-full my-2 text-sm sm:text-md border border-table"
       >
         <thead>
-          <tr>
-            <th class="text-brand border py-1 w-20">ID</th>
-            <th class="text-brand border py-1 text-left px-1">Verdict</th>
-            <th class="text-brand border py-1 px-1">Author</th>
-            <th class="text-brand border py-1 px-1">Lang</th>
-            <th class="text-brand border py-1">Time</th>
-            <th class="text-brand border py-1">Memory</th>
+          <tr class="text-brand">
+            <th class="border py-1 w-20">ID</th>
+            <th class="border py-1 text-left px-1">Verdict</th>
+            <th class="border py-1 px-1">Author</th>
+            <th class="border py-1 px-1">Lang</th>
+            <th class="border py-1">Time</th>
+            <th class="border py-1">Memory</th>
           </tr>
         </thead>
         <tbody>
@@ -137,11 +137,11 @@ const activeTask = ref([-1, -1]);
         class="border-collapse w-full my-2 text-sm sm:text-md border border-table"
       >
         <thead>
-          <tr>
-            <th class="text-brand border py-1 w-20">ID</th>
-            <th class="text-brand border py-1 text-left px-1">Verdict</th>
-            <th class="text-brand border py-1">Time</th>
-            <th class="text-brand border py-1">Memory</th>
+          <tr class="text-brand">
+            <th class="border py-1 w-20">ID</th>
+            <th class="border py-1 text-left px-1">Verdict</th>
+            <th class="border py-1">Time</th>
+            <th class="border py-1">Memory</th>
           </tr>
         </thead>
         <tbody v-if="data.detail.detail.Subtask">
