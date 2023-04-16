@@ -4,14 +4,14 @@ use tempfile::tempdir;
 #[test]
 #[cfg(all(unix))]
 #[cfg_attr(not(target_os = "linux"), ignore = "not linux")]
-fn gcc_linux() -> Result<(), sandbox::UniError> {
+fn test_gcc_linux() -> Result<(), sandbox::UniError> {
     use sandbox::{sigton, ExecSandBox, Status};
 
     let dir = tempdir()?;
     let filepath = &dir.path().join("main.cpp");
     let execpath = &dir.path().join("main");
     let mut file = std::fs::File::create(filepath)?;
-    let source = include_str!("asserts/stress.cpp");
+    let source = include_str!("asserts/stress.txt");
     file.write(source.as_bytes())?;
     const MB: u64 = 1024 * 1024_u64;
     const GB: u64 = 1024 * MB;

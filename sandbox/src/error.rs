@@ -1,7 +1,9 @@
 use std::fmt::{Debug, Display};
 
+use serde::{Serialize, Deserialize};
+
 /// 一个通用的错误类型
-#[derive(Debug)]
+#[derive(Debug,Clone, Serialize, Deserialize)]
 pub enum UniError {
     /// 基于信息的错误
     Msg(String),
