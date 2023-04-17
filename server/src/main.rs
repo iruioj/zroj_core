@@ -1,34 +1,31 @@
 // use actix_web::dev::Server;
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
-use actix_web::{web, App, HttpServer};
-use diesel::{
-   r2d2 :: {ConnectionManager, Pool, PooledConnection}, 
-   mysql :: {MysqlConnection}, 
-};
-use crate::auth::SessionContainer;
+use actix_web::{web, App, HttpServer, cookie::Key};
+use crate::{auth::SessionContainer, data::userdata::UserDataManager};
 mod admin;
 mod app;
 mod auth;
 mod problem;
 mod config;
 mod schema;
-mod database;
+mod data;
 mod manager;
-use config::ServerConfig;
+use config::core::CoreConfig;
+use data::UserDataManagerType;
 #[macro_use]
 extern crate diesel;
-type MysqlPool = Pool<ConnectionManager<MysqlConnection>>;
-type MysqlPooledConnection = PooledConnection<ConnectionManager<MysqlConnection>>;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let session_container = web::Data::new(SessionContainer::new());
-    let server_config: ServerConfig = config::load();
-    let user_database = web::Data::new(database::UserDatabase::new(&server_config.database_url));
-    let problem_manager = web::Data::new(manager::ProblemManager::new(&server_config));
-    let custom_test_manager = web::Data::new(manager::CustomTestManager::new(&server_config));
-    let judge_queue = web::Data::new(manager::judge_queue::JudgeQueue::new(server_config.judge_count));
-    eprintln!("server listening on http://{}:{}", server_config.host, server_config.port);
+    let core_config: CoreConfig = config::core::CoreConfig::new();
+    let user_data_manager= web::Data::new(
+        UserDataManagerType::new(&core_config)
+    );
+    let problem_manager = web::Data::new(manager::problem::ProblemManager::new(&core_config));
+    let custom_test_manager = web::Data::new(manager::custom_test::CustomTestManager::new(&core_config));
+    let judge_queue = web::Data::new(manager::judge_queue::JudgeQueue::new(core_config.judge_count));
+    eprintln!("server listening on http://{}:{}", core_config.host, core_config.port);
     HttpServer::new(move || {
         App::new()
             .wrap(actix_web::middleware::Logger::new(
@@ -36,17 +33,17 @@ async fn main() -> std::io::Result<()> {
             ))
             .wrap(SessionMiddleware::new(
                     CookieSessionStore::default(),
-                    server_config.secret_key.clone(),
+                    Key::generate()
                 )
             ).configure(app::new(
                 session_container.clone(),
-                user_database.clone(),
+                user_data_manager.clone(),
                 problem_manager.clone(),
                 custom_test_manager.clone(),
                 judge_queue.clone()
             ))
     })
-    .bind((server_config.host, server_config.port))?
+    .bind((core_config.host, core_config.port))?
     .run()
     .await
 }
