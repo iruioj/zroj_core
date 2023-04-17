@@ -1,7 +1,6 @@
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::{schema::{users, NewUser, User}, config::core::CoreConfig};
-use actix_web::App;
+use crate::{config::core::CoreConfig};
 use serde::{Serialize, Deserialize};
 use serde_json::from_str;
 
