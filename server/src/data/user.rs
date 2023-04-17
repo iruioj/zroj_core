@@ -1,7 +1,7 @@
 //! imp struct for different database queries
 use crate::{
     config::core::CoreConfig,
-    schema::{users, NewUser, User},
+    data::schema::{users, NewUser, User},
 };
 use actix_web::{error::ErrorInternalServerError, Result};
 use async_trait::async_trait;
@@ -19,6 +19,7 @@ pub trait Manager {
     ) -> Result<User>;
 }
 
+#[cfg(feature="mysql")]
 pub mod database {
     use crate::data::user::*;
     use async_trait::async_trait;

@@ -9,10 +9,8 @@ mod config;
 mod data;
 mod manager;
 mod problem;
-mod schema;
 use config::core::CoreConfig;
 use data::UserDataManagerType;
-extern crate diesel;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
