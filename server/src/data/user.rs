@@ -1,9 +1,9 @@
 //! imp struct for different database queries
 use crate::{
     config::core::CoreConfig,
-    data::schema::{users, NewUser, User},
+    data::schema::User,
 };
-use actix_web::{error::ErrorInternalServerError, Result};
+use actix_web::Result;
 use async_trait::async_trait;
 
 #[async_trait]
@@ -19,7 +19,7 @@ pub trait Manager {
     ) -> Result<User>;
 }
 
-#[cfg(feature="mysql")]
+#[cfg(feature = "mysql")]
 pub mod database {
     use crate::data::user::*;
     use async_trait::async_trait;
@@ -29,6 +29,7 @@ pub mod database {
         prelude::*,
         r2d2::{ConnectionManager, Pool, PooledConnection},
     };
+    use crate::data::schema::{NewUser, users};
     type MysqlPool = Pool<ConnectionManager<MysqlConnection>>;
     type MysqlPooledConnection = PooledConnection<ConnectionManager<MysqlConnection>>;
     use crate::data::user::Manager;
@@ -67,7 +68,7 @@ pub mod database {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => match e {
                     diesel::result::Error::NotFound => Ok(None),
-                    _ => Err(ErrorInternalServerError(format!(
+                    _ => Err(error::ErrorInternalServerError(format!(
                         "Database error: {}",
                         e.to_string()
                     ))),
@@ -81,7 +82,7 @@ pub mod database {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => match e {
                     diesel::result::Error::NotFound => Ok(None),
-                    _ => Err(ErrorInternalServerError(format!(
+                    _ => Err(error::ErrorInternalServerError(format!(
                         "Database error: {}",
                         e.to_string()
                     ))),
@@ -106,7 +107,7 @@ pub mod database {
                     .execute(conn)?;
                 users::table.order(users::id.desc()).first::<User>(conn)
             })
-            .map_err(|e| ErrorInternalServerError(format!("Database Error: {}", e.to_string())))
+            .map_err(|e| error::ErrorInternalServerError(format!("Database Error: {}", e.to_string())))
         }
     }
 }

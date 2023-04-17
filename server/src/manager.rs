@@ -2,7 +2,7 @@ use crate::manager::custom_test::start_custom_test;
 use crate::manager::problem::{ProblemManager, ProblemViewData};
 use crate::problem::*;
 use crate::{
-    auth::{require_login, SessionContainer, UserID},
+    auth::{require_login, SessionContainer},
 };
 use actix_multipart::form::MultipartForm;
 use actix_multipart::form::tempfile::TempFile;
@@ -13,7 +13,7 @@ use judger::lang::LangOption;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 type ProblemID = u32;
-type GroupID = i32;
+// type GroupID = i32;
 pub mod custom_test;
 pub mod judge_queue;
 pub mod problem;

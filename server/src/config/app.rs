@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::config::core::CoreConfig;
@@ -36,11 +37,11 @@ impl AppConfigManager {
     fn read(&self) -> actix_web::Result<RwLockReadGuard<AppConfig>> {
         self.data
             .read()
-            .map_err(|e| actix_web::error::ErrorInternalServerError("Fail to get read lock"))
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Fail to get read lock"))
     }
     fn write(&self) -> actix_web::Result<RwLockWriteGuard<AppConfig>> {
         self.data
             .write()
-            .map_err(|e| actix_web::error::ErrorInternalServerError("Fail to get write lock"))
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Fail to get write lock"))
     }
 }

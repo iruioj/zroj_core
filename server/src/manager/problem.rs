@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::sync::RwLock;
 
 use actix_web::{Result, error};
@@ -66,10 +67,10 @@ impl ProblemManager {
         drop(guard);
         Ok(result)
     }
-    pub fn check_access(&self, pid: ProblemID, uid: UserID) -> actix_web::Result<ProblemAccess> {
+    pub fn check_access(&self, _pid: ProblemID, _uid: UserID) -> actix_web::Result<ProblemAccess> {
         todo!()
     }
-    pub fn fetch_view_data(&self, pid: ProblemID) -> actix_web::Result<ProblemViewData> {
+    pub fn fetch_view_data(&self, _pid: ProblemID) -> actix_web::Result<ProblemViewData> {
         todo!()
     }
 }
