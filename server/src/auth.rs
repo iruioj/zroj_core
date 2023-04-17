@@ -13,7 +13,7 @@ use serde_derive::Deserialize;
 use actix_session::Session;
 use crate::{
     schema::{LoginPayload, ResponseMsg, RegisterPayload, response_msg},
-    data::userdata::UserDataManager, UserDataManagerType
+    data::user::Manager, UserDataManagerType
 };
 type SessionID = uuid::Uuid;
 pub type UserID = i32;

@@ -11,6 +11,7 @@ pub struct CoreConfig {
     pub problem_data_dir: String,
     pub judge_count: usize,
     pub user_data_path: String,
+    pub app_config_path: String,
 }
 impl CoreConfig {
     /* pub fn set <T> (key: String, value : T) {
@@ -36,6 +37,7 @@ impl CoreConfig {
             problem_data_dir: "data/".to_string(),
             judge_count: 8usize,
             user_data_path: "./userinfo.json".to_string(),
+            app_config_path: "./appconfig.json".to_string(),
         }
     }
 }
