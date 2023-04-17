@@ -57,12 +57,6 @@ async fn view_problem(
     }
 }
 
-/*
-        let mut one = OneOff::new(src.into(), inp.into(), gnu_cpp17_o2());
-        one.set_wd(dir.path().to_path_buf());
-        let res = one.exec()?;
-*/
-
 /// warning: this funtion contains probable leak
 fn parse_source_file_name(s: String) -> Result<(String, CodeLang)> {
     if s.contains('/') {

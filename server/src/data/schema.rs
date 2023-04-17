@@ -1,8 +1,4 @@
-use actix_multipart::form::tempfile::TempFile;
-use actix_multipart::form::MultipartForm;
-use actix_web::web;
 use diesel::{table, Insertable, Queryable};
-use judger::TaskResult;
 use serde::Serialize;
 use serde_derive::Deserialize;
 
