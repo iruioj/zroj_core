@@ -1,9 +1,5 @@
 //! Auth 模块负责用户的鉴权.
-use crate::{
-    data::user::Manager,
-    schema::{response_msg, LoginPayload, RegisterPayload, ResponseMsg},
-    UserDataManagerType,
-};
+use crate::{data::user::Manager, UserDataManagerType};
 use actix_session::Session;
 use actix_web::{
     error::{self, ErrorInternalServerError},
@@ -108,13 +104,23 @@ fn validate_username(username: &String) -> actix_web::Result<()> {
     Ok(())
 }
 
+/// format of login payload
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LoginPayload {
+    /// 用户名
+    pub username: String,
+    /// 密码的哈希值（不要明文传递）
+    #[serde(rename = "passwordHash")]
+    pub password_hash: String,
+}
+
 #[post("/login")]
 async fn login(
     payload: web::Json<LoginPayload>,
     session: Session,
     session_container: web::Data<SessionContainer>,
     user_data_manager: web::Data<UserDataManagerType>,
-) -> actix_web::Result<web::Json<ResponseMsg>> {
+) -> actix_web::Result<String> {
     validate_username(&payload.username)?;
     let sessionid = fetch_sessionid(&session, &session_container)?;
     eprintln!("login request: {:?}", payload);
@@ -123,7 +129,7 @@ async fn login(
         .await?
     {
         if result.password_hash != payload.password_hash {
-            return response_msg(false, "Password not correct");
+            return Err(error::ErrorBadRequest("Password not correct"));
         } else {
             session_container.set(
                 sessionid,
@@ -131,11 +137,23 @@ async fn login(
                     login_state: LoginState::UserID(result.id),
                 },
             )?;
-            return response_msg(true, "Login success");
+            return Ok("Login success".to_string());
         }
     } else {
-        return response_msg(false, "User does not exist");
+        return Err(error::ErrorBadRequest("User does not exist"));
     }
+}
+
+/// format of register payload
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RegisterPayload {
+    /// 邮箱
+    pub email: String,
+    /// 用户名
+    pub username: String,
+    /// 密码的哈希值（不要明文传递）
+    #[serde(rename = "passwordHash")]
+    pub password_hash: String,
 }
 
 #[post("/register")]
@@ -144,18 +162,18 @@ async fn register(
     session: Session,
     session_container: web::Data<SessionContainer>,
     user_data_manager: web::Data<UserDataManagerType>,
-) -> actix_web::Result<web::Json<ResponseMsg>> {
+) -> actix_web::Result<String> {
     validate_username(&payload.username)?;
     let sessionid = fetch_sessionid(&session, &session_container)?;
     eprintln!("register req: {:?}", &payload);
     if !email_address::EmailAddress::is_valid(&payload.email) {
-        return response_msg(false, "Invalid email address");
+        return Err(error::ErrorBadRequest("Invalid email address"));
     }
     if let Some(_) = user_data_manager
         .query_by_username(&payload.username)
         .await?
     {
-        return response_msg(false, "User already exists");
+        return Err(error::ErrorBadRequest("User already exists"));
     }
     let result = user_data_manager
         .insert(&payload.username, &payload.password_hash, &payload.email)
@@ -166,7 +184,7 @@ async fn register(
             login_state: LoginState::UserID(result.id),
         },
     )?;
-    response_msg(true, "Registration success")
+    Ok("Registration success".to_string())
 }
 
 pub fn service(

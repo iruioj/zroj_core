@@ -1,14 +1,14 @@
 use crate::manager::custom_test::start_custom_test;
 use crate::manager::problem::{ProblemManager, ProblemViewData};
 use crate::problem::*;
-use crate::schema::CustomTestResult;
 use crate::{
     auth::{require_login, SessionContainer, UserID},
-    schema::CustomTestPayload,
 };
 use actix_multipart::form::MultipartForm;
+use actix_multipart::form::tempfile::TempFile;
 use actix_session::Session;
 use actix_web::{error, get, post, web, Result};
+use judger::TaskResult;
 use judger::lang::LangOption;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -78,6 +78,17 @@ fn parse_source_file_name(s: String) -> Result<(String, CodeLang)> {
     let suffix = split[2];
     Ok(("source.".to_string() + suffix, lang))
 }
+
+/// format of custom test post payload
+#[derive(Debug, MultipartForm)]
+pub struct CustomTestPayload {
+    #[multipart]
+    /// source file, file name: any.{lang}.{suf}
+    pub source: TempFile,
+    /// input file
+    #[multipart]
+    pub input: TempFile,
+}
 #[post("/custom_test")]
 async fn handle_custom_test(
     payload: MultipartForm<CustomTestPayload>,
@@ -101,6 +112,12 @@ async fn handle_custom_test(
     } else {
         Err(error::ErrorBadRequest("Missing source file name"))
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CustomTestResult {
+    /// return None if the judging or failed
+    pub result: Option<TaskResult>,
 }
 
 #[get("/custom_test")]
