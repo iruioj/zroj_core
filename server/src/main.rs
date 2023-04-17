@@ -1,7 +1,7 @@
 // use actix_web::dev::Server;
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{web, App, HttpServer, cookie::Key};
-use crate::{auth::SessionContainer, data::userdata::UserDataManager};
+use crate::{auth::SessionContainer, data::user::Manager};
 mod admin;
 mod app;
 mod auth;
