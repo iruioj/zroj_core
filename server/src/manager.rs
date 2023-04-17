@@ -1,5 +1,5 @@
 use crate::manager::custom_test::start_custom_test;
-use crate::manager::problem::{ProblemViewData, ProblemManager};
+use crate::manager::problem::{ProblemManager, ProblemViewData};
 use crate::problem::*;
 use crate::schema::CustomTestResult;
 use crate::{
@@ -14,13 +14,12 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 type ProblemID = u32;
 type GroupID = i32;
-pub mod problem;
 pub mod custom_test;
 pub mod judge_queue;
+pub mod problem;
 use judge_queue::JudgeQueue;
 
 use self::custom_test::CustomTestManager;
-
 
 #[derive(Serialize, Debug, Clone, Deserialize)]
 pub enum CodeLang {

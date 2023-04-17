@@ -1,15 +1,15 @@
 // use actix_web::dev::Server;
-use actix_session::{storage::CookieSessionStore, SessionMiddleware};
-use actix_web::{web, App, HttpServer, cookie::Key};
 use crate::{auth::SessionContainer, data::user::Manager};
+use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_web::{cookie::Key, web, App, HttpServer};
 mod admin;
 mod app;
 mod auth;
-mod problem;
 mod config;
-mod schema;
 mod data;
 mod manager;
+mod problem;
+mod schema;
 use config::core::CoreConfig;
 use data::UserDataManagerType;
 extern crate diesel;
@@ -18,35 +18,38 @@ extern crate diesel;
 async fn main() -> std::io::Result<()> {
     let session_container = web::Data::new(SessionContainer::new());
     let core_config: CoreConfig = config::core::CoreConfig::new();
-    let user_data_manager= web::Data::new(
-        UserDataManagerType::new(&core_config)
-    );
+    let user_data_manager = web::Data::new(UserDataManagerType::new(&core_config));
     let problem_manager = web::Data::new(manager::problem::ProblemManager::new(&core_config));
-    let custom_test_manager = web::Data::new(manager::custom_test::CustomTestManager::new(&core_config));
-    let judge_queue = web::Data::new(manager::judge_queue::JudgeQueue::new(core_config.judge_count));
-    eprintln!("server listening on http://{}:{}", core_config.host, core_config.port);
+    let custom_test_manager =
+        web::Data::new(manager::custom_test::CustomTestManager::new(&core_config));
+    let judge_queue = web::Data::new(manager::judge_queue::JudgeQueue::new(
+        core_config.judge_count,
+    ));
+    eprintln!(
+        "server listening on http://{}:{}",
+        core_config.host, core_config.port
+    );
     HttpServer::new(move || {
         App::new()
             .wrap(actix_web::middleware::Logger::new(
                 r#"%a %t "%r" %s "%{Referer}i" "%{User-Agent}i" %T"#,
             ))
             .wrap(SessionMiddleware::new(
-                    CookieSessionStore::default(),
-                    Key::generate()
-                )
-            ).configure(app::new(
+                CookieSessionStore::default(),
+                Key::generate(),
+            ))
+            .configure(app::new(
                 session_container.clone(),
                 user_data_manager.clone(),
                 problem_manager.clone(),
                 custom_test_manager.clone(),
-                judge_queue.clone()
+                judge_queue.clone(),
             ))
     })
     .bind((core_config.host, core_config.port))?
     .run()
     .await
 }
-
 
 /*
 #[cfg(test)]
