@@ -1,4 +1,4 @@
-use std::sync::RwLock;
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::{schema::{users, NewUser, User}, config::core::CoreConfig};
 use actix_web::App;
@@ -36,6 +36,14 @@ impl AppConfigManager {
             data: RwLock::new(data),
             path: config.app_config_path.clone(),
         }
+    }
+    fn read(&self) -> actix_web::Result <RwLockReadGuard<AppConfig>> {
+        self.data.read()
+            .map_err(|e| actix_web::error::ErrorInternalServerError("Fail to get read lock"))
+    }
+    fn write(&self) -> actix_web::Result <RwLockWriteGuard<AppConfig>> {
+        self.data.write()
+            .map_err(|e| actix_web::error::ErrorInternalServerError("Fail to get write lock"))
     }
 }
 

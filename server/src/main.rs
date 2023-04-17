@@ -12,7 +12,6 @@ mod data;
 mod manager;
 use config::core::CoreConfig;
 use data::UserDataManagerType;
-#[macro_use]
 extern crate diesel;
 
 #[actix_web::main]

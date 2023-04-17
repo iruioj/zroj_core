@@ -58,10 +58,10 @@ pub mod database {
             }
         }
         async fn query_by_username(&self, username: &String) -> Result<Option<User>> {
-            let conn = self.get_conn().await?;
+            let mut conn = self.get_conn().await?;
             let result = users::table
                 .filter(users::username.eq(username))
-                .first::<User>(&conn);
+                .first::<User>(&mut conn);
             match result {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => match e {
@@ -74,8 +74,8 @@ pub mod database {
             }
         }
         async fn query_by_userid(&self, userid: i32) -> Result<Option<User>> {
-            let conn = self.get_conn().await?;
-            let result = users::table.filter(users::id.eq(userid)).first(&conn);
+            let mut conn = self.get_conn().await?;
+            let result = users::table.filter(users::id.eq(userid)).first(&mut conn);
             match result {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => match e {
@@ -93,8 +93,8 @@ pub mod database {
             password_hash: &String,
             email: &String,
         ) -> Result<User> {
-            let conn = self.get_conn().await?;
-            conn.transaction(|| {
+            let mut conn = self.get_conn().await?;
+            conn.transaction(|conn| {
                 let new_user = NewUser {
                     username: username,
                     password_hash: password_hash,
@@ -102,8 +102,8 @@ pub mod database {
                 };
                 diesel::insert_into(users::table)
                     .values(&new_user)
-                    .execute(&conn)?;
-                users::table.order(users::id.desc()).first::<User>(&conn)
+                    .execute(conn)?;
+                users::table.order(users::id.desc()).first::<User>(conn)
             })
             .map_err(|e| ErrorInternalServerError(format!("Database Error: {}", e.to_string())))
         }
