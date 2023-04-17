@@ -1,25 +1,23 @@
-use crate::manager::custom_test::start_custom_test;
-use crate::manager::problem::{ProblemManager, ProblemViewData};
-use crate::problem::*;
-use crate::{
-    auth::{require_login, SessionContainer},
-};
-use actix_multipart::form::MultipartForm;
-use actix_multipart::form::tempfile::TempFile;
-use actix_session::Session;
-use actix_web::{error, get, post, web, Result};
-use judger::TaskResult;
-use judger::lang::LangOption;
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-type ProblemID = u32;
-// type GroupID = i32;
 pub mod custom_test;
 pub mod judge_queue;
 pub mod problem;
-use judge_queue::JudgeQueue;
 
-use self::custom_test::CustomTestManager;
+use crate::auth::{require_login, SessionContainer};
+use crate::problem::*;
+use actix_multipart::form::{tempfile::TempFile, MultipartForm};
+use actix_session::Session;
+use actix_web::{error, get, post, web, Result};
+use judger::{lang::LangOption, TaskResult};
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use judge_queue::JudgeQueue;
+use self::{
+    custom_test::{start_custom_test, CustomTestManager},
+    problem::{ProblemManager, ProblemViewData},
+};
+
+type ProblemID = u32;
+// type GroupID = i32;
 
 #[derive(Serialize, Debug, Clone, Deserialize)]
 pub enum CodeLang {
