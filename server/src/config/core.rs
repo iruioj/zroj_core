@@ -1,4 +1,4 @@
-use actix_web::{Result, error};
+use actix_web::{error, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -41,4 +41,3 @@ impl CoreConfig {
         }
     }
 }
-

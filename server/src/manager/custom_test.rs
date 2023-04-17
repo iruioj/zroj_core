@@ -1,7 +1,11 @@
-use std::{sync::{Arc, RwLock}, collections::HashMap, path::PathBuf};
-use actix_web::{Result, error, web};
-use judger::{OneOff, TaskResult};
 use crate::{auth::UserID, config::core::CoreConfig};
+use actix_web::{error, web, Result};
+use judger::{OneOff, TaskResult};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{Arc, RwLock},
+};
 
 use super::{judge_queue::JudgeQueue, CodeLang};
 
@@ -15,7 +19,7 @@ impl CustomTestManager {
     pub fn new(config: &CoreConfig) -> Self {
         Self {
             base_dir: config.problem_base_dir.clone(),
-            state: Arc::new(RwLock::new(HashMap::new()))
+            state: Arc::new(RwLock::new(HashMap::new())),
         }
     }
     pub fn check_userid(&self, uid: &UserID) -> Result<()> {
@@ -26,10 +30,14 @@ impl CustomTestManager {
     }
     pub fn fetch_result(&self, uid: &UserID) -> Result<Option<TaskResult>> {
         self.check_userid(uid)?;
-        let guard = self.state
+        let guard = self
+            .state
             .read()
             .map_err(|_| error::ErrorInternalServerError("Fail to get lock"))?;
-        Ok((*guard).get(uid).ok_or(error::ErrorBadRequest("No requested custom test"))?.clone())
+        Ok((*guard)
+            .get(uid)
+            .ok_or(error::ErrorBadRequest("No requested custom test"))?
+            .clone())
     }
     pub fn get_user_folder(&self, uid: &UserID) -> Result<PathBuf> {
         let mut path = PathBuf::new();

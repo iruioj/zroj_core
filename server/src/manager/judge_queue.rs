@@ -1,5 +1,5 @@
-use std::sync::{Arc, Mutex};
 use crossbeam_channel::{bounded, Receiver, Sender};
+use std::sync::{Arc, Mutex};
 type Job = Box<dyn FnOnce() + Send + 'static>;
 enum Message {
     Job(Job),
@@ -9,7 +9,7 @@ struct Worker {
     thread: Option<std::thread::JoinHandle<()>>,
 }
 impl Worker {
-    fn new(id: usize, receiver: Arc <Mutex<Receiver<Message>>>) -> Self {
+    fn new(id: usize, receiver: Arc<Mutex<Receiver<Message>>>) -> Self {
         let thread = std::thread::spawn(move || loop {
             let message = receiver.lock().unwrap().recv().unwrap();
 
@@ -43,7 +43,7 @@ impl JudgeQueue {
         }
         JudgeQueue { workers, sender }
     }
-    pub fn add <F> (&self, f: F)
+    pub fn add<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static,
     {

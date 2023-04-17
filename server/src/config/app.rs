@@ -1,13 +1,11 @@
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::{config::core::CoreConfig};
-use serde::{Serialize, Deserialize};
+use crate::config::core::CoreConfig;
+use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 
 #[derive(Serialize, Deserialize)]
-pub struct AppConfig {
-    
-}
+pub struct AppConfig {}
 
 pub struct AppConfigManager {
     data: RwLock<AppConfig>,
@@ -23,29 +21,26 @@ impl AppConfigManager {
     /// save data to json file, must be saved or panic!!!
     fn save(&self) {
         let guard = self.data.read().expect("Fail to fetch guard when saving");
-        let s = serde_json::to_string::<AppConfig>(&guard).expect("Fail to parse user data as json");
+        let s =
+            serde_json::to_string::<AppConfig>(&guard).expect("Fail to parse user data as json");
         std::fs::write(&self.path, s)
             .expect(&format!("Fail to write user data to path: {}", self.path));
     }
     fn new(config: CoreConfig) -> Self {
-        let data = Self::load(&config.app_config_path)
-            .unwrap_or(AppConfig {
-            });
+        let data = Self::load(&config.app_config_path).unwrap_or(AppConfig {});
         Self {
             data: RwLock::new(data),
             path: config.app_config_path.clone(),
         }
     }
-    fn read(&self) -> actix_web::Result <RwLockReadGuard<AppConfig>> {
-        self.data.read()
+    fn read(&self) -> actix_web::Result<RwLockReadGuard<AppConfig>> {
+        self.data
+            .read()
             .map_err(|e| actix_web::error::ErrorInternalServerError("Fail to get read lock"))
     }
-    fn write(&self) -> actix_web::Result <RwLockWriteGuard<AppConfig>> {
-        self.data.write()
+    fn write(&self) -> actix_web::Result<RwLockWriteGuard<AppConfig>> {
+        self.data
+            .write()
             .map_err(|e| actix_web::error::ErrorInternalServerError("Fail to get write lock"))
     }
 }
-
-
-
-
