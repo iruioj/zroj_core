@@ -1,4 +1,5 @@
 //! app 模块可以创建 OJ 后端的应用路由配置.
+
 use crate::{
     admin,
     auth::{self, SessionContainer},
@@ -7,11 +8,20 @@ use crate::{
 };
 use actix_web::{
     web::{self, ServiceConfig},
-    HttpResponse,
+    HttpRequest, HttpResponse,
 };
 
-async fn default_route() -> HttpResponse {
-    HttpResponse::NotFound().body("该路径不存在")
+async fn default_route(req: HttpRequest) -> HttpResponse {
+    let mut r = String::new();
+
+    r.push_str("Not found\n\n");
+    r.push_str(format!("Uri: {}\n", req.uri()).as_str());
+    r.push_str(format!("Method: {}\n", req.method()).as_str());
+    r.push_str("Headers:\n");
+    for (name, val) in req.headers() {
+        r.push_str(format!("- {}:{:?}\n", name, val).as_str());
+    }
+    HttpResponse::NotFound().body(r)
 }
 
 /// 返回一个路由配置闭包函数。

@@ -30,7 +30,7 @@ impl CoreConfig {
         }
         Self {
             host: "127.0.0.1".to_string(),
-            port: 80,
+            port: 8080,
             userdata_database_url: None,
             problem_base_dir: "/var/problems/{}/".to_string(),
             problem_statement: "stmt.json".to_string(),
