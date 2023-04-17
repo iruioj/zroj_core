@@ -33,62 +33,6 @@ pub struct NewUser<'a> {
     pub email: &'a str,
 }
 
-/// format of login payload
-#[derive(Debug, Serialize, Deserialize)]
-pub struct LoginPayload {
-    /// 用户名
-    pub username: String,
-    /// 密码的哈希值（不要明文传递）
-    #[serde(rename = "passwordHash")]
-    pub password_hash: String,
-}
-
-/// format of register payload
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RegisterPayload {
-    /// 邮箱
-    pub email: String,
-    /// 用户名
-    pub username: String,
-    /// 密码的哈希值（不要明文传递）
-    #[serde(rename = "passwordHash")]
-    pub password_hash: String,
-}
-
-/// format of custom test post payload
-#[derive(Debug, MultipartForm)]
-pub struct CustomTestPayload {
-    #[multipart]
-    /// source file, file name: any.{lang}.{suf}
-    pub source: TempFile,
-    /// input file
-    #[multipart]
-    pub input: TempFile,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CustomTestResult {
-    /// return None if the judging or failed
-    pub result: Option<TaskResult>,
-}
-
-/// format of json msg response
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResponseMsg {
-    pub ok: bool,
-    /// 用于标识本次登陆的会话
-    pub msg: String,
-}
-pub fn response_msg<T: std::fmt::Display>(
-    ok: bool,
-    msg: T,
-) -> actix_web::Result<web::Json<ResponseMsg>> {
-    Ok(web::Json(ResponseMsg {
-        ok,
-        msg: msg.to_string(),
-    }))
-}
-
 /*
 /// format of json data response
 #[derive(Debug, Serialize, Deserialize)]
