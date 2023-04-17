@@ -1,6 +1,6 @@
 use std::{sync::{Arc, RwLock}, collections::HashMap, path::PathBuf};
 use actix_web::{Result, error, web};
-use judger::{JudgeResult, OneOff};
+use judger::{OneOff, TaskResult};
 use crate::{auth::UserID, config::core::CoreConfig};
 
 use super::{judge_queue::JudgeQueue, CodeLang};
@@ -9,7 +9,7 @@ use super::{judge_queue::JudgeQueue, CodeLang};
 pub struct CustomTestManager {
     /// base directory of each problem
     base_dir: String,
-    state: Arc<RwLock<HashMap<UserID, Option<JudgeResult>>>>,
+    state: Arc<RwLock<HashMap<UserID, Option<TaskResult>>>>,
 }
 impl CustomTestManager {
     pub fn new(config: &CoreConfig) -> Self {
@@ -24,7 +24,7 @@ impl CustomTestManager {
         }
         Ok(())
     }
-    pub fn fetch_result(&self, uid: &UserID) -> Result<Option<JudgeResult>> {
+    pub fn fetch_result(&self, uid: &UserID) -> Result<Option<TaskResult>> {
         self.check_userid(uid)?;
         let guard = self.state
             .read()

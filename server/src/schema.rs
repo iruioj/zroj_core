@@ -2,7 +2,7 @@ use actix_multipart::form::tempfile::TempFile;
 use actix_multipart::form::MultipartForm;
 use actix_web::web;
 use diesel::{table, Insertable, Queryable};
-use judger::JudgeResult;
+use judger::TaskResult;
 use serde::Serialize;
 use serde_derive::Deserialize;
 
@@ -69,7 +69,7 @@ pub struct CustomTestPayload {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CustomTestResult {
     /// return None if the judging or failed
-    pub result: Option<JudgeResult>,
+    pub result: Option<TaskResult>,
 }
 
 /// format of json msg response
