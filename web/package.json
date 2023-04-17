@@ -23,7 +23,7 @@
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^4.2.1",
     "highlight.js": "^11.7.0",
-    "nuxt": "^3.4",
+    "nuxt": "^3.4.1",
     "prettier": "^2.8.7",
     "tailwindcss": "^3",
     "typescript": "^5.0"
