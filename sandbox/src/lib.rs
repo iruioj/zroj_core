@@ -18,6 +18,9 @@ pub use error::UniError;
 #[cfg(all(unix))]
 pub mod unix;
 
+#[cfg(all(windows))]
+pub mod windows;
+
 /// TLE 的具体类型
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum TimeLimitExceededKind {
@@ -67,11 +70,11 @@ impl From<nix::sys::signal::Signal> for Status {
 pub struct Termination {
     /// 终止状态
     pub status: Status,
-    /// 实际运行时间
+    /// 实际运行时间 (ms)
     pub real_time: u64,
-    /// CPU 占用时间
+    /// CPU 占用时间 (ms)
     pub cpu_time: u64,
-    /// 实际占用内存
+    /// 实际占用内存 (byte)
     pub memory: u64,
 }
 impl Termination {
