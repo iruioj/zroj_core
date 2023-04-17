@@ -11,8 +11,10 @@ use actix_web::{
 use serde::Serialize;
 use serde_derive::Deserialize;
 use actix_session::Session;
-use crate::schema::{LoginPayload, ResponseMsg, RegisterPayload, response_msg};
-use crate::database::UserDatabase;
+use crate::{
+    schema::{LoginPayload, ResponseMsg, RegisterPayload, response_msg},
+    data::userdata::UserDataManager, UserDataManagerType
+};
 type SessionID = uuid::Uuid;
 pub type UserID = i32;
 
@@ -95,16 +97,16 @@ fn validate_username(username: &String) -> actix_web::Result <()> {
 }
 
 #[post("/login")]
-async fn login(
+async fn login (
     payload: web::Json<LoginPayload>,
     session: Session,
     session_container: web::Data <SessionContainer>,
-    user_database: web::Data <UserDatabase>,
+    user_data_manager: web::Data <UserDataManagerType>,
 ) -> actix_web::Result <web::Json <ResponseMsg> > {
     validate_username(&payload.username)?;
     let sessionid = fetch_sessionid(&session, &session_container)?;
     eprintln!("login request: {:?}", payload);
-    if let Some(result) = user_database.query_by_username(&payload.username).await? {
+    if let Some(result) = user_data_manager.query_by_username(&payload.username).await? {
         if result.password_hash != payload.password_hash { 
             return response_msg(false, "Password not correct");
         } else {
@@ -117,11 +119,11 @@ async fn login(
 }
 
 #[post("/register")]
-async fn register(
+async fn register (
     payload: web::Json<RegisterPayload>,
     session: Session,
     session_container: web::Data <SessionContainer>,
-    user_database: web::Data <UserDatabase>,
+    user_data_manager: web::Data <UserDataManagerType>,
 ) -> actix_web::Result <web::Json <ResponseMsg> > {
     validate_username(&payload.username)?;
     let sessionid = fetch_sessionid(&session, &session_container)?;
@@ -129,15 +131,18 @@ async fn register(
     if !email_address::EmailAddress::is_valid(&payload.email) {
         return response_msg(false, "Invalid email address");
     }
-    if let Some(_) = user_database.query_by_username(&payload.username).await? {
+    if let Some(_) = user_data_manager.query_by_username(&payload.username).await? {
         return response_msg(false, "User already exists");
     }
-    let result = user_database.insert(&payload.username, &payload.password_hash, &payload.email).await?;
+    let result = user_data_manager.insert(&payload.username, &payload.password_hash, &payload.email).await?;
     session_container.set(sessionid, SessionData{login_state : LoginState::UserID(result.id)})?;
     response_msg(true, "Registration success")
 }
 
-pub fn service(session_containter: web::Data<SessionContainer>, user_database: web::Data <UserDatabase>) -> actix_web::Scope {
+pub fn service (
+    session_containter: web::Data<SessionContainer>,
+    user_database: web::Data <UserDataManagerType>
+) -> actix_web::Scope {
     web::scope("/api/auth")
         .app_data(session_containter)
         .app_data(user_database)
