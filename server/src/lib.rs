@@ -1,6 +1,5 @@
 //! ZROJ 后端服务库
 
-mod admin;
 pub mod app;
 pub mod auth;
 pub mod config;
