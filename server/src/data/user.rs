@@ -1,14 +1,14 @@
 //! imp struct for different database queries
 use crate::{
-    config::core::CoreConfig,
     data::schema::User,
 };
 use actix_web::Result;
 use async_trait::async_trait;
 
+pub type AManager = dyn Manager + Sync + Send;
+
 #[async_trait]
 pub trait Manager {
-    fn new(config: &CoreConfig) -> Self;
     async fn query_by_username(&self, username: &String) -> Result<Option<User>>;
     async fn query_by_userid(&self, userid: i32) -> Result<Option<User>>;
     async fn insert(
@@ -38,6 +38,13 @@ pub mod database {
     pub struct Database(MysqlPool);
 
     impl Database {
+        pub fn new(url: &String) -> Self {
+            Self {
+                0: Pool::builder()
+                    .max_size(15)
+                    .build(ConnectionManager::<MysqlConnection>::new(url.clone())) .expect("fail to establish database connection pool"),
+            }
+        }
         async fn get_conn(&self) -> Result<MysqlPooledConnection> {
             self.0.get().map_err(|e| {
                 error::ErrorInternalServerError(format!("Pool connection error: {}", e.to_string()))
@@ -46,19 +53,6 @@ pub mod database {
     }
     #[async_trait]
     impl Manager for Database {
-        fn new(config: &CoreConfig) -> Self {
-            Self {
-                0: Pool::builder()
-                    .max_size(15)
-                    .build(ConnectionManager::<MysqlConnection>::new(
-                        config
-                            .userdata_database_url
-                            .clone()
-                            .expect("missing user data database url"),
-                    ))
-                    .expect("fail to establish database connection pool"),
-            }
-        }
         async fn query_by_username(&self, username: &String) -> Result<Option<User>> {
             let mut conn = self.get_conn().await?;
             let result = users::table
@@ -116,7 +110,7 @@ pub mod hashmap {
     use std::sync::RwLock;
 
     use crate::data::user::Manager;
-    use crate::{auth::UserID, config::core::CoreConfig, data::user::*};
+    use crate::{auth::UserID, data::user::*};
     use actix_web::error::{self, Result};
     use async_trait::async_trait;
     use serde::{Deserialize, Serialize};
@@ -136,6 +130,17 @@ pub mod hashmap {
     }
 
     impl HashMap {
+        pub fn new(path: &String) -> Self {
+            let r = Self::load(path).unwrap_or(Data {
+                0: std::collections::HashMap::new(),
+                1: std::collections::HashMap::new(),
+                2: 0,
+            });
+            Self {
+                data: RwLock::new(r),
+                path: path.clone(),
+            }
+        }
         fn load(path: &String) -> std::result::Result<Data, ()> {
             let s = std::fs::read_to_string(path)
                 .map_err(|_| eprintln!("Fail to read from path: {}", path))?;
@@ -152,17 +157,6 @@ pub mod hashmap {
     }
     #[async_trait]
     impl Manager for HashMap {
-        fn new(config: &CoreConfig) -> Self {
-            let r = Self::load(&config.user_data_path).unwrap_or(Data {
-                0: std::collections::HashMap::new(),
-                1: std::collections::HashMap::new(),
-                2: 0,
-            });
-            Self {
-                data: RwLock::new(r),
-                path: config.user_data_path.clone(),
-            }
-        }
         async fn query_by_username(&self, username: &String) -> Result<Option<User>> {
             let guard = self
                 .data
