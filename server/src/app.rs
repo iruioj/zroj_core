@@ -1,7 +1,6 @@
 //! app 模块可以创建 OJ 后端的应用路由配置.
 
 use crate::{
-    admin,
     auth::{self, SessionContainer},
     manager::{self, custom_test::CustomTestManager, problem::ProblemManager},
     UserDataManagerType,
@@ -44,7 +43,6 @@ pub fn new(
         ))
         // api have access to server_config
         // .service(api::service(server_config.clone()))
-        .service(admin::service())
         .service(auth::service(session_container.clone(), user_data_manager))
         .default_service(web::route().to(default_route));
     }
