@@ -17,6 +17,8 @@ pub enum LoginState {
     UserID(UserID),
     NotLoggedIn,
 }
+
+// session data for request
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct SessionData {
     login_state: LoginState,
@@ -49,7 +51,7 @@ impl SessionContainer {
 
 // or session.get_session_key() instead
 /// fetch a session-id or create a new one
-pub fn fetch_sessionid(
+fn fetch_sessionid(
     session: &Session,
     session_container: &web::Data<SessionContainer>,
 ) -> Result<SessionID> {
@@ -68,7 +70,7 @@ pub fn fetch_sessionid(
     )?;
     Ok(sessionid)
 }
-pub fn fetch_login_state(
+fn fetch_login_state(
     session: &Session,
     session_container: &web::Data<SessionContainer>,
 ) -> Result<LoginState> {
@@ -205,14 +207,14 @@ struct AuthInfo {
     data: Option<SessionData>,
 }
 
-struct AuthGuard {
+pub struct AuthGuard {
     data: web::Data<SessionContainer>,
     require_session_id: bool,
     require_session_data: bool,
 }
 
 impl AuthGuard {
-    fn new(
+    pub fn new(
         data: web::Data<SessionContainer>,
         require_session_id: bool,
         require_session_data: bool,

@@ -1,9 +1,9 @@
 [workspace]
 
-members = ["sandbox", "tools", "contest", "problem", "server", "judger"]
+members = ["sandbox", "tools", "contest", "problem", "server", "judger", "cli"]
 
 [workspace.package]
 authors = ["ZROJ Team"]
 edition = "2021"
 keywords = ["Online Judge", "Sandbox"]
-version = "0.3.2"
+version = "0.1.0"

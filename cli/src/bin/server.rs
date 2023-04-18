@@ -1,42 +1,36 @@
-// use actix_web::dev::Server;
-use crate::{auth::SessionContainer, data::user::Manager};
-use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+//! ZROJ 后端服务器
+use actix_web;
+use server::actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use server::{auth::SessionContainer, data::user::Manager};
 use actix_web::{cookie::Key, web, App, HttpServer};
-mod admin;
-mod app;
-mod auth;
-mod config;
-mod data;
-mod manager;
-mod problem;
-use config::core::CoreConfig;
-use data::UserDataManagerType;
+use server::config::core::CoreConfig;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let session_container = web::Data::new(SessionContainer::new());
-    let core_config: CoreConfig = config::core::CoreConfig::new();
-    let user_data_manager = web::Data::new(UserDataManagerType::new(&core_config));
-    let problem_manager = web::Data::new(manager::problem::ProblemManager::new(&core_config));
+    let core_config = CoreConfig::new();
+    let user_data_manager = web::Data::new(server::UserDataManagerType::new(&core_config));
+    let problem_manager = web::Data::new(server::manager::problem::ProblemManager::new(&core_config));
     let custom_test_manager =
-        web::Data::new(manager::custom_test::CustomTestManager::new(&core_config));
-    let judge_queue = web::Data::new(manager::judge_queue::JudgeQueue::new(
+        web::Data::new(server::manager::custom_test::CustomTestManager::new(&core_config));
+    let judge_queue = web::Data::new(server::manager::judge_queue::JudgeQueue::new(
         core_config.judge_count,
     ));
     eprintln!(
         "server listening on http://{}:{}",
         core_config.host, core_config.port
     );
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     HttpServer::new(move || {
         App::new()
             .wrap(actix_web::middleware::Logger::new(
-                r#"%a %t "%r" %s "%{Referer}i" "%{User-Agent}i" %T"#,
+                r#"%a %t "%r" %s "%{Referer}i" %T"#,
             ))
             .wrap(SessionMiddleware::new(
                 CookieSessionStore::default(),
                 Key::generate(),
             ))
-            .configure(app::new(
+            .configure(server::app::new(
                 session_container.clone(),
                 user_data_manager.clone(),
                 problem_manager.clone(),
