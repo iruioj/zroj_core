@@ -3,7 +3,7 @@
 use crate::{
     auth::{self, SessionContainer},
     manager::{self, custom_test::CustomTestManager, problem::ProblemManager},
-    UserDataManagerType, data::user::{Manager, AManager},
+    data::user::{Manager, AManager},
 };
 use actix_web::{
     web::{self, ServiceConfig},
