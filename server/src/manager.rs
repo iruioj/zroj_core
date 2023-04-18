@@ -139,14 +139,14 @@ async fn edit(
 }
 */
 
-/// 提供 problem 的网络服务
+/// 提供 manager 的网络服务
 pub fn service(
     session_containter: web::Data<SessionContainer>,
     problem_manager: web::Data<ProblemManager>,
     custom_test_manager: web::Data<CustomTestManager>,
     judge_queue: web::Data<JudgeQueue>,
 ) -> actix_web::Scope {
-    web::scope("/api/problem")
+    web::scope("/api")
         .app_data(session_containter)
         .app_data(problem_manager)
         .app_data(custom_test_manager)
