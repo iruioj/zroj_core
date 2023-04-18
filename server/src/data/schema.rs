@@ -1,6 +1,5 @@
 use diesel::{table, Insertable, Queryable};
-use serde::Serialize;
-use serde_derive::Deserialize;
+use serde::{Serialize, Deserialize};
 
 table! {
     users (id) {
