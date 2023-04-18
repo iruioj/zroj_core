@@ -1,7 +1,10 @@
 //! ZROJ 后端服务器
+use std::sync::Arc;
+
 use actix_web;
 use server::actix_session::{storage::CookieSessionStore, SessionMiddleware};
-use server::{auth::SessionContainer, data::user::Manager};
+use server::data::user::{Manager, AManager};
+use server::{auth::SessionContainer};
 use actix_web::{cookie::Key, web, App, HttpServer};
 use server::config::core::CoreConfig;
 
@@ -9,7 +12,8 @@ use server::config::core::CoreConfig;
 async fn main() -> std::io::Result<()> {
     let session_container = web::Data::new(SessionContainer::new());
     let core_config = CoreConfig::new();
-    let user_data_manager = web::Data::new(server::UserDataManagerType::new(&core_config));
+    let user_data_manager = 
+        web::Data::from(Arc::new(server::UserDataManagerType::new(&core_config.user_data_path)) as Arc <AManager>);
     let problem_manager = web::Data::new(server::manager::problem::ProblemManager::new(&core_config));
     let custom_test_manager =
         web::Data::new(server::manager::custom_test::CustomTestManager::new(&core_config));

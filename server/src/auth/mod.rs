@@ -7,7 +7,7 @@ use actix_web::{
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::RwLock};
 
-use crate::{data::user::Manager, UserDataManagerType};
+use crate::{data::user::{Manager, AManager}};
 
 type SessionID = uuid::Uuid;
 pub type UserID = i32;
@@ -122,7 +122,7 @@ async fn login(
     payload: web::Json<LoginPayload>,
     session: Session,
     session_container: web::Data<SessionContainer>,
-    user_data_manager: web::Data<UserDataManagerType>,
+    user_data_manager: web::Data<AManager>,
 ) -> actix_web::Result<String> {
     validate_username(&payload.username)?;
     let sessionid = fetch_sessionid(&session, &session_container)?;
@@ -164,7 +164,7 @@ async fn register(
     payload: web::Json<RegisterPayload>,
     session: Session,
     session_container: web::Data<SessionContainer>,
-    user_data_manager: web::Data<UserDataManagerType>,
+    user_data_manager: web::Data<AManager>,
 ) -> actix_web::Result<String> {
     validate_username(&payload.username)?;
     let sessionid = fetch_sessionid(&session, &session_container)?;
@@ -192,9 +192,9 @@ async fn register(
 
 pub fn service(
     session_containter: web::Data<SessionContainer>,
-    user_database: web::Data<UserDataManagerType>,
+    user_database: web::Data<AManager>,
 ) -> actix_web::Scope {
-    web::scope("/api/auth")
+    web::scope("/auth")
         .app_data(session_containter)
         .app_data(user_database)
         .service(login)

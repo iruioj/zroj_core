@@ -3,7 +3,7 @@
 use crate::{
     auth::{self, SessionContainer},
     manager::{self, custom_test::CustomTestManager, problem::ProblemManager},
-    UserDataManagerType,
+    UserDataManagerType, data::user::{Manager, AManager},
 };
 use actix_web::{
     web::{self, ServiceConfig},
@@ -30,7 +30,7 @@ pub async fn default_route(req: HttpRequest) -> HttpResponse {
 /// 注意 clone() 的调用应当发生在 HttpServer::new 的闭包中，这里不需要
 pub fn new(
     session_container: web::Data<SessionContainer>,
-    user_data_manager: web::Data<UserDataManagerType>,
+    user_data_manager: web::Data<AManager>,
     problem_manager: web::Data<ProblemManager>,
     custom_test_manager: web::Data<CustomTestManager>,
     judge_queue: web::Data<manager::judge_queue::JudgeQueue>,
