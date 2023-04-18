@@ -9,6 +9,7 @@ use actix_web::{
     web::{self, ServiceConfig},
     HttpRequest, HttpResponse,
 };
+
 /// 默认 404
 pub async fn default_route(req: HttpRequest) -> HttpResponse {
     let mut r = String::new();
