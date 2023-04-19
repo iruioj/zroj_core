@@ -1,3 +1,4 @@
+/// This module is deprecated
 use actix_web::{error, Result};
 use serde::{Deserialize, Serialize};
 

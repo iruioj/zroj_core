@@ -1,14 +1,14 @@
-use crate::{auth::UserID, config::core::CoreConfig};
+use crate::auth::UserID;
 use actix_web::{error, web, Result};
-use judger::{OneOff, TaskResult, lang::LangOption};
-use serde::{Serialize, Deserialize};
+use judger::{lang::LangOption, OneOff, TaskResult};
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
 
-use super::{judge_queue::JudgeQueue};
+use super::judge_queue::JudgeQueue;
 
 #[derive(Serialize, Debug, Clone, Deserialize)]
 pub enum CodeLang {
@@ -37,9 +37,9 @@ pub struct CustomTestManager {
     state: Arc<RwLock<HashMap<UserID, Option<TaskResult>>>>,
 }
 impl CustomTestManager {
-    pub fn new(config: &CoreConfig) -> Self {
+    pub fn new(base_dir: String) -> Self {
         Self {
-            base_dir: config.problem_base_dir.clone(),
+            base_dir,
             state: Arc::new(RwLock::new(HashMap::new())),
         }
     }
