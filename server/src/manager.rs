@@ -4,36 +4,13 @@ pub mod problem;
 
 use crate::auth::{UserID};
 use crate::problem::*;
-use actix_web::{error, get, post, web, Result};
-use judger::{lang::LangOption};
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use actix_web::{error, get, web, Result};
 use self::{
     problem::{ProblemManager, ProblemViewData},
 };
 
 type ProblemID = u32;
 // type GroupID = i32;
-
-#[derive(Serialize, Debug, Clone, Deserialize)]
-pub enum CodeLang {
-    #[serde(rename = "gnu_cpp20_o2")]
-    GnuCpp20O2,
-    #[serde(rename = "gnu_cpp17_o2")]
-    GnuCpp17O2,
-    #[serde(rename = "gnu_cpp14_o2")]
-    GnuCpp14O2,
-}
-
-impl LangOption for CodeLang {
-    fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
-        match *self {
-            Self::GnuCpp14O2 => judger::lang::gnu_cpp14_o2().build_sigton(source, dest),
-            Self::GnuCpp17O2 => judger::lang::gnu_cpp17_o2().build_sigton(source, dest),
-            Self::GnuCpp20O2 => judger::lang::gnu_cpp20_o2().build_sigton(source, dest),
-        }
-    }
-}
 
 
 #[get("/{pid}")]
