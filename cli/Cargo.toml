@@ -9,6 +9,7 @@ test = false
 bench = false
 
 [dependencies]
+tempfile = "3.3.0"
 actix-web = "4"
 server = { path="../server" }
 env_logger = "0.10.0"

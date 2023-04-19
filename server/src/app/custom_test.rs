@@ -1,12 +1,9 @@
 use crate::{
-    auth::{
-        middleware::{RequireLogin, RequireSession},
-        SessionManager, UserID,
-    },
+    auth::{middleware::SessionAuth, SessionManager, UserID},
     manager::{
+        custom_test::CodeLang,
         custom_test::{start_custom_test, CustomTestManager},
         judge_queue::JudgeQueue,
-        custom_test::CodeLang,
     },
 };
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
@@ -109,8 +106,8 @@ pub fn service(
     >,
 > {
     web::scope("/api")
-        .wrap(RequireLogin)
-        .wrap(RequireSession)
+        .wrap(SessionAuth)
+        // .wrap(RequireSession)
         .app_data(session_containter)
         .app_data(custom_test_manager)
         .app_data(judge_queue)
