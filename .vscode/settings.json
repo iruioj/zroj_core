@@ -1,4 +1,5 @@
 {
   "editor.tabSize": 4,
-  "deno.enable": true
+  "deno.enable": true,
+  "rust-analyzer.check.features": ["server/mysql"]
 }

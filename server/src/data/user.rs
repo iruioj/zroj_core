@@ -1,7 +1,7 @@
 //! imp struct for different database queries
-use crate::{
-    data::schema::User,
-};
+use std::sync::Arc;
+
+use crate::data::schema::User;
 use actix_web::Result;
 use async_trait::async_trait;
 
@@ -17,10 +17,15 @@ pub trait Manager {
         password_hash: &String,
         email: &String,
     ) -> Result<User>;
+    fn to_amanager(self) -> Arc<AManager>;
 }
 
 #[cfg(feature = "mysql")]
-pub mod database {
+pub use database::DbManager;
+
+#[cfg(feature = "mysql")]
+mod database {
+    use crate::data::schema::{users, NewUser};
     use crate::data::user::*;
     use async_trait::async_trait;
     use diesel::{
@@ -29,20 +34,21 @@ pub mod database {
         prelude::*,
         r2d2::{ConnectionManager, Pool, PooledConnection},
     };
-    use crate::data::schema::{NewUser, users};
     type MysqlPool = Pool<ConnectionManager<MysqlConnection>>;
     type MysqlPooledConnection = PooledConnection<ConnectionManager<MysqlConnection>>;
     use crate::data::user::Manager;
     use actix_web::error::{self, Result};
 
-    pub struct Database(MysqlPool);
-
-    impl Database {
+    pub struct DbManager(MysqlPool);
+    
+    /// 数据库存储
+    impl DbManager {
         pub fn new(url: &String) -> Self {
             Self {
                 0: Pool::builder()
                     .max_size(15)
-                    .build(ConnectionManager::<MysqlConnection>::new(url.clone())) .expect("fail to establish database connection pool"),
+                    .build(ConnectionManager::<MysqlConnection>::new(url.clone()))
+                    .expect("fail to establish database connection pool"),
             }
         }
         async fn get_conn(&self) -> Result<MysqlPooledConnection> {
@@ -52,7 +58,7 @@ pub mod database {
         }
     }
     #[async_trait]
-    impl Manager for Database {
+    impl Manager for DbManager {
         async fn query_by_username(&self, username: &String) -> Result<Option<User>> {
             let mut conn = self.get_conn().await?;
             let result = users::table
@@ -92,25 +98,31 @@ pub mod database {
             let mut conn = self.get_conn().await?;
             conn.transaction(|conn| {
                 let new_user = NewUser {
-                    username: username,
-                    password_hash: password_hash,
-                    email: email,
+                    username,
+                    password_hash,
+                    email,
                 };
                 diesel::insert_into(users::table)
                     .values(&new_user)
                     .execute(conn)?;
                 users::table.order(users::id.desc()).first::<User>(conn)
             })
-            .map_err(|e| error::ErrorInternalServerError(format!("Database Error: {}", e.to_string())))
+            .map_err(|e| {
+                error::ErrorInternalServerError(format!("Database Error: {}", e.to_string()))
+            })
+        }
+        /// consume self and return its Arc.
+        fn to_amanager(self) -> Arc<AManager> {
+            Arc::new(self)
         }
     }
 }
 
-pub mod hashmap {
-    use std::path::PathBuf;
+pub use hashmap::FsManager;
+mod hashmap {
     use std::sync::RwLock;
+    use std::{collections::HashMap, path::PathBuf};
 
-    use crate::data::user::Manager;
     use crate::{auth::UserID, data::user::*};
     use actix_web::error::{self, Result};
     use async_trait::async_trait;
@@ -118,25 +130,18 @@ pub mod hashmap {
     use serde_json::from_str;
 
     #[derive(Serialize, Deserialize)]
-    struct Data(
-        std::collections::HashMap<String, UserID>,
-        std::collections::HashMap<UserID, User>,
-        UserID,
-    );
+    struct Data(HashMap<String, UserID>, HashMap<UserID, User>, UserID);
 
+    /// 文件系统存储信息
     #[derive(Serialize, Deserialize)]
-    pub struct HashMap {
+    pub struct FsManager {
         data: RwLock<Data>,
         path: PathBuf,
     }
 
-    impl HashMap {
+    impl FsManager {
         pub fn new(path: PathBuf) -> Self {
-            let r = Self::load(&path).unwrap_or(Data {
-                0: std::collections::HashMap::new(),
-                1: std::collections::HashMap::new(),
-                2: 0,
-            });
+            let r = Self::load(&path).unwrap_or(Data(HashMap::new(), HashMap::new(), 0));
             Self {
                 data: RwLock::new(r),
                 path: path.clone(),
@@ -152,12 +157,14 @@ pub mod hashmap {
         fn save(&self) {
             let guard = self.data.read().expect("Fail to fetch guard when saving");
             let s = serde_json::to_string::<Data>(&guard).expect("Fail to parse user data as json");
-            std::fs::write(&self.path, s)
-                .expect(&format!("Fail to write user data to path: {}", self.path.display()));
+            std::fs::write(&self.path, s).expect(&format!(
+                "Fail to write user data to path: {}",
+                self.path.display()
+            ));
         }
     }
     #[async_trait]
-    impl Manager for HashMap {
+    impl super::Manager for FsManager {
         async fn query_by_username(&self, username: &String) -> Result<Option<User>> {
             let guard = self
                 .data
@@ -206,6 +213,10 @@ pub mod hashmap {
             drop(guard);
             self.save();
             Ok(new_user)
+        }
+        /// consume self and return its Arc.
+        fn to_amanager(self) -> Arc<AManager> {
+            Arc::new(self)
         }
     }
 }

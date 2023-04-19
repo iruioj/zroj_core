@@ -21,7 +21,7 @@ pub struct User {
 }
 /// struct for database insertion
 #[derive(Debug, Insertable)]
-#[table_name = "users"]
+#[diesel(table_name = users)]
 pub struct NewUser<'a> {
     pub username: &'a str,
     pub password_hash: &'a str,

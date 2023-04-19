@@ -3,28 +3,60 @@ use crate::auth::SessionID;
 use actix_session::SessionExt;
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    error, web, Error, HttpMessage, Result,
+    error,
+    Error, HttpMessage, Result,
 };
 use futures::Future;
 use std::{
     future::{ready, Ready},
     pin::Pin,
+    rc::Rc,
 };
 
-/// SessionAuth 中间件用于从 session 中解析出 session_id
-/// 并加入到 request-local data 中。
+// SessionAuth 的内部数据
+struct Inner {
+    // 是否要求有鉴权信息。如果没有，返回 401 Unauthorized
+    require: bool,
+    store: SessionManager,
+}
+
+/// SessionAuth 中间件用于从 session 中（尽可能）解析出 SessionID
+/// 和 UserId 并加入到 request-local data 中。
+pub struct SessionAuth(Rc<Inner>);
+
+impl SessionAuth {
+    /// 放过所有请求，只尝试提取鉴权信息
+    pub fn bypass(store: SessionManager) -> Self {
+        Self(Rc::new(Inner {
+            require: false,
+            store,
+        }))
+    }
+    /// 要求必须具有鉴权信息，否则返回 401 Unauthorized
+    pub fn require_auth(store: SessionManager) -> Self {
+        Self(Rc::new(Inner {
+            require: true,
+            store,
+        }))
+    }
+}
+
+impl Clone for SessionAuth {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
 // There are two steps in middleware processing.
 // 1. Middleware initialization, middleware factory gets called with
 //    next service in chain as parameter.
 // 2. Middleware's call method gets called with normal request.
-pub struct SessionAuth;
-// Middleware factory is `Transform` trait
-// `S` - type of the next service
-// `B` - type of response's body
 impl<S, B> Transform<S, ServiceRequest> for SessionAuth
 where
+    // `S` - type of the next service
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
+    // `B` - type of response's body
     B: 'static,
 {
     type Response = ServiceResponse<B>;
@@ -34,29 +66,37 @@ where
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(SessionAuthMiddleware { service }))
+        ready(Ok(SessionAuthMiddleware {
+            service,
+            inner: self.0.clone(),
+        }))
     }
 }
 
+#[doc(hidden)]
 pub struct SessionAuthMiddleware<S> {
     service: S,
+    inner: Rc<Inner>,
 }
 impl<S> SessionAuthMiddleware<S> {
     pub fn work(&self, req: &ServiceRequest) -> Result<()> {
-        let data = req
-            .app_data::<web::Data<SessionManager>>()
-            .ok_or(error::ErrorInternalServerError(
-                "Fail to get session container",
-            ))?
-            .clone();
         let session = req.get_session();
         if let Some(id) = session.get::<SessionID>("session-id")? {
             eprintln!("session id = {}", id);
-            if data.contains_key(id)? {
+            if let Some(info) = self.inner.store.get(id)? {
                 req.extensions_mut().insert(id);
+                req.extensions_mut().insert(info.uid);
                 return Ok(());
+            } else if self.inner.require {
+                // has session id but info not found
+                session.remove("session-id");
+                return Err(error::ErrorUnauthorized("invalid session id"));
             }
         } else {
+            // no session id
+            if self.inner.require {
+                return Err(error::ErrorUnauthorized("not login"));
+            }
             eprintln!("no session id found");
             dbg!(req.cookies().unwrap());
         }
@@ -74,76 +114,6 @@ where
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
     forward_ready!(service);
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        println!("Hi from start. You requested: {}", req.path());
-        let result = self.work(&req);
-        let fut = self.service.call(req);
-        Box::pin(async move {
-            result?;
-            fut.await
-        })
-    }
-}
-
-/// RequireLogin 中间件用于检查当前是否有登陆 Session
-/// 在未登陆时提前返回 Unauthorized
-/// 在登陆时将 uid 插入到 request data 中
-pub struct RequireAuth;
-// Middleware factory is `Transform` trait
-// `S` - type of the next service
-// `B` - type of response's body
-impl<S, B> Transform<S, ServiceRequest> for RequireAuth
-where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Response = ServiceResponse<B>;
-    type Error = Error;
-    type InitError = ();
-    type Transform = SessionAuthMiddleware<S>;
-    type Future = Ready<Result<Self::Transform, Self::InitError>>;
-
-    fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(SessionAuthMiddleware { service }))
-    }
-}
-
-pub struct RequireAuthMiddleware<S> {
-    service: S,
-}
-impl<S> RequireAuthMiddleware<S> {
-    pub fn work(&self, req: &ServiceRequest) -> Result<()> {
-        let data = req
-            .app_data::<web::Data<SessionManager>>()
-            .ok_or(error::ErrorInternalServerError(
-                "Fail to get session container",
-            ))?
-            .clone();
-        let session = req.get_session();
-        let id = session
-            .get::<SessionID>("session-id")?
-            .ok_or(error::ErrorUnauthorized("Please login first"))?;
-        if let Some(info) = data.get(id)? {
-            req.extensions_mut().insert(info.uid);
-            Ok(())
-        } else {
-            session.remove("session-id");
-            Err(error::ErrorUnauthorized("Invalid session id"))
-        }
-    }
-}
-impl<S, B> Service<ServiceRequest> for RequireAuthMiddleware<S>
-where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Response = ServiceResponse<B>;
-    type Error = Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
-    forward_ready!(service);
-    fn call(&self, req: ServiceRequest) -> Self::Future {
-        println!("Hi from start. You requested: {}", req.path());
         let result = self.work(&req);
         let fut = self.service.call(req);
         Box::pin(async move {

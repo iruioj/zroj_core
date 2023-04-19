@@ -23,6 +23,13 @@ const registerRes = await fetch("http://127.0.0.1:8080/auth/register", {
 // console.log(registerRes);
 console.log(await registerRes.text());
 
+const inspectFailRes = await fetch("http://127.0.0.1:8080/require_auth/inspect", {
+  method: "GET",
+});
+// 应该 401
+console.assert(inspectFailRes.status === 401)
+console.log(await inspectFailRes.text());
+
 const loginRes = await fetch("http://127.0.0.1:8080/auth/login", {
   method: "POST",
   headers: {
@@ -36,7 +43,7 @@ const loginRes = await fetch("http://127.0.0.1:8080/auth/login", {
 
 // console.log(loginRes, loginRes.headers.get("set-cookie"));
 console.log(await loginRes.text());
-console.log(cookieJar.cookies)
+// console.log(cookieJar.cookies)
 
 // 两次 inspect 返回的结果应当一样，说明鉴权是有效的
 const inspectRes = await fetch("http://127.0.0.1:8080/auth/inspect", {
@@ -44,7 +51,8 @@ const inspectRes = await fetch("http://127.0.0.1:8080/auth/inspect", {
 });
 // console.log(inspectRes);
 console.log(await inspectRes.json());
-const inspectRes2 = await fetch("http://127.0.0.1:8080/auth/inspect", {
+// 这次应该是 ok 的
+const inspectRes2 = await fetch("http://127.0.0.1:8080/require_auth/inspect", {
   method: "GET",
 });
 console.log(await inspectRes2.json());

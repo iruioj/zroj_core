@@ -1,5 +1,5 @@
 use crate::{
-    auth::{middleware::RequireAuth, SessionManager, UserID},
+    auth::UserID,
     manager::{
         custom_test::CodeLang,
         custom_test::{start_custom_test, CustomTestManager},
@@ -38,7 +38,7 @@ pub struct CustomTestPayload {
     pub input: TempFile,
 }
 #[post("/custom_test")]
-async fn handle_custom_test(
+async fn custom_test_post(
     payload: MultipartForm<CustomTestPayload>,
     manager: web::Data<CustomTestManager>,
     queue: web::Data<JudgeQueue>,
@@ -67,7 +67,7 @@ pub struct CustomTestResult {
 }
 
 #[get("/custom_test")]
-async fn custom_test_result(
+async fn custom_test_get(
     manager: web::Data<CustomTestManager>,
     uid: web::ReqData<UserID>,
 ) -> Result<web::Json<CustomTestResult>> {
@@ -91,9 +91,10 @@ async fn edit(
 }
 */
 
-/// 提供 manager 的网络服务
+/// 提供自定义测试服务
+/// 
+/// scope path: `/custom_test`
 pub fn service(
-    session_containter: web::Data<SessionManager>,
     custom_test_manager: web::Data<CustomTestManager>,
     judge_queue: web::Data<JudgeQueue>,
 ) -> actix_web::Scope<
@@ -105,11 +106,9 @@ pub fn service(
         InitError = (),
     >,
 > {
-    web::scope("/api")
-        .wrap(RequireAuth)
-        .app_data(session_containter)
+    web::scope("/custom_test")
         .app_data(custom_test_manager)
         .app_data(judge_queue)
-        .service(handle_custom_test)
-        .service(custom_test_result)
+        .service(custom_test_post)
+        .service(custom_test_get)
 }
