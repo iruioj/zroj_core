@@ -1,4 +1,4 @@
-use crate::auth::{SessionData, SessionID, SessionManager, UserID};
+use crate::auth::{AuthInfo, SessionID, SessionManager, UserID};
 use crate::data::user::AManager;
 use actix_session::Session;
 use actix_web::{error, get, post, web, HttpResponse};
@@ -35,7 +35,6 @@ async fn login(
     session_container: web::Data<SessionManager>,
     user_data_manager: web::Data<AManager>,
     session: Session,
-    // session_id: web::ReqData<SessionID>,
 ) -> actix_web::Result<HttpResponse> {
     validate_username(&payload.username)?;
     eprintln!("login request: {:?}", payload);
@@ -50,20 +49,9 @@ async fn login(
     if user.password_hash != payload.password_hash {
         return Err(error::ErrorBadRequest("Password not correct"));
     } else {
-        // session_container.set(
-        //     *session_id,
-        //     SessionData {
-        //         login_state: Some(result.id),
-        //     },
-        // )?;
         let id = SessionID::new_v4(); // generate a random session-id
         eprintln!("generate new session id {}", id);
-        session_container.set(
-            id,
-            SessionData {
-                login_state: Some(user.id),
-            },
-        )?;
+        session_container.set(id, AuthInfo { uid: user.id })?;
         session.insert("session-id", id)?;
         return Ok(HttpResponse::Ok().body("login success"));
     }
@@ -86,16 +74,9 @@ async fn register(
     payload: web::Json<RegisterPayload>,
     user_data_manager: web::Data<AManager>,
     // session_container: web::Data<SessionManager>,
-    // session_id: Option<web::ReqData<SessionID>>,
 ) -> actix_web::Result<String> {
     eprintln!("handle register");
-    // if let Some(sid) = &session_id {
-    //     eprintln!("session_id: {}", sid.as_simple());
-    // }
     validate_username(&payload.username)?;
-    // let session_id = session_id.ok_or(error::ErrorInternalServerError(
-    //     "auth guard didn't return an authinfo",
-    // ))?;
     eprintln!("register req: {:?}", &payload);
     if !email_address::EmailAddress::is_valid(&payload.email) {
         return Err(error::ErrorBadRequest("Invalid email address"));
@@ -110,12 +91,6 @@ async fn register(
         .insert(&payload.username, &payload.password_hash, &payload.email)
         .await?;
     dbg!(result);
-    // session_container.set(
-    //     *session_id,
-    //     SessionData {
-    //         login_state: Some(result.id),
-    //     },
-    // )?;
     Ok("Registration success".to_string())
 }
 
@@ -140,10 +115,8 @@ async fn inspect(
     if let Some(sid) = session_id {
         res.session_id = Some(*sid);
         if let Some(data) = session_container.get(*sid)? {
-            if let Some(uid) = data.login_state {
-                res.user_id = Some(uid);
-                res.user = user_db.query_by_userid(uid).await?;
-            }
+            res.user_id = Some(data.uid);
+            res.user = user_db.query_by_userid(data.uid).await?;
         }
     }
     Ok(web::Json(res))
