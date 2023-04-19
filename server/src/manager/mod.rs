@@ -2,33 +2,6 @@ pub mod custom_test;
 pub mod judge_queue;
 pub mod problem;
 
-use crate::auth::{UserID};
-use crate::problem::*;
-use actix_web::{error, get, web, Result};
-use self::{
-    problem::{ProblemManager, ProblemViewData},
-};
-
-type ProblemID = u32;
-// type GroupID = i32;
-
-
-#[get("/{pid}")]
-async fn view_problem(
-    pid: web::Path<ProblemID>,
-    manager: web::Data<ProblemManager>,
-    uid: web::ReqData<UserID>,
-) -> Result<web::Json<ProblemViewData>> {
-    if manager.check_access(*pid, *uid)? >= ProblemAccess::View {
-        Ok(web::Json(manager.fetch_view_data(*pid)?))
-    } else {
-        Err(error::ErrorBadRequest(
-            "You do not have access to this problem",
-        ))
-    }
-}
-
-
 /*
 
 use std::sync::{Arc, Mutex};

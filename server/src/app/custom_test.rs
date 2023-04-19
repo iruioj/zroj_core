@@ -1,5 +1,5 @@
 use crate::{
-    auth::{middleware::SessionAuth, SessionManager, UserID},
+    auth::{middleware::RequireAuth, SessionManager, UserID},
     manager::{
         custom_test::CodeLang,
         custom_test::{start_custom_test, CustomTestManager},
@@ -106,8 +106,7 @@ pub fn service(
     >,
 > {
     web::scope("/api")
-        .wrap(SessionAuth)
-        // .wrap(RequireSession)
+        .wrap(RequireAuth)
         .app_data(session_containter)
         .app_data(custom_test_manager)
         .app_data(judge_queue)

@@ -72,9 +72,76 @@ where
     type Response = ServiceResponse<B>;
     type Error = Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
-
     forward_ready!(service);
+    fn call(&self, req: ServiceRequest) -> Self::Future {
+        println!("Hi from start. You requested: {}", req.path());
+        let result = self.work(&req);
+        let fut = self.service.call(req);
+        Box::pin(async move {
+            result?;
+            fut.await
+        })
+    }
+}
 
+/// RequireLogin 中间件用于检查当前是否有登陆 Session
+/// 在未登陆时提前返回 Unauthorized
+/// 在登陆时将 uid 插入到 request data 中
+pub struct RequireAuth;
+// Middleware factory is `Transform` trait
+// `S` - type of the next service
+// `B` - type of response's body
+impl<S, B> Transform<S, ServiceRequest> for RequireAuth
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type InitError = ();
+    type Transform = SessionAuthMiddleware<S>;
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+
+    fn new_transform(&self, service: S) -> Self::Future {
+        ready(Ok(SessionAuthMiddleware { service }))
+    }
+}
+
+pub struct RequireAuthMiddleware<S> {
+    service: S,
+}
+impl<S> RequireAuthMiddleware<S> {
+    pub fn work(&self, req: &ServiceRequest) -> Result<()> {
+        let data = req
+            .app_data::<web::Data<SessionManager>>()
+            .ok_or(error::ErrorInternalServerError(
+                "Fail to get session container",
+            ))?
+            .clone();
+        let session = req.get_session();
+        let id = session
+            .get::<SessionID>("session-id")?
+            .ok_or(error::ErrorUnauthorized("Please login first"))?;
+        if let Some(info) = data.get(id)? {
+            req.extensions_mut().insert(info.uid);
+            Ok(())
+        } else {
+            session.remove("session-id");
+            Err(error::ErrorUnauthorized("Invalid session id"))
+        }
+    }
+}
+impl<S, B> Service<ServiceRequest> for RequireAuthMiddleware<S>
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+    forward_ready!(service);
     fn call(&self, req: ServiceRequest) -> Self::Future {
         println!("Hi from start. You requested: {}", req.path());
         let result = self.work(&req);

@@ -12,26 +12,26 @@ pub mod middleware;
 
 // session data for request
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SessionData {
-    pub login_state: Option <UserID>
+pub struct AuthInfo {
+    pub uid: UserID,
 }
 
 /// session data container
-pub struct SessionManager(RwLock<HashMap<SessionID, SessionData>>);
+pub struct SessionManager(RwLock<HashMap<SessionID, AuthInfo>>);
 impl SessionManager {
     pub fn new() -> Self {
-        Self(RwLock::new(HashMap::<SessionID, SessionData>::new()))
+        Self(RwLock::new(HashMap::<SessionID, AuthInfo>::new()))
     }
     /// 根据用户名获取密码哈希
-    pub fn get(&self, id: SessionID) -> Result<Option<SessionData>> {
+    pub fn get(&self, id: SessionID) -> Result<Option<AuthInfo>> {
         let mp = self
             .0
             .read()
             .map_err(|e| error::ErrorInternalServerError(e.to_string()))?;
-        let res: Option<SessionData> = mp.get(&id).map(|d| d.clone());
+        let res: Option<AuthInfo> = mp.get(&id).map(|d| d.clone());
         Ok(res)
     }
-    pub fn set(&self, id: SessionID, data: SessionData) -> Result<()> {
+    pub fn set(&self, id: SessionID, data: AuthInfo) -> Result<()> {
         let mut mp = self
             .0
             .write()
@@ -39,7 +39,7 @@ impl SessionManager {
         mp.insert(id, data);
         Ok(())
     }
-    pub fn contains_key(&self, id: SessionID) -> Result <bool> {
+    pub fn contains_key(&self, id: SessionID) -> Result<bool> {
         let mp = self
             .0
             .read()
@@ -47,7 +47,6 @@ impl SessionManager {
         Ok(mp.contains_key(&id))
     }
 }
-
 
 /*
 pub struct RequireSession{
@@ -132,19 +131,6 @@ impl actix_web::guard::Guard for RequireLogin {
     }
 }
 
-
-
-
-
-
-
-
-
-// serve_* 表示需要监听的测试
-#[cfg(test)]
-mod tests;
-
-/*
 // or session.get_session_key() instead
 /// fetch a session-id or create a new one
 fn fetch_sessionid(
@@ -187,5 +173,55 @@ pub fn require_login(
         _ => Err(error::ErrorUnauthorized("Please login first")),
     }
 }
-*/
+
+/// test 
+use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_web::{cookie::Key, web, App, HttpResponse, HttpServer};
+
+use crate::app::default_route;
+
+use super::{SessionManager, SessionID};
+
+/// ReqData 表示 http 请求中的本地数据，比如 AuthGuard 中调用的 req_data_mut
+/// 就可以添加数据进来
+async fn auth_handle(auth_info: Option<web::ReqData<SessionID>>) -> HttpResponse {
+    if let Some(auth_info) = auth_info {
+        HttpResponse::Accepted().body(format!("with guard, info: {}", *auth_info))
+    } else {
+        HttpResponse::Accepted().body(format!("no guard, no auth_info"))
+    }
+}
+
+/// 使用 `cargo test serve_auth -- --nocapture` 启动测试
+/// 访问一下 `http://127.0.0.1:8080/auth_empty_guard` 看看效果
+#[actix_rt::test]
+async fn serve_auth() -> Result<(), std::io::Error> {
+    let session_container = web::Data::new(SessionManager::new());
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
+    HttpServer::new(move || {
+        App::new()
+            .wrap(actix_web::middleware::Logger::new(
+                r#"%a %t "%r" %s "%{Referer}i" %T"#,
+            ))
+            .wrap(SessionMiddleware::new(
+                CookieSessionStore::default(),
+                Key::generate(),
+            ))
+            .app_data(session_container.clone())
+            .service(
+                web::scope("/auth_empty_guard")
+                    // 添加一个 guard
+                    .wrap(RequireSession::new(session_container.clone()))
+                    // 然后其实可以加上一堆 service
+                    .default_service(web::route().to(auth_handle)),
+            )
+            // 默认 404
+            .default_service(web::route().to(default_route))
+    })
+    .bind(("127.0.0.1", 8080))
+    .unwrap()
+    .run()
+    .await
+}
 */
