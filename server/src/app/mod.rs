@@ -1,9 +1,10 @@
 //! app 模块可以创建 OJ 后端的应用路由配置.
-
+mod auth;
+mod custom_test;
 use crate::{
-    auth::{self, SessionContainer},
+    auth::SessionManager,
     manager::{self, custom_test::CustomTestManager, problem::ProblemManager},
-    data::user::{Manager, AManager},
+    data::user::{AManager},
 };
 use actix_web::{
     web::{self, ServiceConfig},
@@ -29,16 +30,15 @@ pub async fn default_route(req: HttpRequest) -> HttpResponse {
 /// 如果需要更多的依赖数据请加在 new 的参数中
 /// 注意 clone() 的调用应当发生在 HttpServer::new 的闭包中，这里不需要
 pub fn new(
-    session_container: web::Data<SessionContainer>,
+    session_container: web::Data<SessionManager>,
     user_data_manager: web::Data<AManager>,
     problem_manager: web::Data<ProblemManager>,
     custom_test_manager: web::Data<CustomTestManager>,
     judge_queue: web::Data<manager::judge_queue::JudgeQueue>,
 ) -> impl FnOnce(&mut ServiceConfig) {
     move |app: &mut web::ServiceConfig| {
-        app.service(manager::service(
+        app.service(custom_test::service(
             session_container.clone(),
-            problem_manager,
             custom_test_manager,
             judge_queue,
         ))
