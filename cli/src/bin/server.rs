@@ -4,13 +4,13 @@ use std::sync::Arc;
 use actix_web;
 use server::actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use server::data::user::{AManager};
-use server::{auth::SessionContainer};
+use server::{auth::SessionManager};
 use actix_web::{cookie::Key, web, App, HttpServer};
 use server::config::core::CoreConfig;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let session_container = web::Data::new(SessionContainer::new());
+    let session_container = web::Data::new(SessionManager::new());
     let core_config = CoreConfig::new();
     let user_data_manager = 
         web::Data::from(Arc::new(server::data::user::hashmap::HashMap::new(&core_config.user_data_path)) as Arc <AManager>);
