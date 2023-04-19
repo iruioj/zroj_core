@@ -1,9 +1,11 @@
 #![allow(dead_code)]
+use crate::{
+    auth::UserID,
+    problem::{GeneralConfig, ProblemAccess, ProblemID, StatementSource},
+};
+use actix_web::{error, Result};
+use serde::{Deserialize, Serialize};
 use std::sync::RwLock;
-
-use actix_web::{Result, error};
-use serde::{Serialize, Deserialize};
-use crate::{config::core::CoreConfig, problem::{ProblemID, ProblemAccess, GeneralConfig, StatementSource}, auth::UserID};
 
 /// For page /problem/{pid}, api url /api/problem/{pid}
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,16 +33,16 @@ pub struct ProblemManager {
     pid_maximum: ProblemID,
 }
 impl ProblemManager {
-    pub fn new(config: &CoreConfig) -> Self {
+    pub fn new(base_dir: String, statement: String, data_dir: String) -> Self {
         Self {
             locks: (0..4000).map(|_| RwLock::new(())).collect(),
-            base_dir: config.problem_base_dir.clone(),
-            statement: config.problem_statement.clone(),
-            data_dir: config.problem_data_dir.clone(),
+            base_dir,
+            statement,
+            data_dir,
             pid_maximum: 4000,
         }
     }
-    fn fetch_file(&self, path: &String) -> Result <String> {
+    fn fetch_file(&self, path: &String) -> Result<String> {
         std::fs::read_to_string(path).map_err(|e| error::ErrorInternalServerError(e.to_string()))
     }
     fn get_base_dir(&self, pid: ProblemID) -> Result<String> {

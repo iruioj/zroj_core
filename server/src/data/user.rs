@@ -130,8 +130,8 @@ pub mod hashmap {
     }
 
     impl HashMap {
-        pub fn new(path: &String) -> Self {
-            let r = Self::load(path).unwrap_or(Data {
+        pub fn new(path: String) -> Self {
+            let r = Self::load(&path).unwrap_or(Data {
                 0: std::collections::HashMap::new(),
                 1: std::collections::HashMap::new(),
                 2: 0,

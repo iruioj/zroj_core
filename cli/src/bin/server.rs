@@ -2,27 +2,30 @@
 use std::sync::Arc;
 
 use actix_web;
-use server::actix_session::{storage::CookieSessionStore, SessionMiddleware};
-use server::data::user::{AManager};
-use server::{auth::SessionManager};
 use actix_web::{cookie::Key, web, App, HttpServer};
-use server::config::core::CoreConfig;
+use server::actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use server::auth::SessionManager;
+use server::data::user::AManager;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let session_container = web::Data::new(SessionManager::new());
-    let core_config = CoreConfig::new();
-    let user_data_manager = 
-        web::Data::from(Arc::new(server::data::user::hashmap::HashMap::new(&core_config.user_data_path)) as Arc <AManager>);
-    let problem_manager = web::Data::new(server::manager::problem::ProblemManager::new(&core_config));
-    let custom_test_manager =
-        web::Data::new(server::manager::custom_test::CustomTestManager::new(&core_config));
-    let judge_queue = web::Data::new(server::manager::judge_queue::JudgeQueue::new(
-        core_config.judge_count,
+    let user_data_manager = web::Data::from(Arc::new(server::data::user::hashmap::HashMap::new(
+        "/var/users/".to_string()
+    )) as Arc<AManager>);
+    let problem_manager = web::Data::new(server::manager::problem::ProblemManager::new(
+        "/var/problems/".to_string(),
+        "statement.json".to_string(),
+        "data/".to_string(),
     ));
+    let custom_test_manager = web::Data::new(server::manager::custom_test::CustomTestManager::new(
+        "/var/custom_test/".to_string()
+    ));
+    let judge_queue = web::Data::new(server::manager::judge_queue::JudgeQueue::new(8));
+    let host = "127.0.0.1".to_string();
+    let port = 8080;
     eprintln!(
-        "server listening on http://{}:{}",
-        core_config.host, core_config.port
+        "server listening on http://{}:{}",host,port
     );
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     HttpServer::new(move || {
@@ -42,7 +45,7 @@ async fn main() -> std::io::Result<()> {
                 judge_queue.clone(),
             ))
     })
-    .bind((core_config.host, core_config.port))?
+    .bind((host,port))?
     .run()
     .await
 }

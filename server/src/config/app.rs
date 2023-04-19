@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::config::core::CoreConfig;
+// use crate::config::core::CoreConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 
@@ -27,11 +27,11 @@ impl AppConfigManager {
         std::fs::write(&self.path, s)
             .expect(&format!("Fail to write user data to path: {}", self.path));
     }
-    fn new(config: CoreConfig) -> Self {
-        let data = Self::load(&config.app_config_path).unwrap_or(AppConfig {});
+    fn new(path: String) -> Self {
+        let data = Self::load(&path).unwrap_or(AppConfig {});
         Self {
             data: RwLock::new(data),
-            path: config.app_config_path.clone(),
+            path
         }
     }
     fn read(&self) -> actix_web::Result<RwLockReadGuard<AppConfig>> {
