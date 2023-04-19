@@ -1,7 +1,7 @@
 use crate::{
+    auth::UserID,
     manager::problem::{ProblemManager, ProblemViewData},
-    problem::{ProblemAccess, ProblemID}, 
-    auth::{UserID, SessionManager, middleware::RequireAuth},
+    problem::{ProblemAccess, ProblemID},
 };
 use actix_web::{error, get, web, Result};
 
@@ -14,15 +14,14 @@ async fn handle_view_problem(
     if manager.check_access(*pid, *uid)? >= ProblemAccess::View {
         Ok(web::Json(manager.fetch_view_data(*pid)?))
     } else {
-        Err(error::ErrorBadRequest(
-            "You do not have access to this problem",
-        ))
+        Err(error::ErrorBadRequest("problem not accessible"))
     }
 }
 
-/// 提供 manager 的网络服务
+/// 提供 problem 相关服务
+/// 
+/// scope path: `/problem`
 pub fn service(
-    session_containter: web::Data<SessionManager>,
     problem_manager: web::Data<ProblemManager>,
 ) -> actix_web::Scope<
     impl actix_web::dev::ServiceFactory<
@@ -33,9 +32,7 @@ pub fn service(
         InitError = (),
     >,
 > {
-    web::scope("/api")
-        .wrap(RequireAuth)
-        .app_data(session_containter)
+    web::scope("/problem")
         .app_data(problem_manager)
         .service(handle_view_problem)
 }

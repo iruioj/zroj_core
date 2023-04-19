@@ -33,11 +33,11 @@ impl LangOption for CodeLang {
 #[derive(Debug)]
 pub struct CustomTestManager {
     /// base directory of each problem
-    base_dir: String,
+    base_dir: PathBuf,
     state: Arc<RwLock<HashMap<UserID, Option<TaskResult>>>>,
 }
 impl CustomTestManager {
-    pub fn new(base_dir: String) -> Self {
+    pub fn new(base_dir: PathBuf) -> Self {
         Self {
             base_dir,
             state: Arc::new(RwLock::new(HashMap::new())),

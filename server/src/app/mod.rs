@@ -1,9 +1,9 @@
 //! app 模块可以创建 OJ 后端的应用路由配置.
-mod auth;
-mod custom_test;
-mod problem;
+pub mod auth;
+pub mod custom_test;
+pub mod problem;
 use crate::{
-    auth::SessionManager,
+    auth::{middleware::SessionAuth, SessionManager},
     data::user::AManager,
     manager::{self, custom_test::CustomTestManager, problem::ProblemManager},
 };
@@ -11,9 +11,6 @@ use actix_web::{
     web::{self, ServiceConfig},
     HttpRequest, HttpResponse,
 };
-pub use auth::service as auth_service;
-pub use custom_test::service as custom_test_service;
-pub use problem::service as problem_service;
 
 /// 默认 404
 async fn default_route(req: HttpRequest) -> HttpResponse {
@@ -34,23 +31,17 @@ async fn default_route(req: HttpRequest) -> HttpResponse {
 /// 如果需要更多的依赖数据请加在 new 的参数中
 /// 注意 clone() 的调用应当发生在 HttpServer::new 的闭包中，这里不需要
 pub fn new(
-    session_manager: web::Data<SessionManager>,
-    user_data_manager: web::Data<AManager>,
-    problem_manager: web::Data<ProblemManager>,
-    custom_test_manager: web::Data<CustomTestManager>,
+    session_mgr: SessionManager,
+    user_db: web::Data<AManager>,
+    problem_mgr: web::Data<ProblemManager>,
+    custom_test_mgr: web::Data<CustomTestManager>,
     judge_queue: web::Data<manager::judge_queue::JudgeQueue>,
 ) -> impl FnOnce(&mut ServiceConfig) {
-    move |app: &mut web::ServiceConfig| {
-        app.service(custom_test_service(
-            session_manager.clone(),
-            custom_test_manager,
-            judge_queue,
-        ))
-        .service(auth_service(session_manager.clone(), user_data_manager))
-        .service(problem_service(
-            session_manager.clone(),
-            problem_manager.clone(),
-        ))
-        .default_service(web::route().to(default_route));
+    move |app: &mut ServiceConfig| {
+        let session_auth = SessionAuth::require_auth(session_mgr.clone());
+        app.service(auth::service(session_mgr, user_db))
+            .service(custom_test::service(custom_test_mgr, judge_queue).wrap(session_auth.clone()))
+            .service(problem::service(problem_mgr).wrap(session_auth))
+            .default_service(web::route().to(default_route));
     }
 }

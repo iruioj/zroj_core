@@ -73,7 +73,6 @@ pub struct RegisterPayload {
 async fn register(
     payload: web::Json<RegisterPayload>,
     user_data_manager: web::Data<AManager>,
-    // session_container: web::Data<SessionManager>,
 ) -> actix_web::Result<String> {
     eprintln!("handle register");
     validate_username(&payload.username)?;
@@ -87,10 +86,10 @@ async fn register(
     {
         return Err(error::ErrorBadRequest("User already exists"));
     }
-    let result = user_data_manager
+    let user = user_data_manager
         .insert(&payload.username, &payload.password_hash, &payload.email)
         .await?;
-    dbg!(result);
+    dbg!(user);
     Ok("Registration success".to_string())
 }
 
@@ -104,26 +103,27 @@ struct InspectRes {
 #[get("/inspect")]
 async fn inspect(
     user_db: web::Data<AManager>,
-    session_container: web::Data<SessionManager>,
     session_id: Option<web::ReqData<SessionID>>,
+    user_id: Option<web::ReqData<UserID>>,
 ) -> actix_web::Result<web::Json<InspectRes>> {
     let mut res = InspectRes {
         session_id: None,
         user_id: None,
         user: None,
     };
+    if let Some(id) = user_id {
+        res.user_id = Some(*id);
+        res.user = user_db.query_by_userid(*id).await?;
+    }
     if let Some(sid) = session_id {
         res.session_id = Some(*sid);
-        if let Some(data) = session_container.get(*sid)? {
-            res.user_id = Some(data.uid);
-            res.user = user_db.query_by_userid(data.uid).await?;
-        }
     }
     Ok(web::Json(res))
 }
 
+/// scope path: `/auth`
 pub fn service(
-    session_containter: web::Data<SessionManager>,
+    session_mgr: SessionManager,
     user_database: web::Data<AManager>,
 ) -> actix_web::Scope<
     impl actix_web::dev::ServiceFactory<
@@ -135,8 +135,10 @@ pub fn service(
     >,
 > {
     web::scope("/auth")
-        .wrap(crate::auth::middleware::SessionAuth)
-        .app_data(session_containter)
+        .wrap(crate::auth::middleware::SessionAuth::bypass(
+            session_mgr.clone(),
+        ))
+        .app_data(web::Data::new(session_mgr))
         .app_data(user_database)
         .service(login)
         .service(register)
