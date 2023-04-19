@@ -6,7 +6,7 @@ use crate::{
     manager::{
         custom_test::{start_custom_test, CustomTestManager},
         judge_queue::JudgeQueue,
-        CodeLang,
+        custom_test::CodeLang,
     },
 };
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
@@ -109,16 +109,6 @@ pub fn service(
     >,
 > {
     web::scope("/api")
-        /*.wrap_fn(|req, srv| {
-                let fut = srv.call(req);
-                async {
-                    let mut res = fut.await?;
-                    res.headers_mut().insert(
-                       CONTENT_TYPE, HeaderValue::from_static("text/plain"),
-                    );
-                    Ok(res)
-                }
-            })*/
         .wrap(RequireLogin)
         .wrap(RequireSession)
         .app_data(session_containter)

@@ -1,13 +1,34 @@
 use crate::{auth::UserID, config::core::CoreConfig};
 use actix_web::{error, web, Result};
-use judger::{OneOff, TaskResult};
+use judger::{OneOff, TaskResult, lang::LangOption};
+use serde::{Serialize, Deserialize};
 use std::{
     collections::HashMap,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
 
-use super::{judge_queue::JudgeQueue, CodeLang};
+use super::{judge_queue::JudgeQueue};
+
+#[derive(Serialize, Debug, Clone, Deserialize)]
+pub enum CodeLang {
+    #[serde(rename = "gnu_cpp20_o2")]
+    GnuCpp20O2,
+    #[serde(rename = "gnu_cpp17_o2")]
+    GnuCpp17O2,
+    #[serde(rename = "gnu_cpp14_o2")]
+    GnuCpp14O2,
+}
+
+impl LangOption for CodeLang {
+    fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
+        match *self {
+            Self::GnuCpp14O2 => judger::lang::gnu_cpp14_o2().build_sigton(source, dest),
+            Self::GnuCpp17O2 => judger::lang::gnu_cpp17_o2().build_sigton(source, dest),
+            Self::GnuCpp20O2 => judger::lang::gnu_cpp20_o2().build_sigton(source, dest),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct CustomTestManager {
