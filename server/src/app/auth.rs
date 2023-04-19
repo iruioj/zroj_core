@@ -1,6 +1,7 @@
-use crate::auth::{SessionData, SessionID, SessionManager};
+use crate::auth::{SessionData, SessionID, SessionManager, UserID};
 use crate::data::user::AManager;
-use actix_web::{error, post, web};
+use actix_session::Session;
+use actix_web::{error, get, post, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 
 fn validate_username(username: &String) -> actix_web::Result<()> {
@@ -13,7 +14,7 @@ fn validate_username(username: &String) -> actix_web::Result<()> {
         return Err(error::ErrorBadRequest("Username is too long"));
     }
     if username.len() < 6 {
-        return Err(error::ErrorBadRequest("Username is too long"));
+        return Err(error::ErrorBadRequest("Username is too short"));
     }
     Ok(())
 }
@@ -33,27 +34,38 @@ async fn login(
     payload: web::Json<LoginPayload>,
     session_container: web::Data<SessionManager>,
     user_data_manager: web::Data<AManager>,
-    session_id: web::ReqData<SessionID>,
-) -> actix_web::Result<String> {
+    session: Session,
+    // session_id: web::ReqData<SessionID>,
+) -> actix_web::Result<HttpResponse> {
     validate_username(&payload.username)?;
     eprintln!("login request: {:?}", payload);
-    if let Some(result) = user_data_manager
+    // eprintln!("session_id: {}", session_id.as_simple());
+    let user = match user_data_manager
         .query_by_username(&payload.username)
         .await?
     {
-        if result.password_hash != payload.password_hash {
-            return Err(error::ErrorBadRequest("Password not correct"));
-        } else {
-            session_container.set(
-                *session_id,
-                SessionData {
-                    login_state: Some(result.id),
-                },
-            )?;
-            return Ok("Login success".to_string());
-        }
+        Some(r) => r,
+        None => return Err(error::ErrorBadRequest("User does not exist")),
+    };
+    if user.password_hash != payload.password_hash {
+        return Err(error::ErrorBadRequest("Password not correct"));
     } else {
-        return Err(error::ErrorBadRequest("User does not exist"));
+        // session_container.set(
+        //     *session_id,
+        //     SessionData {
+        //         login_state: Some(result.id),
+        //     },
+        // )?;
+        let id = SessionID::new_v4(); // generate a random session-id
+        eprintln!("generate new session id {}", id);
+        session_container.set(
+            id,
+            SessionData {
+                login_state: Some(user.id),
+            },
+        )?;
+        session.insert("session-id", id)?;
+        return Ok(HttpResponse::Ok().body("login success"));
     }
 }
 
@@ -72,14 +84,18 @@ pub struct RegisterPayload {
 #[post("/register")]
 async fn register(
     payload: web::Json<RegisterPayload>,
-    session_container: web::Data<SessionManager>,
     user_data_manager: web::Data<AManager>,
-    session_id: Option<web::ReqData<SessionID>>,
+    // session_container: web::Data<SessionManager>,
+    // session_id: Option<web::ReqData<SessionID>>,
 ) -> actix_web::Result<String> {
+    eprintln!("handle register");
+    // if let Some(sid) = &session_id {
+    //     eprintln!("session_id: {}", sid.as_simple());
+    // }
     validate_username(&payload.username)?;
-    let session_id = session_id.ok_or(error::ErrorInternalServerError(
-        "auth guard didn't return an authinfo",
-    ))?;
+    // let session_id = session_id.ok_or(error::ErrorInternalServerError(
+    //     "auth guard didn't return an authinfo",
+    // ))?;
     eprintln!("register req: {:?}", &payload);
     if !email_address::EmailAddress::is_valid(&payload.email) {
         return Err(error::ErrorBadRequest("Invalid email address"));
@@ -93,13 +109,44 @@ async fn register(
     let result = user_data_manager
         .insert(&payload.username, &payload.password_hash, &payload.email)
         .await?;
-    session_container.set(
-        *session_id,
-        SessionData {
-            login_state: Some(result.id),
-        },
-    )?;
+    dbg!(result);
+    // session_container.set(
+    //     *session_id,
+    //     SessionData {
+    //         login_state: Some(result.id),
+    //     },
+    // )?;
     Ok("Registration success".to_string())
+}
+
+#[derive(Serialize)]
+struct InspectRes {
+    session_id: Option<SessionID>,
+    user_id: Option<UserID>,
+    user: Option<crate::data::schema::User>,
+}
+/// 查看当前的鉴权信息（主要用于测试）
+#[get("/inspect")]
+async fn inspect(
+    user_db: web::Data<AManager>,
+    session_container: web::Data<SessionManager>,
+    session_id: Option<web::ReqData<SessionID>>,
+) -> actix_web::Result<web::Json<InspectRes>> {
+    let mut res = InspectRes {
+        session_id: None,
+        user_id: None,
+        user: None,
+    };
+    if let Some(sid) = session_id {
+        res.session_id = Some(*sid);
+        if let Some(data) = session_container.get(*sid)? {
+            if let Some(uid) = data.login_state {
+                res.user_id = Some(uid);
+                res.user = user_db.query_by_userid(uid).await?;
+            }
+        }
+    }
+    Ok(web::Json(res))
 }
 
 pub fn service(
@@ -115,9 +162,10 @@ pub fn service(
     >,
 > {
     web::scope("/auth")
-        .wrap(crate::auth::middleware::RequireSession)
+        .wrap(crate::auth::middleware::SessionAuth)
         .app_data(session_containter)
         .app_data(user_database)
         .service(login)
         .service(register)
+        .service(inspect)
 }

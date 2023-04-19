@@ -107,6 +107,7 @@ pub mod database {
 }
 
 pub mod hashmap {
+    use std::path::PathBuf;
     use std::sync::RwLock;
 
     use crate::data::user::Manager;
@@ -126,11 +127,11 @@ pub mod hashmap {
     #[derive(Serialize, Deserialize)]
     pub struct HashMap {
         data: RwLock<Data>,
-        path: String,
+        path: PathBuf,
     }
 
     impl HashMap {
-        pub fn new(path: String) -> Self {
+        pub fn new(path: PathBuf) -> Self {
             let r = Self::load(&path).unwrap_or(Data {
                 0: std::collections::HashMap::new(),
                 1: std::collections::HashMap::new(),
@@ -141,9 +142,9 @@ pub mod hashmap {
                 path: path.clone(),
             }
         }
-        fn load(path: &String) -> std::result::Result<Data, ()> {
+        fn load(path: &PathBuf) -> std::result::Result<Data, ()> {
             let s = std::fs::read_to_string(path)
-                .map_err(|_| eprintln!("Fail to read from path: {}", path))?;
+                .map_err(|_| eprintln!("Fail to read from path: {}", path.display()))?;
             Ok(from_str::<Data>(&s)
                 .map_err(|_| eprintln!("Fail to parse file content as user data"))?)
         }
@@ -152,7 +153,7 @@ pub mod hashmap {
             let guard = self.data.read().expect("Fail to fetch guard when saving");
             let s = serde_json::to_string::<Data>(&guard).expect("Fail to parse user data as json");
             std::fs::write(&self.path, s)
-                .expect(&format!("Fail to write user data to path: {}", self.path));
+                .expect(&format!("Fail to write user data to path: {}", self.path.display()));
         }
     }
     #[async_trait]

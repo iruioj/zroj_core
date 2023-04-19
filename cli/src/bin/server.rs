@@ -1,4 +1,5 @@
 //! ZROJ 后端服务器
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use actix_web;
@@ -11,7 +12,7 @@ use server::data::user::AManager;
 async fn main() -> std::io::Result<()> {
     let session_container = web::Data::new(SessionManager::new());
     let user_data_manager = web::Data::from(Arc::new(server::data::user::hashmap::HashMap::new(
-        "/var/users/".to_string()
+        PathBuf::from("/var/users/")
     )) as Arc<AManager>);
     let problem_manager = web::Data::new(server::manager::problem::ProblemManager::new(
         "/var/problems/".to_string(),

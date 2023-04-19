@@ -48,3 +48,5 @@ pub fn new(
         .default_service(web::route().to(default_route));
     }
 }
+
+pub use auth::service as auth_service;
