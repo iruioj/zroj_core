@@ -46,7 +46,7 @@ async fn login(
         Some(r) => r,
         None => return Err(error::ErrorBadRequest("User does not exist")),
     };
-    if user.password_hash != payload.password_hash {
+    if !passwd::verify(&user.password_hash, &payload.password_hash) {
         return Err(error::ErrorBadRequest("Password not correct"));
     } else {
         let id = SessionID::new_v4(); // generate a random session-id

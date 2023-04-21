@@ -6,7 +6,10 @@ use actix_web::{
     Result,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::{RwLock, Arc}};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 pub type SessionID = uuid::Uuid;
 pub type UserID = i32;

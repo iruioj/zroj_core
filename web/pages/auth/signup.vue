@@ -9,25 +9,29 @@ const onSubmit = async (e: Event) => {
   e.preventDefault()
 
   try {
-    const res = await fetch(useRuntimeConfig().public.apiBase + "/auth/register", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      mode: 'cors',
-      body: JSON.stringify({
-        email: email.value,
-        username: username.value,
-        passwordHash: passwd.value,
+    if (process.client) {
+      const pwd = await import('passwd')
+
+      const res = await fetch(useRuntimeConfig().public.apiBase + "/auth/register", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        mode: 'cors',
+        body: JSON.stringify({
+          email: email.value,
+          username: username.value,
+          passwordHash: pwd.register_hash(passwd.value),
+        })
       })
-    })
-    if (res.status == 200) {
-      msg.value = '注册成功，跳转到登陆...'
-      setTimeout(() => {
-        navigateTo('/auth/signin')
-      }, 300)
-    } else {
-      msg.value = '注册失败：' + await res.text()
+      if (res.status == 200) {
+        msg.value = '注册成功，跳转到登陆...'
+        setTimeout(() => {
+          navigateTo('/auth/signin')
+        }, 300)
+      } else {
+        msg.value = '注册失败：' + await res.text()
+      }
     }
   } catch (e) {
     console.log(e)
