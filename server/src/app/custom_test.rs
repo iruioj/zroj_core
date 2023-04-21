@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::{
     auth::UserID,
     manager::{
@@ -7,22 +9,27 @@ use crate::{
     },
 };
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
-use actix_web::{error, get, post, web, Result};
+use actix_web::{
+    error::{self, ErrorBadRequest},
+    get, post, web, Result,
+};
 use judger::TaskResult;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 /// warning: this funtion contains probable leak
 fn parse_source_file_name(s: String) -> Result<(String, CodeLang)> {
     if s.contains('/') {
-        return Err(error::ErrorBadRequest("Invalid source file name"));
+        return Err(ErrorBadRequest(format!("invalid source file name {s:?}")));
     }
     let s = s.trim();
     let split = s.split('.').collect::<Vec<&str>>();
     if split.len() != 3 {
-        return Err(error::ErrorBadRequest("Invalid source file name"));
+        return Err(ErrorBadRequest(format!("invalid source file name {s:?}")));
     }
     let lang = split[1];
-    let lang = serde_json::from_str(lang).map_err(|_| error::ErrorBadRequest("Unkown language"))?;
+    let lang: CodeLang = serde_json::from_value(json!(lang))
+        .map_err(|_| ErrorBadRequest(format!("Unkown language {lang:?}")))?;
     let suffix = split[2];
     Ok(("source.".to_string() + suffix, lang))
 }
@@ -37,7 +44,7 @@ pub struct CustomTestPayload {
     #[multipart]
     pub input: TempFile,
 }
-#[post("/custom_test")]
+#[post("")]
 async fn custom_test_post(
     payload: MultipartForm<CustomTestPayload>,
     manager: web::Data<CustomTestManager>,
@@ -48,7 +55,7 @@ async fn custom_test_post(
     let input = base.clone().join("input");
     if let Some(file_name) = payload.source.file_name.clone() {
         let (name, lang) = parse_source_file_name(file_name)?;
-        let source = base.clone().join(name);
+        let source = base.join(name);
         std::fs::rename(payload.source.file.path(), &source)
             .map_err(|_| error::ErrorInternalServerError("Fail to move tempfile"))?;
         std::fs::rename(payload.input.file.path(), &input)
@@ -56,7 +63,10 @@ async fn custom_test_post(
         start_custom_test(manager, queue, *uid, base, source, input, lang)?;
         Ok("Judge started".to_string())
     } else {
-        Err(error::ErrorBadRequest("Missing source file name"))
+        Err(ErrorBadRequest(format!(
+            "missing source file name, source size = {}, input size = {}",
+            payload.source.size, payload.input.size
+        )))
     }
 }
 
@@ -66,7 +76,7 @@ pub struct CustomTestResult {
     pub result: Option<TaskResult>,
 }
 
-#[get("/custom_test")]
+#[get("")]
 async fn custom_test_get(
     manager: web::Data<CustomTestManager>,
     uid: web::ReqData<UserID>,
@@ -92,7 +102,7 @@ async fn edit(
 */
 
 /// 提供自定义测试服务
-/// 
+///
 /// scope path: `/custom_test`
 pub fn service(
     custom_test_manager: web::Data<CustomTestManager>,
