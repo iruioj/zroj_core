@@ -43,7 +43,7 @@ impl CustomTestManager {
             state: Arc::new(RwLock::new(HashMap::new())),
         }
     }
-    pub fn check_userid(&self, uid: &UserID) -> Result<()> {
+    fn check_userid(&self, uid: &UserID) -> Result<()> {
         if *uid < 0 {
             return Err(error::ErrorInternalServerError("User id too large"));
         }
@@ -61,11 +61,8 @@ impl CustomTestManager {
             .clone())
     }
     pub fn get_user_folder(&self, uid: &UserID) -> Result<PathBuf> {
-        let mut path = PathBuf::new();
-        path.push(&self.base_dir);
-        path = path.join(uid.to_string());
-        let b = path.is_dir();
-        if !b {
+        let path = self.base_dir.join(uid.to_string());
+        if !path.is_dir() {
             std::fs::create_dir(&path).map_err(|_| {
                 error::ErrorInternalServerError(format!(
                     "Fail to setup user custom test directory: {}",
@@ -89,16 +86,15 @@ pub fn start_custom_test(
     manager.check_userid(&uid)?;
     let state = manager.state.clone();
     queue.add(move || {
+        if let Ok(mut guard) = state.write() {
+            guard.insert(uid, None);
+        }
         let mut one = OneOff::new(source, Some(input), lang);
         one.set_wd(base);
-        let result = one.exec();
+        let result = one.exec().unwrap();
+        dbg!(&result);
         if let Ok(mut guard) = state.write() {
-            let result = match result {
-                Ok(result) => Some(result),
-                Err(_) => None,
-            };
-            (*guard).insert(uid, result);
-            eprintln!("Fail to write judge result, cannot retrive lock");
+            guard.insert(uid, Some(result));
         }
     });
     Ok(())
