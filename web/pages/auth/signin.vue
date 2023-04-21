@@ -1,13 +1,15 @@
 <script setup lang="ts">
 const username = ref("");
 const passwd = ref("");
-const msg = ref("")
+const msg = ref("");
 
 const onSubmit = async (e: Event) => {
   e.preventDefault()
 
   try {
     if (process.client) {
+      const pwd = await import('passwd')
+      msg.value = "登陆中..."
       const res = await fetch(useRuntimeConfig().public.apiBase + "/auth/login", {
         method: 'POST',
         headers: {
@@ -15,7 +17,7 @@ const onSubmit = async (e: Event) => {
         },
         body: JSON.stringify({
           username: username.value,
-          passwordHash: passwd.value,
+          passwordHash: pwd.login_hash(passwd.value),
         }),
         credentials: 'include'
       })
@@ -40,6 +42,9 @@ const onSubmit = async (e: Event) => {
     <InputText v-model="passwd" class="mt-1" placeholder="密码" type="password" autocomplete="current-password" />
     <div class="mt-1">
       <UBtn class="w-full">提交</UBtn>
+    </div>
+    <div class="mt-1">
+      <span class="text-brand">{{ msg }}</span>
     </div>
   </form>
 </template>

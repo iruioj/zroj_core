@@ -8,3 +8,4 @@ local.*
 web/node_modules
 web/.yarn
 web/.nuxt
+passwd/pkg
