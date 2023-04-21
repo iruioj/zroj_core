@@ -57,3 +57,19 @@ export const MemoryIcon = makeIcon(
 export const ExpandMoreIcon = makeIcon(
   "M480 711 240 471l43-43 197 198 197-197 43 43-240 239Z"
 );
+
+export default {
+  HomeIcon,
+  AboutIcon,
+  ListIcon,
+  QuizIcon,
+  AssignmentIcon,
+  ThumbUpIcon,
+  DoneIcon,
+  PersonIcon,
+  CodeIcon,
+  GlobeAsiaIcon,
+  TimerIcon,
+  MemoryIcon,
+  ExpandMoreIcon
+}
