@@ -3,7 +3,7 @@ use std::{path::{PathBuf, Path}, fs::{self, File}, io::{self, Read}, collections
 use sha2::{Sha256, Digest};
 use zip::{ZipArchive, read::ZipFile};
 
-use crate::{ProblemConfig, ProblemDetail, config::Checkable, problem_detail::{Pair, Single}};
+use crate::{ProblemConfig, Builtin, config::Checkable, builtin::{Pair, Single}};
 
 pub struct ProblemSet {
     path: PathBuf, 
@@ -76,7 +76,7 @@ impl ProblemSet {
         Ok(())
     }
 
-    fn read_config(config: &mut ZipFile) -> Result<ProblemDetail, String> {
+    fn read_config(config: &mut ZipFile) -> Result<Builtin, String> {
         let mut result = String::from("");
         match config.read_to_string(&mut result) {
             Ok(_) => (), 
@@ -93,9 +93,9 @@ impl ProblemSet {
                     Err(err) => return Err(err)
                 };
                 match data {
-                    ProblemDetail::Traditional(config) => ProblemSet::check::<Pair>(zip, &config).clone(), 
-                    ProblemDetail::Interactive(config) => ProblemSet::check::<Pair>(zip, &config).clone(), 
-                    ProblemDetail::AnswerOnly(config) => ProblemSet::check::<Single>(zip, &config).clone()
+                    Builtin::Traditional(config) => ProblemSet::check::<Pair>(zip, &config).clone(), 
+                    Builtin::Interactive(config) => ProblemSet::check::<Pair>(zip, &config).clone(), 
+                    Builtin::AnswerOnly(config) => ProblemSet::check::<Single>(zip, &config).clone()
                 }
             }
             Err(_) => { return Result::Err(String::from("error when open config.json, maybe it does not exist")); }
@@ -169,7 +169,7 @@ impl ProblemSet {
     }
 
     /// 给定题目编号，获取题目信息
-    pub fn get_detail(&self, id: u32) -> Result<ProblemDetail, String> {
+    pub fn get_detail(&self, id: u32) -> Result<Builtin, String> {
         if !self.indices.contains(&id) {
             return Err(String::from("index not exist"));
         }

@@ -26,7 +26,7 @@ impl Checkable for Single {
 
 /// 题目类型，分别对应传统题、交互题、提交答案题
 #[derive(Serialize, Deserialize)]
-pub enum ProblemDetail {
+pub enum Builtin {
     Traditional(ProblemConfig<Pair>), 
     Interactive(ProblemConfig<Pair>), 
     AnswerOnly(ProblemConfig<Single>)
