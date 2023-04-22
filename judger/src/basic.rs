@@ -7,11 +7,11 @@ use crate::{
 	JudgeResult,
 };
 
-pub use problem::Problem;
+pub use problem::Builtin;
 
 pub struct Submission<L: LangOption> {
 	/// 提交记录对应的题目
-	prob: Problem,
+	prob: Builtin,
 	/// 语言
 	lang: L,
 	/// 源代码相对路径
@@ -19,14 +19,15 @@ pub struct Submission<L: LangOption> {
 }
 
 impl<L: LangOption> Submission<L> {
-    pub fn new(prob: Problem, lang: L, source: PathBuf) -> Self {
+    pub fn new(prob: Builtin, lang: L, source: PathBuf) -> Self {
         Self {
 			prob,
 			lang,
             source,
         }
     }
-	pub fn judge(s: Submission) -> JudgeResult {
-		eprintln!("{}", s.source.display());
+	pub fn judge(&self) -> JudgeResult {
+		eprintln!("{}", self.source.display());
+		todo!()
 	}
 }
