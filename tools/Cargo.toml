@@ -11,9 +11,4 @@ colored = "2.0.0"
 inquire = "0.6.1"
 semver = "1.0.16"
 toml = "0.7.2"
-
-# output binary
-[[bin]]
-name = "cargo-zrdev"
-test = false
-bench = false
+procfs = "0.15.1"
