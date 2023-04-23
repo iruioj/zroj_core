@@ -58,6 +58,13 @@ llvm-cov report \
 - 请使用 VS Code 作为编辑器，并安装 rust-analyzer 插件。
 - 请掌握 Git 的基本用法，（配合 SSH key 验证的使用）。可以安装 Git Graph 插件。
 
+tools 包含一些开发工具，可以在该目录下执行
+
+```bash
+cargo build
+cargo install --path . --force
+```
+
 ### How to use Git
 
 任何时候，**不要直接将提交上传到 master 分支**，即不要直接 `git push origin master`，也不要直接 `git push`（如果你不知道 `git push` 的默认分支是什么的话）。
