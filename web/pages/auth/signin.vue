@@ -23,6 +23,7 @@ const onSubmit = async (e: Event) => {
       })
       if (res.status == 200) {
         msg.value = '登陆成功'
+        useUsername().value = useCookie("username").value || ""
         setTimeout(() => {
           navigateTo('/')
         }, 200)

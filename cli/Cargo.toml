@@ -9,11 +9,10 @@ test = false
 bench = false
 
 [dependencies]
-tempfile = "3.3.0"
-
-actix-web = { version = "4", features = ["openssl"] }
-openssl = { version = "0.10", features = ["v110"] }
-actix-cors = "0.6.4"
-
 server = { path="../server" }
+passwd = { path="../passwd" }
+
+tempfile = "3.3.0"
+actix-web = { version = "4", features = ["openssl"] }
+actix-cors = "0.6.4"
 env_logger = "0.10.0"

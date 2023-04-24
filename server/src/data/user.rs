@@ -9,13 +9,13 @@ pub type AManager = dyn Manager + Sync + Send;
 
 #[async_trait]
 pub trait Manager {
-    async fn query_by_username(&self, username: &String) -> Result<Option<User>>;
+    async fn query_by_username(&self, username: &str) -> Result<Option<User>>;
     async fn query_by_userid(&self, userid: i32) -> Result<Option<User>>;
     async fn insert(
         &self,
-        username: &String,
-        password_hash: &String,
-        email: &String,
+        username: &str,
+        password_hash: &str,
+        email: &str,
     ) -> Result<User>;
     fn to_amanager(self) -> Arc<AManager>;
 }
@@ -59,7 +59,7 @@ mod database {
     }
     #[async_trait]
     impl Manager for DbManager {
-        async fn query_by_username(&self, username: &String) -> Result<Option<User>> {
+        async fn query_by_username(&self, username: &str) -> Result<Option<User>> {
             let mut conn = self.get_conn().await?;
             let result = users::table
                 .filter(users::username.eq(username))
@@ -91,9 +91,9 @@ mod database {
         }
         async fn insert(
             &self,
-            username: &String,
-            password_hash: &String,
-            email: &String,
+            username: &str,
+            password_hash: &str,
+            email: &str,
         ) -> Result<User> {
             let mut conn = self.get_conn().await?;
             conn.transaction(|conn| {
@@ -165,7 +165,7 @@ mod hashmap {
     }
     #[async_trait]
     impl super::Manager for FsManager {
-        async fn query_by_username(&self, username: &String) -> Result<Option<User>> {
+        async fn query_by_username(&self, username: &str) -> Result<Option<User>> {
             let guard = self
                 .data
                 .read()
@@ -191,9 +191,9 @@ mod hashmap {
         }
         async fn insert(
             &self,
-            username: &String,
-            password_hash: &String,
-            email: &String,
+            username: &str,
+            password_hash: &str,
+            email: &str,
         ) -> Result<User> {
             let mut guard = self
                 .data
@@ -201,9 +201,9 @@ mod hashmap {
                 .map_err(|_| error::ErrorInternalServerError("Fail to get write lock"))?;
             let new_user = User {
                 id: guard.2,
-                username: username.clone(),
-                password_hash: password_hash.clone(),
-                email: email.clone(),
+                username: username.to_string(),
+                password_hash: password_hash.to_string(),
+                email: email.to_string(),
             };
             guard.2 = guard.2 + 1;
             guard.0.insert(new_user.username.clone(), new_user.id);

@@ -152,3 +152,7 @@ edition.workspace = true
 其余分支同理。
 
 完了之后记得 `git pull master`，保持本地 master 分支与 origin/master 分支相同。
+
+### Web Development
+
+要在本地进行 OJ 的网站开发，需要配置 zroj.tst 指向 127.0.0.1 并提供相应的 TLS certificate 文件，然后配置 nginx 将 zroj.tst/api 转发到后端的监听地址（path 去掉前缀 /api）

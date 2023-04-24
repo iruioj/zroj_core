@@ -1,6 +1,7 @@
 use crate::auth::{AuthInfo, SessionID, SessionManager, UserID};
 use crate::data::user::AManager;
 use actix_session::Session;
+use actix_web::cookie::Cookie;
 use actix_web::{error, get, post, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 
@@ -53,7 +54,9 @@ async fn login(
         eprintln!("generate new session id {}", id);
         session_container.set(id, AuthInfo { uid: user.id })?;
         session.insert("session-id", id)?;
-        return Ok(HttpResponse::Ok().body("login success"));
+        return Ok(HttpResponse::Ok()
+            .cookie(Cookie::build("username", user.username).path("/").finish())
+            .body("login success"));
     }
 }
 

@@ -16,6 +16,8 @@ async fn main() -> std::io::Result<()> {
     let dir = tempfile::tempdir().unwrap();
     let session_container = SessionManager::new();
     let user_db = web::Data::from(user::FsManager::new(dir.path().join("user_data")).to_amanager());
+    // 预先插入一个用户方便测试
+    user_db.insert("testtest", &passwd::register_hash("testtest"), "test@test.com").await.unwrap();
 
     let custom_test = web::Data::new(CustomTestManager::new(dir.path().to_path_buf()));
     let que = web::Data::new(JudgeQueue::new(8));
@@ -23,14 +25,6 @@ async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     // SSL config, for https testing
-    use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
-    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-    builder
-        .set_private_key_file("src/bin/localhost-key.pem", SslFiletype::PEM)
-        .unwrap();
-    builder.set_certificate_chain_file("src/bin/localhost.pem").unwrap();
-
-    // eprintln!("server listening on http://{}:{}", host, port);
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::new(r#"%a "%r" %s "%{Referer}i" %T"#))
@@ -79,8 +73,7 @@ async fn main() -> std::io::Result<()> {
                     .wrap(SessionAuth::require_auth(session_container.clone())),
             )
     })
-    .bind_openssl("localhost:8080", builder)?
-    // .bind((host, port))?
+    .bind("localhost:8080")?
     .run()
     .await
 }
