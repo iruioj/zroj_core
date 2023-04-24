@@ -1,6 +1,8 @@
 <!-- 使用 aleph 指示 hydration -->
 <script setup lang="ts">
 import NavButton from "./NavButton.vue";
+
+const username = useUsername(); // useCookie("username")
 </script>
 
 <template>
@@ -25,7 +27,8 @@ import NavButton from "./NavButton.vue";
       <div class="grow"></div>
       <div>
         <div class="py-2 px-4 print:hidden">
-          <TextLink to="/auth/signin">Sign In/Up</TextLink>
+          <TextLink v-if="username" to="/user/me">{{ username }}</TextLink>
+          <TextLink v-else to="/auth/signin">Sign In/Up</TextLink>
         </div>
       </div>
     </div>

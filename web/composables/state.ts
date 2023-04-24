@@ -1,0 +1,1 @@
+export const useUsername = () => useState<string>('username_from_cookie', () => useCookie('username').value || "")
