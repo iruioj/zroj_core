@@ -4,14 +4,11 @@ export function genProbMeta() {
   const id = faker.datatype.number({
     max: 99,
   });
-  const like = faker.datatype.boolean();
   return {
     id,
     title: faker.music.songName(),
     link: "/problem/" + id,
-    totalLikes: faker.datatype.number(), // likes - dislikes
-    like,
-    dislike: !like && faker.datatype.boolean(),
+    accepts: faker.datatype.number({ max: 1000 }),
     accepted: faker.datatype.boolean(), // false or undefined
   };
 }

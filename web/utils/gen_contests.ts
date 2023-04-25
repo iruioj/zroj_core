@@ -2,7 +2,6 @@ import { faker } from "@faker-js/faker";
 
 export function genContest() {
   const id = faker.datatype.number({ max: 999 })
-  const like = faker.datatype.boolean();
   return {
     id: id,
     title: "[NOI 2023赛前集训]" + faker.music.songName(),
@@ -11,10 +10,6 @@ export function genContest() {
     duration: faker.datatype.number({ max: 12 * 24}) * 1000 * 60 * 5,
     participants: faker.datatype.number({ max: 999 }),
     registered: faker.datatype.boolean(),
-
-    totalLikes: faker.datatype.number({ max: 999 }), // likes - dislikes
-    like,
-    dislike: !like && faker.datatype.boolean(),
   }
 }
 export function genContests(len: number) {
