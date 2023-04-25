@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+const { error } = useMsgStore()
+
 const value = ref(`#include<iostream>
 
 int main() {
@@ -62,7 +64,7 @@ const onSubmit = async () => {
     });
 
     if (submitRes.status != 200) {
-      console.log(submitRes.status, await submitRes.text())
+      error(await submitRes.text())
       return
     }
     isJudging.value = true
@@ -72,7 +74,7 @@ const onSubmit = async () => {
         credentials: 'include'
       })
       if (query.status != 200) {
-        console.log(query.status, await query.text())
+        error(await submitRes.text())
         return
       }
       const data = await query.json()

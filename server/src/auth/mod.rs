@@ -42,6 +42,14 @@ impl SessionManager {
         mp.insert(id, data);
         Ok(())
     }
+    pub fn remove(&self, id: SessionID) -> Result<()> {
+        let mut mp = self
+            .0
+            .write()
+            .map_err(|e| error::ErrorInternalServerError(e.to_string()))?;
+        mp.remove(&id);
+        Ok(())
+    }
     pub fn contains_key(&self, id: SessionID) -> Result<bool> {
         let mp = self
             .0

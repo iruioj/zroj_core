@@ -2,7 +2,12 @@
 <script setup lang="ts">
 import NavButton from "./NavButton.vue";
 
-const username = useUsername(); // useCookie("username")
+const { data: authinfo, refresh } = useAuth();
+const { list } = useMsgStore()
+
+if (process.client) {
+  refresh()
+}
 </script>
 
 <template>
@@ -27,7 +32,7 @@ const username = useUsername(); // useCookie("username")
       <div class="grow"></div>
       <div>
         <div class="py-2 px-4 print:hidden">
-          <TextLink v-if="username" to="/user/me">{{ username }}</TextLink>
+          <TextLink v-if="authinfo" to="/user/me">{{ authinfo.username }}</TextLink>
           <TextLink v-else to="/auth/signin">Sign In/Up</TextLink>
         </div>
       </div>
@@ -40,5 +45,28 @@ const username = useUsername(); // useCookie("username")
       <NavButton to="/submission/2">Submissions</NavButton>
       <NavButton to="/oneoff">Customtest</NavButton>
     </div>
+    <TransitionGroup name="msg-list" tag="div">
+      <div class="p-1 text-center" :class="'msg-' + msg.kind" v-for="msg in list" :key="msg.id">
+        <NuxtIcon class="inline-block align-middle" name="error" v-if="msg.kind == 'error'" />
+        {{ msg.msg }}
+      </div>
+    </TransitionGroup>
   </header>
 </template>
+<style>
+.msg-list-move, 
+.msg-list-enter-active,
+.msg-list-leave-active {
+  transition: all 0.5s ease;
+}
+.msg-list-enter-from,
+.msg-list-leave-to {
+  opacity: 0;
+}
+/* ensure leaving items are taken out of layout flow so that moving
+   animations can be calculated correctly. */
+.msg-list-leave-active {
+  position: absolute;
+  width: 100%;
+}
+</style>
