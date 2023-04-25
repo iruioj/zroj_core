@@ -23,6 +23,7 @@ async fn main() -> std::io::Result<()> {
     let que = web::Data::new(JudgeQueue::new(8));
 
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    let session_key = actix_web::cookie::Key::generate();
 
     // SSL config, for https testing
     HttpServer::new(move || {
@@ -55,10 +56,10 @@ async fn main() -> std::io::Result<()> {
             .wrap(
                 server::actix_session::SessionMiddleware::builder(
                     server::actix_session::storage::CookieSessionStore::default(),
-                    actix_web::cookie::Key::generate(),
+                    session_key.clone(),
                 )
-                .cookie_secure(true)
-                .cookie_same_site(actix_web::cookie::SameSite::None)
+                .cookie_secure(false)
+                // .cookie_same_site(actix_web::cookie::SameSite::None)
                 // .cookie_domain(Some("localhost".into()))
                 .cookie_path("/".into())
                 // .cookie_http_only(false)

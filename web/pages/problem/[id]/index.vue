@@ -3,8 +3,14 @@ defineProps<{
   data: any;
 }>();
 
+const { error } = useMsgStore()
 const copyText = (s: string) => {
-  navigator.clipboard.writeText(s);
+  try {
+    navigator.clipboard.writeText(s);
+  } catch (e: any) {
+    error("Copy Failed!")
+    console.log(e)
+  }
 };
 
 const samples = [
@@ -43,7 +49,9 @@ a`,
         </li>
         <li v-if="data.meta.memoryLimit != undefined" class="flex py-1">
           <div>空间限制：</div>
-          <div><RadixNum :num="data.meta.memoryLimit" :base="24" /> bit</div>
+          <div>
+            <RadixNum :num="data.meta.memoryLimit" :base="24" /> bit
+          </div>
         </li>
         <li v-if="data.meta.io != undefined" class="flex py-1">
           <div>输入输出方式：</div>
@@ -96,18 +104,9 @@ a`,
     </SectionContainer>
 
     <SectionContainer title="样例">
-      <div
-        v-for="(sample, id) in samples"
-        :key="id"
-        class="px-1 my-2 mb-4 grid sm:grid-cols-2"
-      >
-        <div
-          class="group p-2 hover:bg-black/[0.14] transition-colors cursor-pointer"
-          @click="copyText(sample.input)"
-        >
-          <div
-            class="text-brand-secondary mb-2 border-b border-dashed flex justify-between"
-          >
+      <div v-for="(sample, id) in samples" :key="id" class="px-1 my-2 mb-4 grid sm:grid-cols-2">
+        <div class="group p-2 hover:bg-black/[0.14] transition-colors cursor-pointer" @click="copyText(sample.input)">
+          <div class="text-brand-secondary mb-2 border-b border-dashed flex justify-between">
             <div class="text-lg">样例读入 #{{ id + 1 }}</div>
             <div class="text-slate-500 invisible group-hover:visible">
               点击复制
@@ -115,13 +114,8 @@ a`,
           </div>
           <pre class="">{{ sample.input }}</pre>
         </div>
-        <div
-          class="group p-2 hover:bg-black/[0.14] transition-colors cursor-pointer"
-          @click="copyText(sample.output)"
-        >
-          <div
-            class="text-brand-secondary mb-2 border-b border-dashed flex justify-between"
-          >
+        <div class="group p-2 hover:bg-black/[0.14] transition-colors cursor-pointer" @click="copyText(sample.output)">
+          <div class="text-brand-secondary mb-2 border-b border-dashed flex justify-between">
             <div class="text-lg">样例输出 #{{ id + 1 }}</div>
             <div class="text-slate-500 invisible group-hover:visible">
               点击复制

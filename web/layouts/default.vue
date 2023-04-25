@@ -43,6 +43,8 @@
   .border-theme {
     @apply border-slate-900/10 dark:border-slate-50/[0.06];
   }
-  /* ... */
+  .msg-error {
+    @apply bg-red-100 text-brand;
+  }
 }
 </style>

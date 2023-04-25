@@ -97,31 +97,40 @@ async fn register(
 }
 
 #[derive(Serialize)]
-struct InspectRes {
-    session_id: Option<SessionID>,
-    user_id: Option<UserID>,
-    user: Option<crate::data::schema::User>,
+struct AuthInfoRes {
+    username: String,
+    email: String,
 }
-/// 查看当前的鉴权信息（主要用于测试）
-#[get("/inspect")]
+/// 查看当前的鉴权信息，用于菜单栏显示
+#[get("/info")]
 async fn inspect(
     user_db: web::Data<AManager>,
-    session_id: Option<web::ReqData<SessionID>>,
     user_id: Option<web::ReqData<UserID>>,
-) -> actix_web::Result<web::Json<InspectRes>> {
-    let mut res = InspectRes {
-        session_id: None,
-        user_id: None,
-        user: None,
-    };
+) -> actix_web::Result<web::Json<AuthInfoRes>> {
     if let Some(id) = user_id {
-        res.user_id = Some(*id);
-        res.user = user_db.query_by_userid(*id).await?;
+        let user = user_db.query_by_userid(*id).await?;
+        if let Some(user) = user {
+            return Ok(web::Json(AuthInfoRes {
+                username: user.username,
+                email: user.email,
+            }));
+        }
     }
-    if let Some(sid) = session_id {
-        res.session_id = Some(*sid);
+    Err(error::ErrorBadRequest("user not found"))
+}
+
+#[post("/logout")]
+async fn logout(
+    session_container: web::Data<SessionManager>,
+    session: Session,
+) -> actix_web::Result<HttpResponse> {
+    let id = session.get::<SessionID>("session-id")?;
+    if let Some(id) = id {
+        session_container.remove(id)?;
+        session.remove("session-id");
+        return Ok(HttpResponse::Ok().body("logout success"));
     }
-    Ok(web::Json(res))
+    Err(error::ErrorBadRequest("invalid session id"))
 }
 
 /// scope path: `/auth`
@@ -144,6 +153,7 @@ pub fn service(
         .app_data(web::Data::new(session_mgr))
         .app_data(user_database)
         .service(login)
+        .service(logout)
         .service(register)
         .service(inspect)
 }

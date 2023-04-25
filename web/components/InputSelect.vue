@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ExpandMoreIcon } from "~/components/icons";
-
 type Item = {
   title: string;
   value: string;
@@ -43,7 +41,7 @@ const onSelect = (value: string) => {
       >
         {{ selected?.title || placeholder || "" }}
       </div>
-      <ExpandMoreIcon
+      <NuxtIcon name="expand_more"
         class="bg-white/0 h-8 w-7 p-1 fill-secondary group-hover:fill-brand transition-transform"
         :class="showSelect && 'rotate-180'"
       />

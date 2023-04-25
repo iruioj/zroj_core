@@ -30,7 +30,7 @@ const data = {
 <template>
   <PageContainer>
     <SectionContainer title="比赛列表">
-      <div class="p-2">
+      <div class="py-2">
         <table class="w-full text-sm">
           <thead>
             <TableHeaderRow>

@@ -3,6 +3,8 @@ const username = ref("");
 const passwd = ref("");
 const msg = ref("");
 
+const { refresh } = useAuth()
+
 const onSubmit = async (e: Event) => {
   e.preventDefault()
 
@@ -23,10 +25,8 @@ const onSubmit = async (e: Event) => {
       })
       if (res.status == 200) {
         msg.value = '登陆成功'
-        useUsername().value = useCookie("username").value || ""
-        setTimeout(() => {
-          navigateTo('/')
-        }, 200)
+        await refresh()
+        navigateTo('/')
       } else {
         msg.value = '登陆失败：' + await res.text()
       }

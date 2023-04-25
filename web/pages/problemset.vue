@@ -12,7 +12,7 @@ const data = {
 <template>
   <PageContainer>
     <SectionContainer title="题目集">
-      <div class="p-2">
+      <div class="py-2">
         <table class="w-full">
           <thead>
             <TableHeaderRow>
