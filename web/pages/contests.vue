@@ -9,21 +9,6 @@ const data = {
     isLast: false,
   },
   contests:  genContests(10),
-  // [
-  //   {
-  //     id: 1,
-  //     title: "丽泽上林入门组训练赛day21",
-  //     link: "/contest/1",
-  //     startTime: Date.now(),
-  //     duration: 1919810,
-  //     participants: 114,
-  //     registered: false,
-
-  //     totalLikes: 407, // likes - dislikes
-  //     like: true,
-  //     dislike: false,
-  //   },
-  // ],
 };
 </script>
 
@@ -34,16 +19,13 @@ const data = {
         <table class="w-full text-sm">
           <thead>
             <TableHeaderRow>
-              <th class="text-brand pb-2 w-12">ID</th>
               <th class="text-brand pb-2 text-left">比赛</th>
               <th class="text-brand pb-2 text-center">开始时间/时长</th>
               <th class="text-brand pb-2">报名人数</th>
-              <th class="text-brand pb-2">评价</th>
             </TableHeaderRow>
           </thead>
           <tbody>
             <TableRow v-for="p in data.contests" :key="p.id">
-              <td class="text-center py-2">{{ p.id }}</td>
               <td class="py-2">
                 <TextLink :to="p.link">{{ p.title }}</TextLink>
               </td>
@@ -53,11 +35,6 @@ const data = {
               </td>
               <td class="py-2 text-center">
                 {{ p.participants }}
-              </td>
-              <td class="py-2 text-left">
-                <button>好评</button>
-                <button class="mx-1">差评</button>
-                {{ p.totalLikes }}
               </td>
             </TableRow>
           </tbody>

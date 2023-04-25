@@ -65,7 +65,7 @@ const topUsers = [
 <template>
   <PageContainer>
     <SectionContainer title="公告">
-      <ul class="p-2">
+      <ul class="py-2">
         <li
           v-for="an in announcements"
           :key="an.id"
@@ -88,7 +88,7 @@ const topUsers = [
     </SectionContainer>
 
     <SectionContainer title="排行榜（活跃用户）">
-      <div class="p-2">
+      <div class="py-2">
         <table class="w-full">
           <thead>
             <TableHeaderRow>

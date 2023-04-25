@@ -17,21 +17,21 @@ const data = {
           <thead>
             <TableHeaderRow>
               <th class="text-brand pb-2">ID</th>
+              <th class="w-7 pb-2"></th>
               <th class="text-brand pb-2 text-left">题目</th>
-              <th class="text-brand pb-2">评价</th>
+              <th class="text-brand pb-2">通过数</th>
             </TableHeaderRow>
           </thead>
           <tbody>
             <TableRow v-for="p in data.problems" :key="p.id">
               <td class="text-center py-2">{{ p.id }}</td>
+              <td class="text-center py-2">
+                <NuxtIcon v-if="p.accepted" class="inline-block align-middle text-brand" name="check" />
+              </td>
               <td class="py-2">
                 <TextLink :to="p.link">{{ p.title }}</TextLink>
               </td>
-              <td class="py-2 text-left w-32">
-                <button>好评</button>
-                <button class="mx-1">差评</button>
-                {{ p.totalLikes }}
-              </td>
+              <td class="text-center py-2">{{ p.accepts }}</td>
             </TableRow>
           </tbody>
         </table>
