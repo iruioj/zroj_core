@@ -43,6 +43,7 @@ pub struct CustomTestPayload {
     #[multipart]
     pub input: TempFile,
 }
+
 #[post("")]
 async fn custom_test_post(
     payload: MultipartForm<CustomTestPayload>,

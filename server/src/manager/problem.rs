@@ -4,21 +4,14 @@ use crate::{
     problem::{GeneralConfig, ProblemAccess, ProblemID, StatementSource},
 };
 use actix_web::{error, Result};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::sync::RwLock;
 
 /// For page /problem/{pid}, api url /api/problem/{pid}
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ProblemViewData {
     general_config: GeneralConfig,
-    statement: StatementViewData,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum StatementViewData {
-    /// given source code and do client side render
-    Markdown(StatementSource),
-    /// previously rendered tex into html
-    LaTex(String),
+    statement: StatementSource,
 }
 
 #[derive(Debug)]
