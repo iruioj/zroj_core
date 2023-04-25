@@ -14,7 +14,7 @@ use actix_web::{
     get, post, web, Result,
 };
 use judger::TaskResult;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
 
 /// warning: this funtion contains probable leak
@@ -70,7 +70,7 @@ async fn custom_test_post(
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct CustomTestResult {
     /// return None if the judging or failed
     pub result: Option<TaskResult>,

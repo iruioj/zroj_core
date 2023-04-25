@@ -21,7 +21,7 @@ fn validate_username(username: &String) -> actix_web::Result<()> {
 }
 
 /// format of login payload
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct LoginPayload {
     /// 用户名
     pub username: String,
@@ -61,7 +61,7 @@ async fn login(
 }
 
 /// format of register payload
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct RegisterPayload {
     /// 邮箱
     pub email: String,
