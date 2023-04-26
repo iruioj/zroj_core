@@ -18,7 +18,7 @@ const config: Partial<Config> = {
       slate: color.slate,
       black: color.black,
       back: "rgb(var(--theme-bg) / <alpha-value>)",
-      primary: 'rgb(var(--theme-pri) / <alpha-value>)',
+      primary: "rgb(var(--theme-pri) / <alpha-value>)",
       secondary: "rgb(var(--theme-sec) / <alpha-value>)",
     },
     fontFamily: {
@@ -69,16 +69,21 @@ const config: Partial<Config> = {
   },
   plugins: [
     plugin(function ({ addBase, theme }) {
-      const back = theme("colors.back") as string
-      const front = theme("colors.primary") as string
+      const back = theme("colors.back") as string;
+      const front = theme("colors.primary") as string;
       addBase({
-        "input": {
-          "background-color": back.replace("<alpha-value>", "1")
+        input: {
+          "background-color": back.replace("<alpha-value>", "1"),
         },
         "input:autofill": {
           "-webkit-box-shadow":
-            "0 0 0 30px " + back.replace("<alpha-value>", "1") + " inset !important",
-          "-webkit-text-fill-color": `${front.replace("<alpha-value>", "1")} !important`,
+            "0 0 0 30px " +
+            back.replace("<alpha-value>", "1") +
+            " inset !important",
+          "-webkit-text-fill-color": `${front.replace(
+            "<alpha-value>",
+            "1"
+          )} !important`,
         },
         // '@media (prefers-color-scheme: dark)': {
         //   'html': {

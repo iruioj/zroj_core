@@ -16,7 +16,6 @@ const emit = defineEmits<{
 const showSelect = ref(false);
 const selected = ref<{ title: string; value: string } | null>(null);
 const onToggle = () => {
-  console.log("toggle!");
   showSelect.value = !showSelect.value;
 };
 const onSelect = (value: string) => {
@@ -32,7 +31,7 @@ const onSelect = (value: string) => {
 <template>
   <div class="group relative">
     <div
-      class="flex pl-2 border rounded border-slate-400 group-hover:border-brand cursor-pointer text-slate-500"
+      class="flex px-2 border rounded border-slate-400 group-hover:border-brand cursor-pointer text-slate-500"
       @click="onToggle"
     >
       <div
@@ -41,8 +40,9 @@ const onSelect = (value: string) => {
       >
         {{ selected?.title || placeholder || "" }}
       </div>
-      <NuxtIcon name="expand_more"
-        class="bg-white/0 h-8 w-7 p-1 fill-secondary group-hover:fill-brand transition-transform"
+      <NuxtIcon
+        name="expand_more"
+        class="bg-white/0 pt-2 text-secondary group-hover:text-brand transition-transform"
         :class="showSelect && 'rotate-180'"
       />
     </div>

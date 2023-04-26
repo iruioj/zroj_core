@@ -26,7 +26,11 @@ const data = {
             <TableRow v-for="p in data.problems" :key="p.id">
               <td class="text-center py-2">{{ p.id }}</td>
               <td class="text-center py-2">
-                <NuxtIcon v-if="p.accepted" class="inline-block align-middle text-brand" name="check" />
+                <NuxtIcon
+                  v-if="p.accepted"
+                  class="inline-block align-middle text-brand"
+                  name="check"
+                />
               </td>
               <td class="py-2">
                 <TextLink :to="p.link">{{ p.title }}</TextLink>

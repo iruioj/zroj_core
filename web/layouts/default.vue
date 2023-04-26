@@ -38,7 +38,6 @@
   .border-table td,
   .border-table th {
     @apply border-[#e7e7e9] dark:border-[#2d2e31];
-
   }
   .border-theme {
     @apply border-slate-900/10 dark:border-slate-50/[0.06];

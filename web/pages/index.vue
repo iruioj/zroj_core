@@ -75,9 +75,7 @@ const topUsers = [
             <TextLink :to="an.link">{{ an.title }}</TextLink>
             <div>
               by
-              <NuxtLink
-                :to="an.author_link"
-                class="font-bold hover:text-brand"
+              <NuxtLink :to="an.author_link" class="font-bold hover:text-brand"
                 >{{ an.author }}
               </NuxtLink>
             </div>
