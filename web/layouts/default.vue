@@ -1,5 +1,5 @@
 <template>
-  <div class="w-screen h-screen bg-back overflow-auto">
+  <div class="w-full">
     <NavBar />
     <NuxtPage />
     <FootBar />
@@ -20,6 +20,7 @@
   }
   html {
     color: rgb(var(--theme-pri));
+    @apply bg-back;
   }
 
   @media (prefers-color-scheme: dark) {
