@@ -9,7 +9,7 @@ export const useAuth = () =>
     if (res.ok) {
       return await res.json();
     }
-    console.log(res.status, res);
+    // console.log(res.status, res);
   });
 
 type Message = {
@@ -18,7 +18,7 @@ type Message = {
   msg: string;
 };
 
-const show_duration = 1500;
+const showDuration = 1500;
 
 export const useMsgStore = defineStore("message_list", () => {
   const count = ref(0);
@@ -28,7 +28,7 @@ export const useMsgStore = defineStore("message_list", () => {
     list.value.push(msg);
     setTimeout(() => {
       list.value.shift();
-    }, show_duration);
+    }, showDuration);
   }
   function info(msg: string) {
     addmsg({ id: ++count.value, kind: "info", msg });

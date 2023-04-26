@@ -1,15 +1,11 @@
 import wasm from "vite-plugin-wasm";
 import topLevelAwait from "vite-plugin-top-level-await";
 
-console.log("NODE_ENV=", process.env.NODE_ENV);
+// console.log("NODE_ENV=", process.env.NODE_ENV);
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  modules: [
-    "@nuxtjs/tailwindcss",
-    "nuxt-icons",
-    "@pinia/nuxt",
-  ],
+  modules: ["@nuxtjs/tailwindcss", "nuxt-icons", "@pinia/nuxt"],
   runtimeConfig: {
     // The private keys which are only available server-side
     apiSecret: "123",
@@ -26,9 +22,6 @@ export default defineNuxtConfig({
     // },
   },
   vite: {
-    plugins: [
-      wasm(),
-      topLevelAwait(),
-    ],
+    plugins: [wasm(), topLevelAwait()],
   },
 });

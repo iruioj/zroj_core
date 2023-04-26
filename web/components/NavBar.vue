@@ -3,17 +3,15 @@
 import NavButton from "./NavButton.vue";
 
 const { data: authinfo, refresh } = useAuth();
-const { list } = useMsgStore()
+const { list } = useMsgStore();
 
 if (process.client) {
-  refresh()
+  refresh();
 }
 </script>
 
 <template>
-  <header
-    class="bg-back sticky top-0 z-30 border-b border-slate-900/10 dark:border-slate-50/[0.06]"
-  >
+  <header class="bg-back sticky top-0 z-30 border-b border-theme">
     <div class="flex items-center">
       <NuxtLink to="/">
         <div class="inline-block px-4 font-bold text-xl text-brand">
@@ -30,31 +28,38 @@ if (process.client) {
         <NavButton to="/oneoff">Customtest</NavButton>
       </div>
       <div class="grow"></div>
-      <div>
-        <div class="py-2 px-4 print:hidden">
-          <TextLink v-if="authinfo" to="/user/me">{{ authinfo.username }}</TextLink>
-          <TextLink v-else to="/auth/signin">Sign In/Up</TextLink>
-        </div>
+      <div class="py-2 px-4 print:hidden">
+        <TextLink v-if="authinfo" to="/user/me">{{
+          authinfo.username
+        }}</TextLink>
+        <TextLink v-else to="/auth/signin">Sign In/Up</TextLink>
       </div>
     </div>
-    <div
-      class="text-xs mx-2 print:hidden sm:hidden border-t border-slate-900/10 dark:border-slate-50/[0.06]"
-    >
+    <div class="text-xs mx-2 print:hidden sm:hidden border-t border-theme">
       <NavButton to="/problemset">Problems</NavButton>
       <NavButton to="/contests">Contests</NavButton>
       <NavButton to="/submission/2">Submissions</NavButton>
       <NavButton to="/oneoff">Customtest</NavButton>
     </div>
     <TransitionGroup name="msg-list" tag="div">
-      <div class="p-1 text-center" :class="'msg-' + msg.kind" v-for="msg in list" :key="msg.id">
-        <NuxtIcon class="inline-block align-middle" name="error" v-if="msg.kind == 'error'" />
+      <div
+        v-for="msg in list"
+        :key="msg.id"
+        class="p-1 text-center"
+        :class="'msg-' + msg.kind"
+      >
+        <NuxtIcon
+          v-if="msg.kind == 'error'"
+          class="inline-block align-middle"
+          name="error"
+        />
         {{ msg.msg }}
       </div>
     </TransitionGroup>
   </header>
 </template>
 <style>
-.msg-list-move, 
+.msg-list-move,
 .msg-list-enter-active,
 .msg-list-leave-active {
   transition: all 0.5s ease;
