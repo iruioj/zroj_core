@@ -1,8 +1,8 @@
 //! imp struct for different database queries
 use std::sync::Arc;
 
+use super::error::{Error, Result};
 use crate::data::schema::User;
-use super::error::{Result, Error};
 use async_trait::async_trait;
 
 pub type AManager = dyn Manager + Sync + Send;
@@ -46,7 +46,7 @@ mod database {
         async fn get_conn(&self) -> Result<MysqlPooledConnection> {
             Ok(self.0.get()?)
             //.map_err(|e| {
-                //error::ErrorInternalServerError(format!("Pool connection error: {}", e.to_string()))
+            //error::ErrorInternalServerError(format!("Pool connection error: {}", e.to_string()))
             // })
         }
     }
@@ -61,7 +61,7 @@ mod database {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => match e {
                     diesel::result::Error::NotFound => Ok(None),
-                    ee => Err(Error::DbError(ee))
+                    ee => Err(Error::DbError(ee)),
                 },
             }
         }
@@ -100,11 +100,11 @@ mod database {
 
 pub use hashmap::FsManager;
 mod hashmap {
-    use std::sync::RwLock;
-    use std::{collections::HashMap, path::PathBuf};
     use crate::{auth::UserID, data::user::*};
     use serde::{Deserialize, Serialize};
     use serde_json::from_str;
+    use std::sync::RwLock;
+    use std::{collections::HashMap, path::PathBuf};
 
     #[derive(Serialize, Deserialize)]
     struct Data(HashMap<String, UserID>, HashMap<UserID, User>, UserID);
