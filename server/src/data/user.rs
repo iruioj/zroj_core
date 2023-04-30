@@ -44,7 +44,7 @@ mod database {
             }
         }
         async fn get_conn(&self) -> Result<MysqlPooledConnection> {
-            self.0.get().map_err(|e| Error::ConnectionError(e))
+            Ok(self.0.get()?)
             //.map_err(|e| {
                 //error::ErrorInternalServerError(format!("Pool connection error: {}", e.to_string()))
             // })
@@ -143,7 +143,7 @@ mod hashmap {
     #[async_trait]
     impl super::Manager for FsManager {
         async fn query_by_username(&self, username: &str) -> Result<Option<User>> {
-            let guard = self.data.read().map_err(|_| Error::LockError)?;
+            let guard = self.data.read()?;
             // .map_err(|_| error::ErrorInternalServerError("Fail to get read lock"))?;
             if let Some(uid) = guard.0.get(username) {
                 match guard.1.get(uid) {
@@ -155,14 +155,14 @@ mod hashmap {
             }
         }
         async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>> {
-            let guard = self.data.read().map_err(|_| Error::LockError)?;
+            let guard = self.data.read()?;
             match guard.1.get(&uid) {
                 Some(v) => Ok(Some(v.clone())),
                 None => Ok(None),
             }
         }
         async fn insert(&self, username: &str, password_hash: &str, email: &str) -> Result<User> {
-            let mut guard = self.data.write().map_err(|_| Error::LockError)?;
+            let mut guard = self.data.write()?;
             let new_user = User {
                 id: guard.2,
                 username: username.to_string(),

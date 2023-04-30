@@ -21,4 +21,21 @@ impl From<Error> for actix_web::Error {
     }
 }
 
+impl<T> From<std::sync::PoisonError<T>> for Error {
+    fn from(_: std::sync::PoisonError<T>) -> Self {
+        Self::LockError
+    }
+}
+
+impl From<r2d2::Error> for Error {
+    fn from(value: r2d2::Error) -> Self {
+        Self::ConnectionError(value)
+    }
+}
+impl From<diesel::result::Error> for Error {
+    fn from(value: diesel::result::Error) -> Self {
+        Self::DbError(value)
+    }
+}
+
 pub type Result<T> = std::result::Result<T, Error>;
