@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 use crate::data::schema::User;
-use actix_web::Result;
+use super::error::{Result, Error};
 use async_trait::async_trait;
 
 pub type AManager = dyn Manager + Sync + Send;
@@ -11,12 +11,7 @@ pub type AManager = dyn Manager + Sync + Send;
 pub trait Manager {
     async fn query_by_username(&self, username: &str) -> Result<Option<User>>;
     async fn query_by_userid(&self, userid: i32) -> Result<Option<User>>;
-    async fn insert(
-        &self,
-        username: &str,
-        password_hash: &str,
-        email: &str,
-    ) -> Result<User>;
+    async fn insert(&self, username: &str, password_hash: &str, email: &str) -> Result<User>;
     fn to_amanager(self) -> Arc<AManager>;
 }
 
@@ -27,7 +22,6 @@ pub use database::DbManager;
 mod database {
     use crate::data::schema::{users, NewUser};
     use crate::data::user::*;
-    use async_trait::async_trait;
     use diesel::{
         self,
         mysql::MysqlConnection,
@@ -37,10 +31,8 @@ mod database {
     type MysqlPool = Pool<ConnectionManager<MysqlConnection>>;
     type MysqlPooledConnection = PooledConnection<ConnectionManager<MysqlConnection>>;
     use crate::data::user::Manager;
-    use actix_web::error::{self, Result};
-
     pub struct DbManager(MysqlPool);
-    
+
     /// 数据库存储
     impl DbManager {
         pub fn new(url: &String) -> Self {
@@ -52,9 +44,10 @@ mod database {
             }
         }
         async fn get_conn(&self) -> Result<MysqlPooledConnection> {
-            self.0.get().map_err(|e| {
-                error::ErrorInternalServerError(format!("Pool connection error: {}", e.to_string()))
-            })
+            self.0.get().map_err(|e| Error::ConnectionError(e))
+            //.map_err(|e| {
+                //error::ErrorInternalServerError(format!("Pool connection error: {}", e.to_string()))
+            // })
         }
     }
     #[async_trait]
@@ -68,10 +61,7 @@ mod database {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => match e {
                     diesel::result::Error::NotFound => Ok(None),
-                    _ => Err(error::ErrorInternalServerError(format!(
-                        "Database error: {}",
-                        e.to_string()
-                    ))),
+                    ee => Err(Error::DbError(ee))
                 },
             }
         }
@@ -82,19 +72,11 @@ mod database {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => match e {
                     diesel::result::Error::NotFound => Ok(None),
-                    _ => Err(error::ErrorInternalServerError(format!(
-                        "Database error: {}",
-                        e.to_string()
-                    ))),
+                    ee => Err(Error::DbError(ee)),
                 },
             }
         }
-        async fn insert(
-            &self,
-            username: &str,
-            password_hash: &str,
-            email: &str,
-        ) -> Result<User> {
+        async fn insert(&self, username: &str, password_hash: &str, email: &str) -> Result<User> {
             let mut conn = self.get_conn().await?;
             conn.transaction(|conn| {
                 let new_user = NewUser {
@@ -107,9 +89,7 @@ mod database {
                     .execute(conn)?;
                 users::table.order(users::id.desc()).first::<User>(conn)
             })
-            .map_err(|e| {
-                error::ErrorInternalServerError(format!("Database Error: {}", e.to_string()))
-            })
+            .map_err(|e| Error::DbError(e))
         }
         /// consume self and return its Arc.
         fn to_amanager(self) -> Arc<AManager> {
@@ -122,10 +102,7 @@ pub use hashmap::FsManager;
 mod hashmap {
     use std::sync::RwLock;
     use std::{collections::HashMap, path::PathBuf};
-
     use crate::{auth::UserID, data::user::*};
-    use actix_web::error::{self, Result};
-    use async_trait::async_trait;
     use serde::{Deserialize, Serialize};
     use serde_json::from_str;
 
@@ -166,10 +143,8 @@ mod hashmap {
     #[async_trait]
     impl super::Manager for FsManager {
         async fn query_by_username(&self, username: &str) -> Result<Option<User>> {
-            let guard = self
-                .data
-                .read()
-                .map_err(|_| error::ErrorInternalServerError("Fail to get read lock"))?;
+            let guard = self.data.read().expect("Lock failed");
+            // .map_err(|_| error::ErrorInternalServerError("Fail to get read lock"))?;
             if let Some(uid) = guard.0.get(username) {
                 match guard.1.get(uid) {
                     Some(v) => Ok(Some(v.clone())),
@@ -180,25 +155,14 @@ mod hashmap {
             }
         }
         async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>> {
-            let guard = self
-                .data
-                .read()
-                .map_err(|_| error::ErrorInternalServerError("Fail to get read lock"))?;
+            let guard = self.data.read().expect("Lock failed");
             match guard.1.get(&uid) {
                 Some(v) => Ok(Some(v.clone())),
                 None => Ok(None),
             }
         }
-        async fn insert(
-            &self,
-            username: &str,
-            password_hash: &str,
-            email: &str,
-        ) -> Result<User> {
-            let mut guard = self
-                .data
-                .write()
-                .map_err(|_| error::ErrorInternalServerError("Fail to get write lock"))?;
+        async fn insert(&self, username: &str, password_hash: &str, email: &str) -> Result<User> {
+            let mut guard = self .data .write().expect("Lock failed");
             let new_user = User {
                 id: guard.2,
                 username: username.to_string(),
