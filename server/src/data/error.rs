@@ -1,7 +1,8 @@
 
 pub enum Error {
     ConnectionError(r2d2::Error),
-    DbError(diesel::result::Error)
+    DbError(diesel::result::Error),
+    LockError
 }
 
 impl ToString for Error {
@@ -9,19 +10,8 @@ impl ToString for Error {
         match self {
             Self::ConnectionError(e) => format!("Database connection error: {}", e.to_string()),
             Self::DbError(e) => format!("Database error: {}", e.to_string()),
+            Self::LockError => "Lock returned poisoned, which can be caused by a panicked thread".to_string()
         }
-    }
-}
-
-
-impl From<r2d2::Error> for Error {
-    fn from(value: r2d2::Error) -> Self {
-        Self::ConnectionError(value)
-    }
-}
-impl From<diesel::result::Error> for Error {
-    fn from(value: diesel::result::Error) -> Self {
-        Self::DbError(value)
     }
 }
 
