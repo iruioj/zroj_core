@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum Error {
     ConnectionError(r2d2::Error),
     DbError(diesel::result::Error),
