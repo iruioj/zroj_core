@@ -27,3 +27,12 @@ pub struct NewUser<'a> {
     pub password_hash: &'a str,
     pub email: &'a str,
 }
+
+/// struct for database query
+#[derive(Queryable, Debug, Serialize, Deserialize, Clone)]
+pub struct Group {
+    pub id: i32,
+    pub name: String,
+    pub owner: i32,
+    pub users: Vec<i32>,
+}

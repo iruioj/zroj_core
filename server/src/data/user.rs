@@ -1,9 +1,8 @@
 //! imp struct for different database queries
-use std::sync::Arc;
-
 use super::error::{Error, Result};
 use crate::data::schema::User;
 use async_trait::async_trait;
+use std::sync::Arc;
 
 pub type AManager = dyn Manager + Sync + Send;
 
@@ -107,7 +106,7 @@ mod hashmap {
     use std::{collections::HashMap, path::PathBuf};
 
     #[derive(Serialize, Deserialize)]
-    struct Data(HashMap<String, UserID>, HashMap<UserID, User>, UserID);
+    struct Data(HashMap<String, UserID>, Vec<User>);
 
     /// 文件系统存储信息
     #[derive(Serialize, Deserialize)]
@@ -118,7 +117,7 @@ mod hashmap {
 
     impl FsManager {
         pub fn new(path: PathBuf) -> Self {
-            let r = Self::load(&path).unwrap_or(Data(HashMap::new(), HashMap::new(), 0));
+            let r = Self::load(&path).unwrap_or(Data(HashMap::new(), Vec::new()));
             Self {
                 data: RwLock::new(r),
                 path: path.clone(),
@@ -146,34 +145,29 @@ mod hashmap {
             let guard = self.data.read()?;
             // .map_err(|_| error::ErrorInternalServerError("Fail to get read lock"))?;
             if let Some(uid) = guard.0.get(username) {
-                match guard.1.get(uid) {
-                    Some(v) => Ok(Some(v.clone())),
-                    None => Ok(None),
-                }
+                Ok(Some(guard.1[*uid as usize].clone()))
             } else {
                 Ok(None)
             }
         }
         async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>> {
             let guard = self.data.read()?;
-            match guard.1.get(&uid) {
-                Some(v) => Ok(Some(v.clone())),
-                None => Ok(None),
+            if uid < 0 || uid as usize >= guard.1.len() {
+                Ok(None)
+            } else {
+                Ok(Some(guard.1[uid as usize].clone()))
             }
         }
         async fn insert(&self, username: &str, password_hash: &str, email: &str) -> Result<User> {
             let mut guard = self.data.write()?;
             let new_user = User {
-                id: guard.2,
+                id: guard.1.len() as UserID,
                 username: username.to_string(),
                 password_hash: password_hash.to_string(),
                 email: email.to_string(),
             };
-            guard.2 = guard.2 + 1;
             guard.0.insert(new_user.username.clone(), new_user.id);
-            if let Some(_) = guard.1.insert(new_user.id, new_user.clone()) {
-                panic!("Error, duplicate userid is not expected");
-            }
+            guard.1.push(new_user.clone());
             drop(guard);
             self.save();
             Ok(new_user)
