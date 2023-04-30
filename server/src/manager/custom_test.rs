@@ -43,18 +43,11 @@ impl CustomTestManager {
             state: Arc::new(RwLock::new(HashMap::new())),
         }
     }
-    fn check_userid(&self, uid: &UserID) -> Result<()> {
-        if *uid < 0 {
-            return Err(error::ErrorInternalServerError("User id too large"));
-        }
-        Ok(())
-    }
     pub fn fetch_result(&self, uid: &UserID) -> Result<Option<TaskResult>> {
-        self.check_userid(uid)?;
         let guard = self
             .state
             .read()
-            .map_err(|_| error::ErrorInternalServerError("Fail to get lock"))?;
+            .map_err(|_| error::ErrorInternalServerError("Poisoned lock"))?;
         Ok((*guard)
             .get(uid)
             .ok_or(error::ErrorBadRequest("No requested custom test"))?
@@ -83,7 +76,6 @@ pub fn start_custom_test(
     input: PathBuf,
     lang: CodeLang,
 ) -> Result<()> {
-    manager.check_userid(&uid)?;
     let state = manager.state.clone();
     queue.add(move || {
         if let Ok(mut guard) = state.write() {

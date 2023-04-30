@@ -16,7 +16,7 @@ pub struct ProblemViewData {
 
 #[derive(Debug)]
 pub struct ProblemManager {
-    locks: Vec<RwLock<()>>,
+    lock: RwLock<()>,
     /// base directory of each problem
     base_dir: String,
     /// the json file that store problem statement
@@ -28,7 +28,7 @@ pub struct ProblemManager {
 impl ProblemManager {
     pub fn new(base_dir: String, statement: String, data_dir: String) -> Self {
         Self {
-            locks: (0..4000).map(|_| RwLock::new(())).collect(),
+            lock: RwLock::new(()),
             base_dir,
             statement,
             data_dir,
@@ -54,9 +54,7 @@ impl ProblemManager {
         Ok(s)
     }
     fn read_statement(&self, pid: ProblemID) -> Result<String> {
-        let guard = self.locks[pid as usize]
-            .read()
-            .map_err(|e| error::ErrorInternalServerError(e.to_string()))?;
+        let guard = self.lock .read() .map_err(|e| error::ErrorInternalServerError(e.to_string()))?;
         let dir = self.get_base_dir(pid)? + &self.statement;
         let result = self.fetch_file(&dir)?;
         drop(guard);
