@@ -1,3 +1,3 @@
 pub mod user;
 pub mod schema;
-mod error;
+pub mod error;
