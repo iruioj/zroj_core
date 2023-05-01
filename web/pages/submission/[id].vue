@@ -106,18 +106,15 @@ const activeTask = ref([-1, -1]);
 
 const toggleActive = (sid: number, tid: number) => {
   if (activeTask.value[0] !== sid) {
-    activeTask.value = [sid, tid]
+    activeTask.value = [sid, tid];
+  } else if (tid === -1) {
+    activeTask.value = [-1, -1];
+  } else if (activeTask.value[1] === tid) {
+    activeTask.value[1] = -1;
   } else {
-    if (tid === -1) {
-      activeTask.value = [-1, -1]
-    } else if (activeTask.value[1] == tid) {
-      activeTask.value[1] = -1;
-    } else {
-      activeTask.value[1] = tid
-    }
+    activeTask.value[1] = tid;
   }
-}
-
+};
 </script>
 
 <template>
@@ -148,62 +145,82 @@ const toggleActive = (sid: number, tid: number) => {
         </tbody>
       </table>
       <SectionContainer title="详细信息">
-      
-      <template v-if="data.detail.detail.Subtask" >
-        <div class="p-2">Subtasks:</div>
-      <ul class=" w-full border-t border-theme">
-        <li
-          v-for="(subtask, sid) in data.detail.detail.Subtask"
-          :key="sid"
-        >
-          <div class="flex border-b border-theme hover:text-brand cursor-pointer"
-          :class="activeTask[0] === sid && 'text-brand'"
-          @click="toggleActive(sid, -1)"
-          >
-            <div class="p-2">#<span class="font-mono">{{ sid + 1 }}</span></div>
-            <div class="p-2">{{ subtask.status.name }}</div>
-            <div class="grow"></div>
-            <div class="p-2">
-              <NuxtIcon name="timer" class="inline-block align-middle" />
-              {{ subtask.time }}ms</div>
-            <div class="p-2">
-              <NuxtIcon name="memory" class="inline-block align-middle" />
-              {{ subtask.memory }}kb</div>
-          </div>
-          <Transition appear name="collapse">
-          <ul v-if="activeTask[0] == sid">
-            <li v-for="(task, tid) in subtask.tasks" :key="tid">
-              <div class="flex border-b border-theme hover:text-brand cursor-pointer"
-              :class="activeTask[1] === tid && 'text-brand'"
-              @click="toggleActive(sid, tid)"
+        <template v-if="data.detail.detail.Subtask">
+          <div class="p-2">Subtasks:</div>
+          <ul class="w-full border-t border-theme">
+            <li v-for="(subtask, sid) in data.detail.detail.Subtask" :key="sid">
+              <div
+                class="flex border-b border-theme hover:text-brand cursor-pointer"
+                :class="activeTask[0] === sid && 'text-brand'"
+                @click="toggleActive(sid, -1)"
               >
-                <div class="px-2 py-1.5">#<span class="font-mono">{{ sid + 1 }}.{{ tid + 1 }}</span></div>
-                <div class="px-2 py-1.5">{{ task.status.name }}</div>
+                <div class="p-2">
+                  #<span class="font-mono">{{ sid + 1 }}</span>
+                </div>
+                <div class="p-2">{{ subtask.status.name }}</div>
                 <div class="grow"></div>
-                <div class="px-2 py-1.5">
+                <div class="p-2">
                   <NuxtIcon name="timer" class="inline-block align-middle" />
-                  {{ task.time }}ms</div>
-                <div class="px-2 py-1.5">
+                  {{ subtask.time }}ms
+                </div>
+                <div class="p-2">
                   <NuxtIcon name="memory" class="inline-block align-middle" />
-                  {{ task.memory }}kb</div>
+                  {{ subtask.memory }}kb
+                </div>
               </div>
-              <div v-if="activeTask[1] == tid" class="px-2 pb-2 border-b border-theme">
-                <div
-                  v-for="([title, content], id) in task.payload"
-                  :key="id"
-                  class="py-2"
-                >
-                <div
-                  class="pb-2 font-mono"
-                >{{ title }}</div>
-                <pre class="p-2 whitespace-pre-wrap rounded border border-theme bg-black/[0.04]">{{ content.str }}</pre>
-              </div>
-              </div>
+              <TransitionCollapse>
+                <ul v-if="activeTask[0] == sid">
+                  <li v-for="(task, tid) in subtask.tasks" :key="tid">
+                    <div
+                      class="flex border-b border-theme hover:text-brand cursor-pointer"
+                      :class="activeTask[1] === tid && 'text-brand'"
+                      @click="toggleActive(sid, tid)"
+                    >
+                      <div class="px-2 py-1.5">
+                        #<span class="font-mono"
+                          >{{ sid + 1 }}.{{ tid + 1 }}</span
+                        >
+                      </div>
+                      <div class="px-2 py-1.5">{{ task.status.name }}</div>
+                      <div class="grow"></div>
+                      <div class="px-2 py-1.5">
+                        <NuxtIcon
+                          name="timer"
+                          class="inline-block align-middle"
+                        />
+                        {{ task.time }}ms
+                      </div>
+                      <div class="px-2 py-1.5">
+                        <NuxtIcon
+                          name="memory"
+                          class="inline-block align-middle"
+                        />
+                        {{ task.memory }}kb
+                      </div>
+                    </div>
+                    <TransitionCollapse>
+                      <div
+                        v-if="activeTask[1] == tid"
+                        class="px-2 border-b border-theme box-border"
+                      >
+                        <div
+                          v-for="([title, content], id) in task.payload"
+                          :key="id"
+                          class="py-2"
+                        >
+                          <div class="pb-2 font-mono">{{ title }}</div>
+                          <pre
+                            class="p-2 whitespace-pre-wrap rounded border border-theme bg-black/[0.04]"
+                            >{{ content.str }}</pre
+                          >
+                        </div>
+                      </div>
+                    </TransitionCollapse>
+                  </li>
+                </ul>
+              </TransitionCollapse>
             </li>
           </ul>
-          </Transition>
-        </li>
-      </ul>
         </template>
       </SectionContainer>
     </div>
