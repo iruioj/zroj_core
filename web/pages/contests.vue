@@ -19,14 +19,14 @@ const data = {
         <table class="w-full text-sm hidden sm:table">
           <thead>
             <TableHeaderRow>
-              <th class="pb-2 text-left">比赛</th>
+              <th class="px-2 pb-2 text-left">比赛</th>
               <th class="pb-2 text-center">开始时间/时长</th>
               <th class="pb-2">报名人数</th>
             </TableHeaderRow>
           </thead>
           <tbody>
             <TableRow v-for="p in data.contests" :key="p.id">
-              <td class="py-2">
+              <td class="p-2">
                 <TextLink :to="p.link">{{ p.title }}</TextLink>
               </td>
               <td class="py-2 text-center flex flex-col whitespace-nowrap">

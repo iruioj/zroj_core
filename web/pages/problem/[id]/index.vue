@@ -3,10 +3,11 @@ defineProps<{
   data: any;
 }>();
 
-const { error } = useMsgStore();
+const { error, info } = useMsgStore();
 const copyText = (s: string) => {
   try {
     navigator.clipboard.writeText(s);
+    info("复制成功")
   } catch (e: any) {
     error("Copy Failed!");
   }
