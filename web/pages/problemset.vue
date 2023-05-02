@@ -16,10 +16,10 @@ const data = {
         <table class="w-full">
           <thead>
             <TableHeaderRow>
-              <th class="text-brand pb-2">ID</th>
+              <th class="pb-2">ID</th>
               <th class="w-7 pb-2"></th>
-              <th class="text-brand pb-2 text-left">题目</th>
-              <th class="text-brand pb-2">通过数</th>
+              <th class="pb-2 text-left">题目</th>
+              <th class="pb-2">通过数</th>
             </TableHeaderRow>
           </thead>
           <tbody>

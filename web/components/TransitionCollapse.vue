@@ -3,6 +3,19 @@
 import { RendererElement } from "nuxt/dist/app/compat/capi";
 
 export default {
+  props: {
+    duration: {
+      type: Number,
+      default() {
+        return 300;
+      },
+    },
+  },
+  computed: {
+    transStyle() {
+      return `all ${this.duration}ms ease`;
+    },
+  },
   methods: {
     // called before the element is inserted into the DOM.
     // use this to set the "enter-from" state of the element
@@ -19,7 +32,7 @@ export default {
       // call the done callback to indicate transition end
       // optional if used in combination with CSS
       // console.log("enter done");
-      setTimeout(done, 200);
+      setTimeout(done, this.duration);
     },
 
     // called when the enter transition has finished.
@@ -46,7 +59,7 @@ export default {
       // call the done callback to indicate transition end
       // optional if used in combination with CSS
       // console.log("leave done");
-      setTimeout(done, 200);
+      setTimeout(done, this.duration);
     },
 
     // called when the leave transition has finished and the
@@ -84,7 +97,7 @@ export default {
 <style>
 .collapse-enter-active,
 .collapse-leave-active {
-  transition: all 0.2s ease;
+  transition: v-bind(transStyle);
   overflow-y: hidden;
 }
 </style>
