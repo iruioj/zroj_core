@@ -1,5 +1,5 @@
 //! imp struct for different database queries
-use super::error::{Error, Result};
+use super::error::Result;
 use crate::data::schema::User;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -19,6 +19,7 @@ pub use database::DbManager;
 
 #[cfg(feature = "mysql")]
 mod database {
+    use crate::data::error::Error;
     use crate::data::schema::{users, NewUser};
     use crate::data::user::*;
     use diesel::{
