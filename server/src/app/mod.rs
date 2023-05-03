@@ -2,6 +2,8 @@
 pub mod auth;
 pub mod custom_test;
 pub mod problem;
+pub mod user;
+
 use crate::{
     auth::{middleware::SessionAuth, SessionManager},
     data::user::AManager,

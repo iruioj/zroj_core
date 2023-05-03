@@ -1,6 +1,6 @@
 //! imp struct for different database queries
-use super::error::Result;
-use crate::data::schema::User;
+use super::error::{Error, Result};
+use crate::{app::user::UserUpdateInfo, data::schema::User};
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -9,8 +9,9 @@ pub type AManager = dyn Manager + Sync + Send;
 #[async_trait]
 pub trait Manager {
     async fn query_by_username(&self, username: &str) -> Result<Option<User>>;
-    async fn query_by_userid(&self, userid: i32) -> Result<Option<User>>;
-    async fn insert(&self, username: &str, password_hash: &str, email: &str) -> Result<User>;
+    async fn query_by_userid(&self, uid: i32) -> Result<Option<User>>;
+    async fn new_user(&self, username: &str, password_hash: &str, email: &str) -> Result<User>;
+    async fn update(&self, uid: i32, info: &UserUpdateInfo) -> Result<()>;
     fn to_amanager(self) -> Arc<AManager>;
 }
 
@@ -31,8 +32,23 @@ mod database {
     type MysqlPool = Pool<ConnectionManager<MysqlConnection>>;
     type MysqlPooledConnection = PooledConnection<ConnectionManager<MysqlConnection>>;
     use crate::data::user::Manager;
-    pub struct DbManager(MysqlPool);
 
+    use super::super::schema::UserUpdate;
+    pub struct DbManager(MysqlPool);
+    impl UserUpdate {
+        fn from(value: &UserUpdateInfo) -> Self {
+            Self {
+                password_hash: value.password_hash.clone(),
+                email: value.email.clone(),
+                motto: value.motto.clone(),
+                name: value.name.clone(),
+                gender: match &value.gender {
+                    Some(g) => Some(g.clone() as i32),
+                    None => None,
+                },
+            }
+        }
+    }
     /// 数据库存储
     impl DbManager {
         pub fn new(url: &String) -> Self {
@@ -76,7 +92,7 @@ mod database {
                 },
             }
         }
-        async fn insert(&self, username: &str, password_hash: &str, email: &str) -> Result<User> {
+        async fn new_user(&self, username: &str, password_hash: &str, email: &str) -> Result<User> {
             let mut conn = self.get_conn().await?;
             conn.transaction(|conn| {
                 let new_user = NewUser {
@@ -95,11 +111,20 @@ mod database {
         fn to_amanager(self) -> Arc<AManager> {
             Arc::new(self)
         }
+        async fn update(&self, uid: i32, info: &UserUpdateInfo) -> Result<()> {
+            let mut conn = self.get_conn().await?;
+            diesel::update(users::table.filter(users::id.eq(uid)))
+                .set(UserUpdate::from(info))
+                .execute(&mut conn)?;
+            Ok(())
+        }
     }
 }
 
 pub use hashmap::FsManager;
 mod hashmap {
+    use crate::data::schema::Gender;
+    use crate::problem::GroupID;
     use crate::{auth::UserID, data::user::*};
     use serde::{Deserialize, Serialize};
     use serde_json::from_str;
@@ -159,19 +184,54 @@ mod hashmap {
                 Ok(Some(guard.1[uid as usize].clone()))
             }
         }
-        async fn insert(&self, username: &str, password_hash: &str, email: &str) -> Result<User> {
+        async fn new_user(&self, username: &str, password_hash: &str, email: &str) -> Result<User> {
             let mut guard = self.data.write()?;
             let new_user = User {
                 id: guard.1.len() as UserID,
                 username: username.to_string(),
                 password_hash: password_hash.to_string(),
                 email: email.to_string(),
+                motto: String::new(),
+                name: String::new(),
+                register_time: chrono::Local::now().to_string(),
+                gender: Gender::Private as i32,
+                groups: serde_json::to_string(&Vec::<GroupID>::new()).unwrap(),
             };
             guard.0.insert(new_user.username.clone(), new_user.id);
             guard.1.push(new_user.clone());
             drop(guard);
             self.save();
             Ok(new_user)
+        }
+        async fn update(&self, uid: i32, info: &UserUpdateInfo) -> Result<()> {
+            let mut guard = self.data.write()?;
+            if uid < 0 || uid as usize >= guard.1.len() {
+                return Err(Error::InvalidArgument(format!(
+                    "userid = {} violates range: [{}, {})",
+                    uid,
+                    0,
+                    guard.1.len()
+                )));
+            }
+            let value = &mut (*guard).1[uid as usize];
+            if let Some(pw) = &info.password_hash {
+                value.password_hash = pw.clone();
+            }
+            if let Some(e) = &info.email {
+                value.email = e.clone();
+            }
+            if let Some(m) = &info.motto {
+                value.motto = m.clone();
+            }
+            if let Some(n) = &info.name {
+                value.name = n.clone();
+            }
+            if let Some(g) = &info.gender {
+                value.gender = g.clone() as i32;
+            }
+            drop(guard);
+            self.save();
+            Ok(())
         }
         /// consume self and return its Arc.
         fn to_amanager(self) -> Arc<AManager> {
