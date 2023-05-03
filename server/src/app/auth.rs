@@ -90,7 +90,7 @@ async fn register(
         return Err(error::ErrorBadRequest("User already exists"));
     }
     let user = user_data_manager
-        .insert(&payload.username, &payload.password_hash, &payload.email)
+        .new_user(&payload.username, &payload.password_hash, &payload.email)
         .await?;
     dbg!(user);
     Ok("Registration success".to_string())

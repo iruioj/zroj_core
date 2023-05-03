@@ -4,6 +4,7 @@ pub enum Error {
     ConnectionError(r2d2::Error),
     DbError(diesel::result::Error),
     LockError,
+    InvalidArgument(String),
 }
 
 impl ToString for Error {
@@ -15,6 +16,7 @@ impl ToString for Error {
             Self::LockError => {
                 "Lock returned poisoned, which can be caused by a panicked thread".to_string()
             }
+            Self::InvalidArgument(s) => format!("Invalid argument: {}", s),
         }
     }
 }
