@@ -117,3 +117,21 @@ async fn edit(
     manager.update(*uid, &info).await?;
     Ok("ok".to_string())
 }
+
+pub fn service(
+    user_database: web::Data<AManager>,
+) -> actix_web::Scope<
+    impl actix_web::dev::ServiceFactory<
+        actix_web::dev::ServiceRequest,
+        Config = (),
+        Response = actix_web::dev::ServiceResponse,
+        Error = actix_web::Error,
+        InitError = (),
+    >,
+> {
+    web::scope("/user")
+        .app_data(user_database)
+        .service(get_display)
+        .service(get_edit)
+        .service(edit)
+}
