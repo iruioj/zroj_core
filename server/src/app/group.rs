@@ -1,6 +1,6 @@
 use crate::{
     auth::UserID,
-    data::group::{AManager, GroupUsers},
+    data::{group::AManager, schema::Group},
     problem::GroupID,
 };
 use actix_web::{
@@ -9,13 +9,13 @@ use actix_web::{
 };
 
 #[get("/{gid}")]
-async fn group_users(
+async fn group_info(
     gid: web::Path<GroupID>,
     manager: web::Data<AManager>,
-) -> Result<web::Json<GroupUsers>> {
+) -> Result<web::Json<Group>> {
     Ok(web::Json(
         manager
-            .get_group_users(*gid)
+            .get_group_info(*gid)
             .await?
             .ok_or(error::ErrorBadRequest("No such group"))?,
     ))
@@ -24,10 +24,22 @@ async fn group_users(
 #[post("/{gid}/add")]
 async fn add_users(
     gid: web::Path<GroupID>,
-    users: web::ReqData<Vec<UserID>>,
+    uid: web::ReqData<UserID>,
+    users: web::Json<Vec<UserID>>,
     manager: web::Data<AManager>,
 ) -> Result<String> {
-    let count = manager.group_insert(*gid, &users).await?;
+    let count = manager.group_insert(*uid, *gid, &users).await?;
+    Ok(format!("Ok, inserted {} users", count))
+}
+
+#[post("/{gid}/delete")]
+async fn delete_user(
+    gid: web::Path<GroupID>,
+    uid: web::ReqData<UserID>,
+    delete_user: web::Json<UserID>,
+    manager: web::Data<AManager>,
+) -> Result<String> {
+    let count = manager.group_delete(*uid, *gid, *delete_user).await?;
     Ok(format!("Ok, inserted {} users", count))
 }
 
@@ -42,5 +54,9 @@ pub fn service(
         InitError = (),
     >,
 > {
-    web::scope("/group").app_data(group_db).service(group_users)
+    web::scope("/group")
+        .app_data(group_db)
+        .service(group_info)
+        .service(delete_user)
+        .service(add_users)
 }
