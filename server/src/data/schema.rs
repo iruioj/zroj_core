@@ -55,6 +55,9 @@ pub struct NewUser<'a> {
     pub username: &'a str,
     pub password_hash: &'a str,
     pub email: &'a str,
+    pub register_time: String,
+    pub groups: String,
+    pub gender: i32,
 }
 
 /*
