@@ -1,12 +1,11 @@
 //! imp struct for different database queries
 use super::error::{Error, Result};
 use crate::data::schema::Gender;
-use crate::Override;
 use crate::{app::user::UserUpdateInfo, data::schema::User};
+use crate::{GroupID, Override, UserID};
 use async_trait::async_trait;
 use std::sync::Arc;
 pub type AManager = dyn Manager + Sync + Send;
-use crate::problem::GroupID;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 
@@ -152,7 +151,7 @@ mod database {
 
 pub use hashmap::FsManager;
 mod hashmap {
-    use crate::{auth::UserID, data::user::*};
+    use crate::data::user::*;
     use std::sync::RwLock;
     use std::{collections::HashMap, path::PathBuf};
 

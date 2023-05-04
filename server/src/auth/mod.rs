@@ -1,6 +1,5 @@
 //! Auth 模块负责用户的鉴权.
 pub mod middleware;
-
 use actix_web::{
     error::{self},
     Result,
@@ -11,8 +10,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-pub type SessionID = uuid::Uuid;
-pub type UserID = i32;
+use crate::{SessionID, UserID};
 
 // session data for request
 #[derive(Debug, Serialize, Deserialize, Clone)]

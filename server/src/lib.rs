@@ -7,6 +7,11 @@ pub mod data;
 pub mod manager;
 mod problem;
 
+pub type GroupID = i32;
+pub type SessionID = uuid::Uuid;
+pub type UserID = i32;
+pub type ProblemID = u32;
+
 // re-export
 pub use actix_session;
 

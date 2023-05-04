@@ -1,4 +1,4 @@
-use crate::auth::UserID;
+use crate::UserID;
 use actix_web::{error, web, Result};
 use judger::{OneOff, TaskResult};
 use std::{

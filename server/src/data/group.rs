@@ -1,6 +1,6 @@
 use super::super::data::error::{Error, Result};
 use super::schema::Group;
-use crate::{auth::UserID, problem::GroupID};
+use crate::{GroupID, UserID};
 use async_trait::async_trait;
 use std::sync::Arc;
 pub type AManager = dyn Manager + Sync + Send;
@@ -140,9 +140,7 @@ mod hashmap {
             users: &Vec<UserID>,
         ) -> Result<usize> {
             if gid == 0 {
-                return Err(Error::Forbidden(
-                    "Group 0 is not modifyable".to_string(),
-                ));
+                return Err(Error::Forbidden("Group 0 is not modifyable".to_string()));
             }
             let mut guard = self.data.write()?;
             let v = &mut guard.1[gid as usize];
@@ -163,11 +161,14 @@ mod hashmap {
             }
             Ok(count)
         }
-        async fn group_delete(&self, uid: UserID, gid: GroupID, delete_uid: UserID) -> Result<bool> {
+        async fn group_delete(
+            &self,
+            uid: UserID,
+            gid: GroupID,
+            delete_uid: UserID,
+        ) -> Result<bool> {
             if gid == 0 {
-                return Err(Error::Forbidden(
-                    "Group 0 is not modifyable".to_string(),
-                ));
+                return Err(Error::Forbidden("Group 0 is not modifyable".to_string()));
             }
             let mut guard = self.data.write()?;
             let v = &mut guard.1[gid as usize];

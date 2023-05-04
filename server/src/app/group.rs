@@ -1,7 +1,6 @@
 use crate::{
-    auth::UserID,
     data::{group::AManager, schema::Group},
-    problem::GroupID,
+    GroupID, UserID,
 };
 use actix_web::{
     error::{self, Result},

@@ -1,5 +1,6 @@
-use crate::auth::{AuthInfo, SessionID, SessionManager, UserID};
+use crate::auth::{AuthInfo, SessionManager};
 use crate::data::user::AManager;
+use crate::{SessionID, UserID};
 use actix_session::Session;
 use actix_web::cookie::Cookie;
 use actix_web::{error, get, post, web, HttpResponse};
