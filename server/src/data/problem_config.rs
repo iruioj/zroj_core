@@ -61,10 +61,14 @@ mod hashmap {
         }
         fn get(&self, pid: ProblemID) -> Result<ProblemConfig> {
             let guard = self.data.read()?;
-            Ok((*guard).0.get(&pid).ok_or(Error::InvalidArgument(format!(
-                "Problem {} does not exist",
-                pid)
-            ))?.clone())
+            Ok((*guard)
+                .0
+                .get(&pid)
+                .ok_or(Error::InvalidArgument(format!(
+                    "Problem {} does not exist",
+                    pid
+                )))?
+                .clone())
         }
     }
     #[async_trait]
@@ -86,13 +90,11 @@ mod hashmap {
             let value = self.get(pid)?;
             for (ug, a) in value.access {
                 let flag = match ug {
-                    UserGroup::User(id) => id.clone() == uid,
-                    UserGroup::Group(gid) => {
-                        self.groups.group_contains(gid.clone(), uid).await?
-                    }
+                    UserGroup::User(id) => id == uid,
+                    UserGroup::Group(gid) => self.groups.group_contains(gid, uid).await?,
                 };
-                if flag && a.clone() > t {
-                    t = a.clone()
+                if flag && a > t {
+                    t = a
                 }
             }
             Ok(t)
