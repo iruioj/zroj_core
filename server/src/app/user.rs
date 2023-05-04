@@ -10,12 +10,6 @@ use actix_web::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
-pub struct UserQueryPayload {
-    userid: Option<UserID>,
-    username: Option<String>,
-}
-
 #[derive(Serialize)]
 struct UserDisplayInfo {
     pub id: i32,
@@ -42,8 +36,15 @@ impl From<User> for UserDisplayInfo {
         }
     }
 }
+
+#[derive(Deserialize)]
+pub struct UserQueryPayload {
+    userid: Option<UserID>,
+    username: Option<String>,
+}
+
 #[get("/")]
-async fn get_display(
+async fn profile(
     payload: web::Json<UserQueryPayload>,
     manager: web::Data<AManager>,
 ) -> Result<web::Json<UserDisplayInfo>> {
@@ -88,7 +89,7 @@ impl From<User> for UserEditInfo {
 }
 
 #[get("/edit")]
-async fn get_edit(
+async fn edit_get(
     uid: web::ReqData<UserID>,
     manager: web::Data<AManager>,
 ) -> Result<web::Json<UserEditInfo>> {
@@ -108,13 +109,33 @@ pub struct UserUpdateInfo {
     pub gender: Option<Gender>,
 }
 
+impl crate::Override<User> for UserUpdateInfo {
+    fn over(self, origin: &mut User) {
+        if let Some(pw) = self.password_hash {
+            origin.password_hash = pw;
+        }
+        if let Some(e) = self.email {
+            origin.email = e;
+        }
+        if let Some(m) = self.motto {
+            origin.motto = m;
+        }
+        if let Some(n) = self.name {
+            origin.name = n;
+        }
+        if let Some(g) = self.gender {
+            origin.gender = g as i32;
+        }
+    }
+}
+
 #[post("/edit")]
-async fn edit(
+async fn edit_post(
     uid: web::ReqData<UserID>,
     info: web::Json<UserUpdateInfo>,
     manager: web::Data<AManager>,
 ) -> Result<String> {
-    manager.update(*uid, &info).await?;
+    manager.update(*uid, info.into_inner()).await?;
     Ok("ok".to_string())
 }
 
@@ -131,7 +152,7 @@ pub fn service(
 > {
     web::scope("/user")
         .app_data(user_database)
-        .service(get_display)
-        .service(get_edit)
-        .service(edit)
+        .service(profile)
+        .service(edit_get)
+        .service(edit_post)
 }
