@@ -6,13 +6,18 @@ use actix_web::web::Data;
 use actix_web::{cookie::Key, App, HttpServer};
 use server::actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use server::auth::SessionManager;
-use server::data::user::{self, Manager};
+use server::data::{
+    group::{self, Manager as GroupManager},
+    user::{self, Manager as UserManager},
+};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let session_container = SessionManager::new();
     let user_data_manager =
-        Data::from(user::FsManager::new(PathBuf::from("/var/users/")).to_amanager());
+        Data::from(user::FsManager::new(PathBuf::from("/var/users")).to_amanager());
+    let group_manager =
+        Data::from(group::FsManager::new(PathBuf::from("/var/groups")).to_amanager());
     let problem_manager = Data::new(server::manager::problem::ProblemManager::new(
         "/var/problems/".to_string(),
         "statement.json".to_string(),
@@ -38,6 +43,7 @@ async fn main() -> std::io::Result<()> {
             .configure(server::app::new(
                 session_container.clone(),
                 user_data_manager.clone(),
+                group_manager.clone(),
                 problem_manager.clone(),
                 custom_test_manager.clone(),
                 judge_queue.clone(),
