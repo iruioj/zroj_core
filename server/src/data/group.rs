@@ -1,4 +1,4 @@
-use super::super::data::error::Result;
+use super::super::data::error::{Error, Result};
 use super::schema::Group;
 use crate::{auth::UserID, problem::GroupID};
 use async_trait::async_trait;
@@ -48,13 +48,13 @@ pub trait Manager {
     /// returns None if this group name is already taken
     /// otherwise returns group id
     async fn new_group(&self, owner: UserID, name: String) -> Result<Option<GroupID>>;
-    async fn group_contains(&self, id: GroupID, uid: i32) -> Result<bool>;
+    async fn group_contains(&self, gid: GroupID, uid: i32) -> Result<bool>;
     /// returns false if uid already exists
-    async fn group_insert(&self, id: GroupID, users: &Vec<UserID>) -> Result<usize>;
+    async fn group_insert(&self, uid: UserID, gid: GroupID, users: &Vec<UserID>) -> Result<usize>;
     /// return false if uid does not exist
-    async fn group_delete(&self, id: GroupID, uid: UserID) -> Result<bool>;
+    async fn group_delete(&self, uid: UserID, gid: GroupID, delete_uid: UserID) -> Result<bool>;
     async fn get_groupid(&self, name: &String) -> Result<Option<GroupID>>;
-    async fn get_group_users(&self, id: GroupID) -> Result<Option<GroupUsers>>;
+    async fn get_group_info(&self, id: GroupID) -> Result<Option<Group>>;
     fn to_amanager(self) -> Arc<AManager>;
 }
 
@@ -130,9 +130,20 @@ mod hashmap {
             let guard = self.data.read()?;
             Ok(guard.1[id as usize].users.contains(uid))
         }
-        async fn group_insert(&self, id: GroupID, users: &Vec<UserID>) -> Result<usize> {
+        async fn group_insert(
+            &self,
+            uid: UserID,
+            id: GroupID,
+            users: &Vec<UserID>,
+        ) -> Result<usize> {
             let mut guard = self.data.write()?;
-            let v = &mut guard.1[id as usize].users;
+            let v = &mut guard.1[id as usize];
+            if v.owner != uid {
+                return Err(Error::Forbidden(
+                    "Only group owner can perform insert operation".to_string(),
+                ));
+            }
+            let v = &mut v.users;
             let mut count: usize = 0;
             for i in users {
                 if v.insert(i.clone()) {
@@ -144,9 +155,15 @@ mod hashmap {
             }
             Ok(count)
         }
-        async fn group_delete(&self, id: GroupID, uid: UserID) -> Result<bool> {
+        async fn group_delete(&self, uid: UserID, id: GroupID, delete_uid: UserID) -> Result<bool> {
             let mut guard = self.data.write()?;
-            let result = guard.1[id as usize].users.delete(uid);
+            let v = &mut guard.1[id as usize];
+            if v.owner != uid {
+                return Err(Error::Forbidden(
+                    "Only group owner can perform delete operation".to_string(),
+                ));
+            }
+            let result = v.users.delete(delete_uid);
             if result {
                 self.save();
             }
@@ -159,12 +176,12 @@ mod hashmap {
                 None => None,
             })
         }
-        async fn get_group_users(&self, id: GroupID) -> Result<Option<GroupUsers>> {
+        async fn get_group_info(&self, id: GroupID) -> Result<Option<Group>> {
             let guard = self.data.read()?;
             if id < 0 || id as usize > guard.1.len() {
                 return Ok(None);
             }
-            Ok(Some(guard.1[id as usize].users.clone()))
+            Ok(Some(guard.1[id as usize].clone()))
         }
         /// consume self and return its Arc.
         fn to_amanager(self) -> Arc<AManager> {

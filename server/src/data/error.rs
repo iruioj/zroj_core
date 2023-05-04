@@ -5,6 +5,7 @@ pub enum Error {
     DbError(diesel::result::Error),
     LockError,
     InvalidArgument(String),
+    Forbidden(String),
 }
 
 impl ToString for Error {
@@ -17,12 +18,16 @@ impl ToString for Error {
                 "Lock returned poisoned, which can be caused by a panicked thread".to_string()
             }
             Self::InvalidArgument(s) => format!("Invalid argument: {}", s),
+            Self::Forbidden(s) => format!("Forbidden operation: {}", s),
         }
     }
 }
 
 impl From<Error> for actix_web::Error {
     fn from(value: Error) -> Self {
+        if let Error::Forbidden(_) = &value {
+            return actix_web::error::ErrorForbidden(value.to_string())
+        }
         actix_web::error::ErrorInternalServerError(value.to_string())
     }
 }
