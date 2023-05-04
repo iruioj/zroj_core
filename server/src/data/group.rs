@@ -126,18 +126,26 @@ mod hashmap {
             self.save();
             Ok(Some(id))
         }
-        async fn group_contains(&self, id: GroupID, uid: UserID) -> Result<bool> {
+        async fn group_contains(&self, gid: GroupID, uid: UserID) -> Result<bool> {
+            if gid == 0 {
+                return Ok(true);
+            }
             let guard = self.data.read()?;
-            Ok(guard.1[id as usize].users.contains(uid))
+            Ok(guard.1[gid as usize].users.contains(uid))
         }
         async fn group_insert(
             &self,
             uid: UserID,
-            id: GroupID,
+            gid: GroupID,
             users: &Vec<UserID>,
         ) -> Result<usize> {
+            if gid == 0 {
+                return Err(Error::Forbidden(
+                    "Group 0 is not modifyable".to_string(),
+                ));
+            }
             let mut guard = self.data.write()?;
-            let v = &mut guard.1[id as usize];
+            let v = &mut guard.1[gid as usize];
             if v.owner != uid {
                 return Err(Error::Forbidden(
                     "Only group owner can perform insert operation".to_string(),
@@ -155,9 +163,14 @@ mod hashmap {
             }
             Ok(count)
         }
-        async fn group_delete(&self, uid: UserID, id: GroupID, delete_uid: UserID) -> Result<bool> {
+        async fn group_delete(&self, uid: UserID, gid: GroupID, delete_uid: UserID) -> Result<bool> {
+            if gid == 0 {
+                return Err(Error::Forbidden(
+                    "Group 0 is not modifyable".to_string(),
+                ));
+            }
             let mut guard = self.data.write()?;
-            let v = &mut guard.1[id as usize];
+            let v = &mut guard.1[gid as usize];
             if v.owner != uid {
                 return Err(Error::Forbidden(
                     "Only group owner can perform delete operation".to_string(),
