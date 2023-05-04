@@ -1,6 +1,8 @@
 use diesel::{table, AsChangeset, Insertable, Queryable};
 use serde::{Deserialize, Serialize};
 
+use super::group::GroupUsers;
+
 table! {
     users (id) {
         /// id should be auto increment
@@ -77,5 +79,5 @@ pub struct Group {
     pub id: i32,
     pub name: String,
     pub owner: i32,
-    pub users: Vec<i32>,
+    pub users: GroupUsers,
 }

@@ -1,7 +1,6 @@
-use super::AManager;
 use crate::{
     auth::UserID,
-    data::schema::{Gender, User},
+    data::{schema::{Gender, User}, user::AManager},
     problem::GroupID,
 };
 use actix_web::{
