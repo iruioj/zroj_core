@@ -1,11 +1,14 @@
 //! imp struct for different database queries
 use super::error::{Error, Result};
+use crate::data::schema::Gender;
 use crate::Override;
 use crate::{app::user::UserUpdateInfo, data::schema::User};
 use async_trait::async_trait;
 use std::sync::Arc;
-
 pub type AManager = dyn Manager + Sync + Send;
+use crate::problem::GroupID;
+use serde::{Deserialize, Serialize};
+use serde_json::from_str;
 
 #[async_trait]
 pub trait Manager {
@@ -85,9 +88,9 @@ mod database {
         async fn _query_by_userid(
             &self,
             conn: &mut MysqlPooledConnection,
-            userid: i32,
+            uid: i32,
         ) -> Result<Option<User>> {
-            let result = users::table.filter(users::id.eq(userid)).first(conn);
+            let result = users::table.filter(users::id.eq(uid)).first(conn);
             match result {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => match e {
@@ -114,6 +117,9 @@ mod database {
                     username,
                     password_hash,
                     email,
+                    register_time: chrono::Local::now().to_string(),
+                    gender: Gender::Private as i32,
+                    groups: serde_json::to_string(&Vec::<GroupID>::new()).unwrap(),
                 };
                 diesel::insert_into(users::table)
                     .values(&new_user)
@@ -146,11 +152,7 @@ mod database {
 
 pub use hashmap::FsManager;
 mod hashmap {
-    use crate::data::schema::Gender;
-    use crate::problem::GroupID;
     use crate::{auth::UserID, data::user::*};
-    use serde::{Deserialize, Serialize};
-    use serde_json::from_str;
     use std::sync::RwLock;
     use std::{collections::HashMap, path::PathBuf};
 
