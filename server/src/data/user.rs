@@ -11,7 +11,7 @@ pub trait Manager {
     async fn query_by_username(&self, username: &str) -> Result<Option<User>>;
     async fn query_by_userid(&self, uid: i32) -> Result<Option<User>>;
     async fn new_user(&self, username: &str, password_hash: &str, email: &str) -> Result<User>;
-    async fn update(&self, uid: i32, info: &UserUpdateInfo) -> Result<()>;
+    async fn update(&self, uid: i32, info: UserUpdateInfo) -> Result<()>;
     fn to_amanager(self) -> Arc<AManager>;
 }
 
@@ -111,10 +111,10 @@ mod database {
         fn to_amanager(self) -> Arc<AManager> {
             Arc::new(self)
         }
-        async fn update(&self, uid: i32, info: &UserUpdateInfo) -> Result<()> {
+        async fn update(&self, uid: i32, info: UserUpdateInfo) -> Result<()> {
             let mut conn = self.get_conn().await?;
             diesel::update(users::table.filter(users::id.eq(uid)))
-                .set(UserUpdate::from(info))
+                .set(UserUpdate::from(&info))
                 .execute(&mut conn)?;
             Ok(())
         }
@@ -123,6 +123,7 @@ mod database {
 
 pub use hashmap::FsManager;
 mod hashmap {
+    use crate::Override;
     use crate::data::schema::Gender;
     use crate::problem::GroupID;
     use crate::{auth::UserID, data::user::*};
@@ -203,7 +204,7 @@ mod hashmap {
             self.save();
             Ok(new_user)
         }
-        async fn update(&self, uid: i32, info: &UserUpdateInfo) -> Result<()> {
+        async fn update(&self, uid: i32, info: UserUpdateInfo) -> Result<()> {
             let mut guard = self.data.write()?;
             if uid < 0 || uid as usize >= guard.1.len() {
                 return Err(Error::InvalidArgument(format!(
@@ -214,21 +215,7 @@ mod hashmap {
                 )));
             }
             let value = &mut (*guard).1[uid as usize];
-            if let Some(pw) = &info.password_hash {
-                value.password_hash = pw.clone();
-            }
-            if let Some(e) = &info.email {
-                value.email = e.clone();
-            }
-            if let Some(m) = &info.motto {
-                value.motto = m.clone();
-            }
-            if let Some(n) = &info.name {
-                value.name = n.clone();
-            }
-            if let Some(g) = &info.gender {
-                value.gender = g.clone() as i32;
-            }
+            info.over(value);
             drop(guard);
             self.save();
             Ok(())
