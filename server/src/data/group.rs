@@ -4,6 +4,43 @@ use crate::{auth::UserID, problem::GroupID};
 use async_trait::async_trait;
 use std::sync::Arc;
 pub type AManager = dyn Manager + Sync + Send;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GroupUsers(Vec<UserID>);
+impl GroupUsers {
+    pub fn new(id: UserID) -> Self {
+        Self { 0: vec![id] }
+    }
+    pub fn to_string(&self) -> String {
+        serde_json::to_string(self).expect("Group users not maintained properly")
+    }
+    pub fn from_str(s: &String) -> Self {
+        serde_json::from_str(s).expect("Group users not maintained properly")
+    }
+    pub fn contains(&self, uid: UserID) -> bool {
+        match self.0.binary_search(&uid) {
+            Ok(_) => true,
+            _ => false,
+        }
+    }
+    pub fn insert(&mut self, uid: UserID) -> bool {
+        let index = match self.0.binary_search(&uid) {
+            Ok(_) => return false,
+            Err(index) => index,
+        };
+        self.0.insert(index, uid);
+        true
+    }
+    pub fn delete(&mut self, uid: UserID) -> bool {
+        let index = match self.0.binary_search(&uid) {
+            Ok(index) => index,
+            Err(_) => return false,
+        };
+        self.0.remove(index);
+        true
+    }
+}
 
 #[async_trait]
 pub trait Manager {
@@ -13,22 +50,18 @@ pub trait Manager {
     async fn new_group(&self, owner: UserID, name: String) -> Result<Option<GroupID>>;
     async fn group_contains(&self, id: GroupID, uid: i32) -> Result<bool>;
     /// returns false if uid already exists
-    async fn group_insert(&self, id: GroupID, uid: UserID) -> Result<bool>;
+    async fn group_insert(&self, id: GroupID, users: &Vec<UserID>) -> Result<usize>;
     /// return false if uid does not exist
     async fn group_delete(&self, id: GroupID, uid: UserID) -> Result<bool>;
     async fn get_groupid(&self, name: &String) -> Result<Option<GroupID>>;
-    async fn get_group_users(&self, uid: GroupID) -> Result<Option<Vec<UserID>>>;
+    async fn get_group_users(&self, id: GroupID) -> Result<Option<GroupUsers>>;
     fn to_amanager(self) -> Arc<AManager>;
 }
 
 pub use hashmap::FsManager;
 mod hashmap {
-    use std::{collections::HashMap, path::PathBuf, sync::RwLock};
-
-    use serde::{Deserialize, Serialize};
-    use serde_json::from_str;
-
     use super::*;
+    use std::{collections::HashMap, path::PathBuf, sync::RwLock};
 
     #[derive(Serialize, Deserialize)]
     struct Data(HashMap<String, GroupID>, Vec<Group>);
@@ -48,7 +81,7 @@ mod hashmap {
                     name: "public".to_string(),
                     id: 0,
                     owner: 0,
-                    users: Vec::new(),
+                    users: GroupUsers::new(0),
                 };
                 r.0.insert(g.name.clone(), g.id);
                 r.1.push(g);
@@ -61,7 +94,7 @@ mod hashmap {
         fn load(path: &PathBuf) -> std::result::Result<Data, ()> {
             let s = std::fs::read_to_string(path)
                 .map_err(|_| eprintln!("Fail to read from path: {}", path.display()))?;
-            Ok(from_str::<Data>(&s)
+            Ok(serde_json::from_str::<Data>(&s)
                 .map_err(|_| eprintln!("Fail to parse file content as user data"))?)
         }
         /// save data to json file, must be saved or panic!!!
@@ -83,7 +116,7 @@ mod hashmap {
                 name,
                 id,
                 owner,
-                users: vec![id],
+                users: GroupUsers::new(owner),
             };
             if let Some(_) = guard.0.insert(g.name.clone(), g.id) {
                 return Ok(None);
@@ -95,31 +128,28 @@ mod hashmap {
         }
         async fn group_contains(&self, id: GroupID, uid: UserID) -> Result<bool> {
             let guard = self.data.read()?;
-            Ok(match guard.1[id as usize].users.binary_search(&uid) {
-                Ok(_) => true,
-                Err(_) => false,
-            })
+            Ok(guard.1[id as usize].users.contains(uid))
         }
-        async fn group_insert(&self, id: GroupID, uid: UserID) -> Result<bool> {
+        async fn group_insert(&self, id: GroupID, users: &Vec<UserID>) -> Result<usize> {
             let mut guard = self.data.write()?;
-            let vec = &mut guard.1[id as usize].users;
-            let index = match vec.binary_search(&uid) {
-                Ok(_) => return Ok(false),
-                Err(index) => index,
-            };
-            vec.insert(index, uid);
-            self.save();
-            Ok(true)
+            let v = &mut guard.1[id as usize].users;
+            let mut count: usize = 0;
+            for i in users {
+                if v.insert(i.clone()) {
+                    count += 1;
+                }
+            }
+            if count > 0 {
+                self.save();
+            }
+            Ok(count)
         }
         async fn group_delete(&self, id: GroupID, uid: UserID) -> Result<bool> {
             let mut guard = self.data.write()?;
-            let vec = &mut guard.1[id as usize].users;
-            let index = match vec.binary_search(&uid) {
-                Ok(index) => index,
-                Err(_) => return Ok(false),
-            };
-            vec.remove(index);
-            self.save();
+            let result = guard.1[id as usize].users.delete(uid);
+            if result {
+                self.save();
+            }
             Ok(true)
         }
         async fn get_groupid(&self, name: &String) -> Result<Option<GroupID>> {
@@ -129,12 +159,12 @@ mod hashmap {
                 None => None,
             })
         }
-        async fn get_group_users(&self, uid: GroupID) -> Result<Option<Vec<UserID>>> {
+        async fn get_group_users(&self, id: GroupID) -> Result<Option<GroupUsers>> {
             let guard = self.data.read()?;
-            if uid < 0 || uid as usize > guard.1.len() {
+            if id < 0 || id as usize > guard.1.len() {
                 return Ok(None);
             }
-            Ok(Some(guard.1[uid as usize].users.clone()))
+            Ok(Some(guard.1[id as usize].users.clone()))
         }
         /// consume self and return its Arc.
         fn to_amanager(self) -> Arc<AManager> {

@@ -3,10 +3,12 @@ pub mod auth;
 pub mod custom_test;
 pub mod problem;
 pub mod user;
+pub mod group;
 
 use crate::{
     auth::{middleware::SessionAuth, SessionManager},
-    data::user::AManager,
+    data::user::AManager as UserAManager,
+    data::group::AManager as GroupAManager,
     manager::{self, custom_test::CustomTestManager, problem::ProblemManager},
 };
 use actix_web::{
@@ -34,7 +36,8 @@ async fn default_route(req: HttpRequest) -> HttpResponse {
 /// 注意 clone() 的调用应当发生在 HttpServer::new 的闭包中，这里不需要
 pub fn new(
     session_mgr: SessionManager,
-    user_db: web::Data<AManager>,
+    user_db: web::Data<UserAManager>,
+    group_db: web::Data<GroupAManager>,
     problem_mgr: web::Data<ProblemManager>,
     custom_test_mgr: web::Data<CustomTestManager>,
     judge_queue: web::Data<manager::judge_queue::JudgeQueue>,
@@ -44,7 +47,8 @@ pub fn new(
         app.service(auth::service(session_mgr, user_db.clone()))
             .service(custom_test::service(custom_test_mgr, judge_queue).wrap(session_auth.clone()))
             .service(problem::service(problem_mgr).wrap(session_auth.clone()))
-            .service(user::service(user_db.clone()).wrap(session_auth))
+            .service(user::service(user_db.clone()).wrap(session_auth.clone()))
+            .service(group::service(group_db.clone()).wrap(session_auth))
             .default_service(web::route().to(default_route));
     }
 }
