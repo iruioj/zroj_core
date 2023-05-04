@@ -36,7 +36,7 @@ impl Gender {
 }
 
 /// struct for database query
-#[derive(Queryable, Debug, Serialize, Deserialize, Clone)]
+#[derive(Queryable, Debug, Serialize, Deserialize, Clone, AsChangeset)]
 pub struct User {
     pub id: i32,
     pub username: String,
@@ -57,6 +57,7 @@ pub struct NewUser<'a> {
     pub email: &'a str,
 }
 
+/*
 #[derive(Deserialize, AsChangeset)]
 #[diesel(table_name = users)]
 pub struct UserUpdate {
@@ -66,6 +67,7 @@ pub struct UserUpdate {
     pub name: Option<String>,
     pub gender: Option<i32>,
 }
+*/
 
 #[derive(Queryable, Debug, Serialize, Deserialize, Clone)]
 pub struct Group {
