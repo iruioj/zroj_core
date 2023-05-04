@@ -1,5 +1,6 @@
 //! imp struct for different database queries
 use super::error::{Error, Result};
+use crate::Override;
 use crate::{app::user::UserUpdateInfo, data::schema::User};
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -33,8 +34,8 @@ mod database {
     type MysqlPooledConnection = PooledConnection<ConnectionManager<MysqlConnection>>;
     use crate::data::user::Manager;
 
-    use super::super::schema::UserUpdate;
     pub struct DbManager(MysqlPool);
+    /*use super::super::schema::UserUpdate;
     impl UserUpdate {
         fn from(value: &UserUpdateInfo) -> Self {
             Self {
@@ -48,7 +49,7 @@ mod database {
                 },
             }
         }
-    }
+    }*/
     /// 数据库存储
     impl DbManager {
         pub fn new(url: &String) -> Self {
@@ -65,14 +66,14 @@ mod database {
             //error::ErrorInternalServerError(format!("Pool connection error: {}", e.to_string()))
             // })
         }
-    }
-    #[async_trait]
-    impl Manager for DbManager {
-        async fn query_by_username(&self, username: &str) -> Result<Option<User>> {
-            let mut conn = self.get_conn().await?;
+        async fn _query_by_username(
+            &self,
+            conn: &mut MysqlPooledConnection,
+            username: &str,
+        ) -> Result<Option<User>> {
             let result = users::table
                 .filter(users::username.eq(username))
-                .first::<User>(&mut conn);
+                .first::<User>(conn);
             match result {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => match e {
@@ -81,9 +82,12 @@ mod database {
                 },
             }
         }
-        async fn query_by_userid(&self, userid: i32) -> Result<Option<User>> {
-            let mut conn = self.get_conn().await?;
-            let result = users::table.filter(users::id.eq(userid)).first(&mut conn);
+        async fn _query_by_userid(
+            &self,
+            conn: &mut MysqlPooledConnection,
+            userid: i32,
+        ) -> Result<Option<User>> {
+            let result = users::table.filter(users::id.eq(userid)).first(conn);
             match result {
                 Ok(user) => Ok(Some(user)),
                 Err(e) => match e {
@@ -91,6 +95,17 @@ mod database {
                     ee => Err(Error::DbError(ee)),
                 },
             }
+        }
+    }
+    #[async_trait]
+    impl Manager for DbManager {
+        async fn query_by_username(&self, username: &str) -> Result<Option<User>> {
+            self._query_by_username(&mut self.get_conn().await?, username)
+                .await
+        }
+        async fn query_by_userid(&self, uid: i32) -> Result<Option<User>> {
+            self._query_by_userid(&mut self.get_conn().await?, uid)
+                .await
         }
         async fn new_user(&self, username: &str, password_hash: &str, email: &str) -> Result<User> {
             let mut conn = self.get_conn().await?;
@@ -113,8 +128,16 @@ mod database {
         }
         async fn update(&self, uid: i32, info: UserUpdateInfo) -> Result<()> {
             let mut conn = self.get_conn().await?;
+            let mut user =
+                self._query_by_userid(&mut conn, uid)
+                    .await?
+                    .ok_or(Error::InvalidArgument(format!(
+                        "User {} does not exist",
+                        uid
+                    )))?;
+            info.over(&mut user);
             diesel::update(users::table.filter(users::id.eq(uid)))
-                .set(UserUpdate::from(&info))
+                .set(user)
                 .execute(&mut conn)?;
             Ok(())
         }
@@ -123,7 +146,6 @@ mod database {
 
 pub use hashmap::FsManager;
 mod hashmap {
-    use crate::Override;
     use crate::data::schema::Gender;
     use crate::problem::GroupID;
     use crate::{auth::UserID, data::user::*};
