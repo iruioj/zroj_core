@@ -20,8 +20,6 @@ async fn main() -> std::io::Result<()> {
         Data::from(group::FsManager::new(PathBuf::from("/var/groups")).to_amanager());
     let problem_manager = Data::new(server::manager::problem::ProblemManager::new(
         "/var/problems/".to_string(),
-        "statement.json".to_string(),
-        "data/".to_string(),
     ));
     let custom_test_manager = Data::new(server::manager::custom_test::CustomTestManager::new(
         "/var/custom_test/".into(),

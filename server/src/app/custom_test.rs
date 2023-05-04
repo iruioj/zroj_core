@@ -1,12 +1,10 @@
-use std::fmt::Debug;
-
 use crate::{
-    auth::UserID,
     manager::{
         custom_test::CodeLang,
         custom_test::{start_custom_test, CustomTestManager},
         judge_queue::JudgeQueue,
     },
+    UserID,
 };
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{
@@ -16,6 +14,7 @@ use actix_web::{
 use judger::TaskResult;
 use serde::Serialize;
 use serde_json::json;
+use std::fmt::Debug;
 
 /// warning: this funtion contains probable leak
 fn parse_source_file_name(s: String) -> Result<(String, CodeLang)> {

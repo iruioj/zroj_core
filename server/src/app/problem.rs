@@ -1,7 +1,6 @@
 use crate::{
-    auth::UserID,
-    manager::problem::{ProblemManager, ProblemViewData},
-    problem::{ProblemAccess, ProblemID},
+    manager::problem::{Metadata, ProblemManager},
+    ProblemID, UserID,
 };
 use actix_web::{error, get, web, Result};
 
@@ -10,16 +9,12 @@ async fn handle_view_problem(
     pid: web::Path<ProblemID>,
     manager: web::Data<ProblemManager>,
     uid: web::ReqData<UserID>,
-) -> Result<web::Json<ProblemViewData>> {
-    if manager.check_access(*pid, *uid)? >= ProblemAccess::View {
-        Ok(web::Json(manager.fetch_view_data(*pid)?))
-    } else {
-        Err(error::ErrorBadRequest("problem not accessible"))
-    }
+) -> Result<web::Json<Metadata>> {
+    Ok(web::Json(manager.get_metadata(*pid)?))
 }
 
 /// 提供 problem 相关服务
-/// 
+///
 /// scope path: `/problem`
 pub fn service(
     problem_manager: web::Data<ProblemManager>,
