@@ -1,6 +1,16 @@
 [workspace]
 
-members = ["sandbox", "tools", "contest", "problem", "server", "judger", "cli", "passwd"]
+members = [
+    "sandbox", 
+    "tools",
+    "contest",
+    "problem",
+    "server",
+    "judger",
+    "cli",
+    "passwd",
+    "macros"
+]
 
 [workspace.package]
 authors = ["ZROJ Team"]
