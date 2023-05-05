@@ -12,7 +12,13 @@ use std::sync::Arc;
 
 #[async_trait]
 pub trait Manager {
+    /// get config value, must provide userid to check access
     async fn get(&self, pid: ProblemID, uid: UserID) -> Result<ProblemConfig>;
+    /// insert config for a new problem
+    async fn insert(&mut self, pid: ProblemID, value: ProblemConfig) -> Result<()>;
+    /// update the config of an existing problem, must provide userid to check access
+    async fn set(&mut self, pid: ProblemID, uid: UserID, value: ProblemConfig) -> Result<()>;
+    /// query the access of a user for a problem
     async fn get_access(&self, pid: ProblemID, uid: UserID) -> Result<ProblemAccess>;
     fn to_amanager(self) -> Arc<AManager>;
 }
@@ -37,7 +43,7 @@ mod hashmap {
 
     impl FsManager {
         pub fn new(path: PathBuf, groups: Arc<GroupAManager>) -> Self {
-            let mut r = Self::load(&path).unwrap_or(Data(HashMap::new()));
+            let r = Self::load(&path).unwrap_or(Data(HashMap::new()));
             Self {
                 data: RwLock::new(r),
                 groups,
@@ -59,7 +65,7 @@ mod hashmap {
                 self.path.display()
             ));
         }
-        fn get(&self, pid: ProblemID) -> Result<ProblemConfig> {
+        fn _get(&self, pid: ProblemID) -> Result<ProblemConfig> {
             let guard = self.data.read()?;
             Ok((*guard)
                 .0
@@ -78,16 +84,49 @@ mod hashmap {
             Arc::new(self)
         }
         async fn get(&self, pid: ProblemID, uid: UserID) -> Result<ProblemConfig> {
-            let value = self.get(pid)?;
+            let value = self._get(pid)?;
             if value.owner != uid {
                 Err(Error::Forbidden("Only owner can access config".to_string()))
             } else {
                 Ok(value.clone())
             }
         }
+        async fn insert(&mut self, pid: ProblemID, value: ProblemConfig) -> Result<()> {
+            let mut guard = self.data.write()?;
+            if let Some(_) = (*guard).0.get(&pid) {
+                Err(Error::InvalidArgument(format!("Problem {} already exists", pid)))
+            } else {
+                if let Some(_) = guard.0.insert(pid, value) {
+                    panic!("impossible")
+                }
+                self.save();
+                Ok(())
+                /*if (*v).owner != uid {
+                    Err(Error::Forbidden(("only owner can access the config".to_string())))
+                } else {
+                    *v = value;
+                    self.save();
+                    Ok(())
+                }*/
+            }
+        }
+        async fn set(&mut self, pid: ProblemID, uid: UserID, value: ProblemConfig) -> Result<()> {
+            let mut guard = self.data.write()?;
+            if let Some(v) = (*guard).0.get_mut(&pid) {
+                if (*v).owner != uid {
+                    Err(Error::Forbidden("only owner can access the config".to_string()))
+                } else {
+                    *v = value;
+                    self.save();
+                    Ok(())
+                }
+            } else {
+                Err(Error::InvalidArgument(format!("No such problem: {}", pid)))
+            }
+        }
         async fn get_access(&self, pid: ProblemID, uid: UserID) -> Result<ProblemAccess> {
             let mut t: ProblemAccess = ProblemAccess::None;
-            let value = self.get(pid)?;
+            let value = self._get(pid)?;
             for (ug, a) in value.access {
                 let flag = match ug {
                     UserGroup::User(id) => id == uid,
