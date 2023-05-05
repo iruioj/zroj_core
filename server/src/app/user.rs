@@ -1,14 +1,15 @@
 use crate::{
-    UserID,
     data::{
         schema::{Gender, User},
         user::AManager,
-    }, GroupID,
+    },
+    GroupID, UserID,
 };
 use actix_web::{
     error::{self, Result},
     get, post, web,
 };
+use macros::scope_service;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
@@ -140,9 +141,15 @@ async fn edit_post(
     Ok("ok".to_string())
 }
 
-pub fn service(
-    user_database: web::Data<AManager>,
-) -> actix_web::Scope<
+#[scope_service(path = "/user")]
+pub fn service(user_database: web::Data<AManager>) {
+    app_data(user_database);
+    service(profile);
+    service(edit_get);
+    service(edit_post);
+}
+
+/*-> actix_web::Scope<
     impl actix_web::dev::ServiceFactory<
         actix_web::dev::ServiceRequest,
         Config = (),
@@ -156,4 +163,4 @@ pub fn service(
         .service(profile)
         .service(edit_get)
         .service(edit_post)
-}
+}*/
