@@ -4,6 +4,7 @@ use crate::{SessionID, UserID};
 use actix_session::Session;
 use actix_web::cookie::Cookie;
 use actix_web::{error, get, post, web, HttpResponse};
+use macros::scope_service;
 use serde::{Deserialize, Serialize};
 
 fn validate_username(username: &String) -> actix_web::Result<()> {
@@ -134,27 +135,15 @@ async fn logout(
     Err(error::ErrorBadRequest("invalid session id"))
 }
 
-/// scope path: `/auth`
-pub fn service(
-    session_mgr: SessionManager,
-    user_database: web::Data<AManager>,
-) -> actix_web::Scope<
-    impl actix_web::dev::ServiceFactory<
-        actix_web::dev::ServiceRequest,
-        Config = (),
-        Response = actix_web::dev::ServiceResponse,
-        Error = actix_web::Error,
-        InitError = (),
-    >,
-> {
-    web::scope("/auth")
-        .wrap(crate::auth::middleware::SessionAuth::bypass(
-            session_mgr.clone(),
-        ))
-        .app_data(web::Data::new(session_mgr))
-        .app_data(user_database)
-        .service(login)
-        .service(logout)
-        .service(register)
-        .service(inspect)
+#[scope_service(path = "/auth")]
+pub fn service(session_mgr: SessionManager, user_database: web::Data<AManager>) {
+    wrap(crate::auth::middleware::SessionAuth::bypass(
+        session_mgr.clone(),
+    ));
+    app_data(web::Data::new(session_mgr));
+    app_data(user_database);
+    service(login);
+    service(logout);
+    service(register);
+    service(inspect);
 }
