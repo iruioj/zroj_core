@@ -11,6 +11,7 @@ use actix_web::{
     get, post, web, Result,
 };
 use judger::TaskResult;
+use macros::scope_service;
 use serde::Serialize;
 use serde_json::json;
 use std::fmt::Debug;
@@ -103,10 +104,17 @@ async fn edit(
 /// 提供自定义测试服务
 ///
 /// scope path: `/custom_test`
+#[scope_service(path = "/custom_test")]
 pub fn service(
     custom_test_manager: web::Data<CustomTestManager>,
     judge_queue: web::Data<JudgeQueue>,
-) -> actix_web::Scope<
+) {
+    app_data(custom_test_manager);
+    app_data(judge_queue);
+    service(custom_test_get);
+    service(custom_test_post);
+}
+/* -> actix_web::Scope<
     impl actix_web::dev::ServiceFactory<
         actix_web::dev::ServiceRequest,
         Config = (),
@@ -121,3 +129,4 @@ pub fn service(
         .service(custom_test_post)
         .service(custom_test_get)
 }
+*/

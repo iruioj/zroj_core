@@ -6,6 +6,7 @@ use actix_web::{
     error::{self, Result},
     get, post, web,
 };
+use macros::scope_service;
 
 #[get("/{gid}")]
 async fn group_info(
@@ -42,9 +43,15 @@ async fn delete_user(
     Ok(format!("Ok, inserted {} users", count))
 }
 
-pub fn service(
-    group_db: web::Data<AManager>,
-) -> actix_web::Scope<
+#[scope_service(path = "/group")]
+pub fn service(group_db: web::Data<AManager>) {
+    app_data(group_db);
+    service(group_info);
+    service(delete_user);
+    service(add_users);
+}
+
+/*-> actix_web::Scope<
     impl actix_web::dev::ServiceFactory<
         actix_web::dev::ServiceRequest,
         Config = (),
@@ -58,4 +65,4 @@ pub fn service(
         .service(group_info)
         .service(delete_user)
         .service(add_users)
-}
+}*/

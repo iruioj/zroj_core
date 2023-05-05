@@ -3,6 +3,7 @@ use crate::{
     ProblemID, UserID,
 };
 use actix_web::{error, get, web, Result};
+use macros::scope_service;
 
 #[get("/{pid}")]
 async fn handle_view_problem(
@@ -16,9 +17,15 @@ async fn handle_view_problem(
 /// 提供 problem 相关服务
 ///
 /// scope path: `/problem`
+#[scope_service(path = "/problem")]
 pub fn service(
     problem_manager: web::Data<ProblemManager>,
-) -> actix_web::Scope<
+) {
+    app_data(problem_manager);
+    service(handle_view_problem);
+}
+
+/* -> actix_web::Scope<
     impl actix_web::dev::ServiceFactory<
         actix_web::dev::ServiceRequest,
         Config = (),
@@ -30,4 +37,4 @@ pub fn service(
     web::scope("/problem")
         .app_data(problem_manager)
         .service(handle_view_problem)
-}
+}*/
