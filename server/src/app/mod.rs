@@ -9,6 +9,7 @@ use crate::{
     auth::{middleware::SessionAuth, SessionManager},
     data::user::AManager as UserAManager,
     data::group::AManager as GroupAManager,
+    data::problem_config::AManager as ProblemConfigAManager,
     manager::{self, custom_test::CustomTestManager, problem::ProblemManager},
 };
 use actix_web::{
@@ -38,6 +39,7 @@ pub fn new(
     session_mgr: SessionManager,
     user_db: web::Data<UserAManager>,
     group_db: web::Data<GroupAManager>,
+    problem_config_mgr: web::Data<ProblemConfigAManager>,
     problem_mgr: web::Data<ProblemManager>,
     custom_test_mgr: web::Data<CustomTestManager>,
     judge_queue: web::Data<manager::judge_queue::JudgeQueue>,
@@ -46,7 +48,7 @@ pub fn new(
         let session_auth = SessionAuth::require_auth(session_mgr.clone());
         app.service(auth::service(session_mgr, user_db.clone()))
             .service(custom_test::service(custom_test_mgr, judge_queue).wrap(session_auth.clone()))
-            .service(problem::service(problem_mgr).wrap(session_auth.clone()))
+            .service(problem::service(problem_mgr, problem_config_mgr).wrap(session_auth.clone()))
             .service(user::service(user_db.clone()).wrap(session_auth.clone()))
             .service(group::service(group_db.clone()).wrap(session_auth))
             .default_service(web::route().to(default_route));
