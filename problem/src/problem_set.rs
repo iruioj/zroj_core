@@ -80,7 +80,7 @@ impl ProblemSet {
         let mut result = String::from("");
         match config.read_to_string(&mut result) {
             Ok(_) => (), 
-            Err(err) => return Result::Err(String::from("error when open config.json, maybe it does not exist"))
+            Err(_) => return Result::Err(String::from("error when open config.json, maybe it does not exist"))
         };
         Result::Ok(serde_json::from_str(&result).unwrap())
     } 
