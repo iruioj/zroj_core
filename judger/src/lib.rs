@@ -8,7 +8,10 @@
 //! 通信题放在 crate::comms 中。
 //!
 
+#![allow(dead_code)]
+
 mod basic;
+pub mod cache;
 mod env;
 mod error;
 pub mod lang;
@@ -17,8 +20,10 @@ mod result;
 pub mod truncstr;
 
 pub use error::Error;
+pub use basic::Submission;
 pub use one_off::OneOff;
 pub use result::{JudgeResult, Status, TaskResult};
+pub use cache::Cache;
 
 /// Judge 表示的评测过程.
 ///

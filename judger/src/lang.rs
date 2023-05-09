@@ -8,6 +8,8 @@ pub trait LangOption {
     /// - dest: 编译产生的可执行文件的路径
     #[cfg(all(unix))]
     fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton;
+	/// 生成仅包含编译器、编译参数的列表
+	fn pure_args(&self) -> Vec<String>;
 }
 
 /// 使用 g++ 编译 C++ 源文件
@@ -18,7 +20,7 @@ pub struct GnuCpp {
 
 impl GnuCpp {
     pub fn new(args: Vec<&'static str>) -> Self {
-        let gpp_path = crate::env::which("g++").unwrap();
+        let gpp_path = crate::env::which("x86_64-linux-gnu-g++-11").unwrap();
         let extra_args: Vec<String> = args.into_iter().map(|s| s.to_string()).collect();
         GnuCpp {
             gpp_path,
@@ -28,6 +30,11 @@ impl GnuCpp {
 }
 
 impl LangOption for GnuCpp {
+	fn pure_args(&self) -> Vec<String> {
+		let mut args = vec![String::from("g++")];
+		args.append(&mut self.extra_args.clone());
+		args
+	}
     fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
         let mut envs = Vec::new();
         for (key, value) in std::env::vars() {
@@ -65,6 +72,13 @@ pub enum Builtin {
     GnuCpp14O2,
 }
 impl LangOption for Builtin {
+    fn pure_args(&self) -> Vec<String> {
+        match self {
+            Builtin::GnuCpp20O2 => gnu_cpp20_o2(),
+            Builtin::GnuCpp17O2 => gnu_cpp17_o2(),
+            Builtin::GnuCpp14O2 => gnu_cpp14_o2(),
+        }.pure_args()
+    }
     fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
         match self {
             Builtin::GnuCpp20O2 => gnu_cpp20_o2().build_sigton(source, dest),

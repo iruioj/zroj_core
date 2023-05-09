@@ -5,11 +5,12 @@ use zip::ZipArchive;
 
 use crate::{config::{ProblemConfig, Checkable}, problem_set::ProblemSet};
 
+use derive_more::From;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, From)]
 pub struct Pair (PathBuf, PathBuf);
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, From)]
 pub struct Single (PathBuf);
 
 impl Checkable for Pair {
