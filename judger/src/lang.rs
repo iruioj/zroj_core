@@ -1,15 +1,18 @@
 use std::path::PathBuf;
 
+/// 可以转化为字符串的哈希值
+pub trait HashStr {
+    fn hash_str(&self) -> String;
+}
+
 /// 一个 LangOption 是指对 **单个源文件** 指定的语言，并提供对应的编译指令
-pub trait LangOption {
+pub trait LangOption: HashStr {
     /// 生成一个编译指令
-    /// 
+    ///
     /// - source: 源文件路径
     /// - dest: 编译产生的可执行文件的路径
     #[cfg(all(unix))]
     fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton;
-	/// 生成仅包含编译器、编译参数的列表
-	fn pure_args(&self) -> Vec<String>;
 }
 
 /// 使用 g++ 编译 C++ 源文件
@@ -29,12 +32,14 @@ impl GnuCpp {
     }
 }
 
+impl HashStr for GnuCpp {
+    fn hash_str(&self) -> String {
+        let mut hsh = self.gpp_path.to_str().unwrap().to_owned();
+        hsh.push_str(&self.extra_args.join("$"));
+        hsh
+    }
+}
 impl LangOption for GnuCpp {
-	fn pure_args(&self) -> Vec<String> {
-		let mut args = vec![String::from("g++")];
-		args.append(&mut self.extra_args.clone());
-		args
-	}
     fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
         let mut envs = Vec::new();
         for (key, value) in std::env::vars() {
@@ -71,14 +76,16 @@ pub enum Builtin {
     GnuCpp17O2,
     GnuCpp14O2,
 }
-impl LangOption for Builtin {
-    fn pure_args(&self) -> Vec<String> {
-        match self {
-            Builtin::GnuCpp20O2 => gnu_cpp20_o2(),
-            Builtin::GnuCpp17O2 => gnu_cpp17_o2(),
-            Builtin::GnuCpp14O2 => gnu_cpp14_o2(),
-        }.pure_args()
+impl HashStr for Builtin {
+    fn hash_str(&self) -> String {
+        match &self {
+            Builtin::GnuCpp20O2 => "GnuCpp20O2".into(),
+            Builtin::GnuCpp17O2 => "GnuCpp17O2".into(),
+            Builtin::GnuCpp14O2 => "GnuCpp14O2".into(),
+        }
     }
+}
+impl LangOption for Builtin {
     fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
         match self {
             Builtin::GnuCpp20O2 => gnu_cpp20_o2().build_sigton(source, dest),
