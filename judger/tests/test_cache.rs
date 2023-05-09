@@ -54,7 +54,7 @@ int main() {
 			let Ok(ok_exec) = cache.get_exec(&Builtin::GnuCpp17O2, &ok) else { panic!(); };
 			let Err(ce_info) = cache.get_exec(&Builtin::GnuCpp17O2, &ce) else { panic!(); };
 
-			let Stat::RuntimeError(x, s) = ce_info else { panic!(); };
+			let  judger::Error::CacheCE(Stat::RuntimeError(x, s)) = ce_info else { panic!(); };
 			
 			assert!(regex.is_match(&format!("{}", ok_exec.display())));
 			assert_eq!(x, 1);
