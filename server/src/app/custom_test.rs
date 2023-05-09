@@ -3,7 +3,6 @@ use std::fmt::Debug;
 use crate::{
     auth::UserID,
     manager::{
-        custom_test::CodeLang,
         custom_test::{start_custom_test, CustomTestManager},
         judge_queue::JudgeQueue,
     },
@@ -18,7 +17,7 @@ use serde::Serialize;
 use serde_json::json;
 
 /// warning: this funtion contains probable leak
-fn parse_source_file_name(s: String) -> Result<(String, CodeLang)> {
+fn parse_source_file_name(s: String) -> Result<(String, judger::lang::Builtin)> {
     if s.contains('/') {
         return Err(ErrorBadRequest(format!("invalid source file name {s:?}")));
     }
@@ -28,7 +27,7 @@ fn parse_source_file_name(s: String) -> Result<(String, CodeLang)> {
         return Err(ErrorBadRequest(format!("invalid source file name {s:?}")));
     }
     let lang = split[1];
-    let lang: CodeLang = serde_json::from_value(json!(lang))
+    let lang: judger::lang::Builtin = serde_json::from_value(json!(lang))
         .map_err(|_| ErrorBadRequest(format!("Unkown language {lang:?}")))?;
     let suffix = split[2];
     Ok(("source.".to_string() + suffix, lang))

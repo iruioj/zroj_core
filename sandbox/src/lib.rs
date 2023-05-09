@@ -5,7 +5,7 @@
 //!
 //! 为了避免繁琐的编译过程和开发环境搭建，本库将会基于 yaoj-judger 用 Rust 重写。
 
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::{
     ffi::{CString, NulError},
     fmt::Debug,

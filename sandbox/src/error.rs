@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use serde_derive::{Serialize, Deserialize};
+use serde::{Serialize, Deserialize};
 
 /// 一个通用的错误类型
 #[derive(Debug,Clone, Serialize, Deserialize)]

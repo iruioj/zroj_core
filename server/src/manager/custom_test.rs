@@ -1,7 +1,6 @@
 use crate::auth::UserID;
 use actix_web::{error, web, Result};
-use judger::{lang::LangOption, OneOff, TaskResult};
-use serde::{Deserialize, Serialize};
+use judger::{OneOff, TaskResult};
 use std::{
     collections::HashMap,
     path::PathBuf,
@@ -10,25 +9,25 @@ use std::{
 
 use super::judge_queue::JudgeQueue;
 
-#[derive(Serialize, Debug, Clone, Deserialize)]
-pub enum CodeLang {
-    #[serde(rename = "gnu_cpp20_o2")]
-    GnuCpp20O2,
-    #[serde(rename = "gnu_cpp17_o2")]
-    GnuCpp17O2,
-    #[serde(rename = "gnu_cpp14_o2")]
-    GnuCpp14O2,
-}
+// #[derive(Serialize, Debug, Clone, Deserialize)]
+// pub enum CodeLang {
+//     #[serde(rename = "gnu_cpp20_o2")]
+//     GnuCpp20O2,
+//     #[serde(rename = "gnu_cpp17_o2")]
+//     GnuCpp17O2,
+//     #[serde(rename = "gnu_cpp14_o2")]
+//     GnuCpp14O2,
+// }
 
-impl LangOption for CodeLang {
-    fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
-        match *self {
-            Self::GnuCpp14O2 => judger::lang::gnu_cpp14_o2().build_sigton(source, dest),
-            Self::GnuCpp17O2 => judger::lang::gnu_cpp17_o2().build_sigton(source, dest),
-            Self::GnuCpp20O2 => judger::lang::gnu_cpp20_o2().build_sigton(source, dest),
-        }
-    }
-}
+// impl LangOption for CodeLang {
+//     fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
+//         match *self {
+//             Self::GnuCpp14O2 => judger::lang::gnu_cpp14_o2().build_sigton(source, dest),
+//             Self::GnuCpp17O2 => judger::lang::gnu_cpp17_o2().build_sigton(source, dest),
+//             Self::GnuCpp20O2 => judger::lang::gnu_cpp20_o2().build_sigton(source, dest),
+//         }
+//     }
+// }
 
 #[derive(Debug)]
 pub struct CustomTestManager {
@@ -81,7 +80,7 @@ pub fn start_custom_test(
     base: PathBuf,
     source: PathBuf,
     input: PathBuf,
-    lang: CodeLang,
+    lang: judger::lang::Builtin,
 ) -> Result<()> {
     manager.check_userid(&uid)?;
     let state = manager.state.clone();
