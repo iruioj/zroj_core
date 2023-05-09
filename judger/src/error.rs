@@ -18,12 +18,12 @@ impl From<sandbox::UniError> for Error {
         Error::Sandbox(value)
     }
 }
+
 impl From<std::io::Error> for Error {
     fn from(value: std::io::Error) -> Self {
         Error::IOError(value)
     }
 }
-
 
 impl<'a> Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -32,7 +32,7 @@ impl<'a> Display for Error {
             Error::CmdSymLink => write!(f, "Command found but is symlink"),
             Error::Sandbox(e) => write!(f, "sandbox error: {}", e),
             Error::IOError(e) => write!(f, "io error: {}", e),
-            Error::CacheCE(_) => write!(f, "cache ce"),
+			Error::CacheCE(e) => write!(f, "compile error: {:?}", e),
         }
     }
 }
