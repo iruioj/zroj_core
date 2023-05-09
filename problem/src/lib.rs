@@ -1,14 +1,9 @@
-#![allow(dead_code)]
+mod error;
+pub mod meta;
+mod problem;
 
-mod config;
-mod problem_set;
-mod builtin;
-mod accumulate_rule;
-mod task;
-
-pub use config::ProblemConfig;
-pub use builtin::{Pair, Builtin};
-pub use accumulate_rule::AccumulateRule;
-pub use task::SubTask;
-pub use task::TestCase;
-pub use task::Tasks;
+pub use error::Error;
+pub use meta::builtin::Builtin;
+pub use problem::zip::ZipProblem;
+pub use problem::Problem;
+// mod problem_set;
