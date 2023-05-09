@@ -9,7 +9,7 @@ use std::{
 };
 use core::cmp::Ordering;
 use crypto::{sha2::Sha256, digest::Digest};
-use crate::{lang::LangOption};
+use crate::{lang::LangOption, error::Error::{self, CacheCE}};
 use sandbox::{ExecSandBox, Status as Stat};
 
 /// 缓存系统
@@ -71,7 +71,7 @@ impl Cache {
 			sorted: BTreeMap::<Entry, String>::new(),
 		}
 	}
-	pub fn get_exec(&mut self, lang: &impl LangOption, src_path: &PathBuf) -> Result<PathBuf, Stat> {
+	pub fn get_exec(&mut self, lang: &impl LangOption, src_path: &PathBuf) -> Result<PathBuf, Error> {
 		let src = fs::read_to_string(src_path).unwrap();   // 不太会 Error
 		let hash = hash_it(hash_it(src) + " " + &hash_it(lang.pure_args().join(" ")));
 
@@ -95,7 +95,7 @@ impl Cache {
 
 			return match &entry.stat {
 				Stat::Ok => Ok(dest),
-				x => Err(x.clone()),
+				x => Err(CacheCE(x.clone())),
 			};
 		}
 
@@ -114,7 +114,7 @@ impl Cache {
 		
 		return match entry.stat {
 			Stat::Ok => Ok(dest),
-			x => Err(x),
+			x => Err(CacheCE(x)),
 		};
 	}
 }
