@@ -3,7 +3,7 @@ pub use singleton::Singleton;
 pub use singleton::SingletonBuilder;
 pub use singleton::Arg;
 
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 /// 对进程施加各种类型的资源限制
 #[derive(Serialize, Deserialize, Debug)]

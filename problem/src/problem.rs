@@ -55,7 +55,7 @@ pub mod zip {
     use std::path::PathBuf;
 
     use crate::error::Result;
-    use crate::{Builtin, Error::*};
+    use crate::Builtin;
 
     /// 在打开压缩文件时解压到临时文件夹
     pub struct ZipProblem {

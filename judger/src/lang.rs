@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use serde::{Serialize, Deserialize};
+
 /// 可以转化为字符串的哈希值
 pub trait HashStr {
     fn hash_str(&self) -> String;
@@ -71,9 +73,13 @@ pub fn gnu_cpp14_o2() -> GnuCpp {
     GnuCpp::new(vec!["-std=c++14", "-O2"])
 }
 /// 内置的支持的语言
+#[derive(Serialize, Deserialize)]
 pub enum Builtin {
+    #[serde(rename = "gnu_cpp20_o2")]
     GnuCpp20O2,
+    #[serde(rename = "gnu_cpp17_o2")]
     GnuCpp17O2,
+    #[serde(rename = "gnu_cpp14_o2")]
     GnuCpp14O2,
 }
 impl HashStr for Builtin {
