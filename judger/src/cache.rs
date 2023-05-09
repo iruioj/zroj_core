@@ -72,8 +72,8 @@ impl Cache {
 		}
 	}
 	pub fn get_exec(&mut self, lang: &impl LangOption, src_path: &PathBuf) -> Result<PathBuf, Error> {
-		let src = fs::read_to_string(src_path).unwrap();   // 不太会 Error
-		let hash = hash_it(hash_it(src) + " " + &hash_it(lang.pure_args().join(" ")));
+		let src = fs::read_to_string(src_path)?;
+		let hash = hash_it(hash_it(src) + " " + &lang.hash_str());
 
 		let mut dest = self.dir.clone();
 		dest.push(&hash);
@@ -105,7 +105,7 @@ impl Cache {
 		}
 
 		let cpl = lang.build_sigton(&src_path, &dest);		
-		let term = cpl.exec_sandbox().unwrap();   // 不太会 Error
+		let term = cpl.exec_sandbox()?;
 		let st = term.status.clone();
 		let entry = Entry::new(self.cur_height, st);
 		
