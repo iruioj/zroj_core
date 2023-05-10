@@ -8,7 +8,7 @@ use std::{
 	collections::{HashMap, BTreeMap},
 };
 use core::cmp::Ordering;
-use crypto::{sha2::Sha256, digest::Digest};
+use sha2::{Sha256, Digest};
 use crate::{lang::LangOption, error::Error::{self, CacheCE}};
 use sandbox::{ExecSandBox, Status as Stat};
 
@@ -54,10 +54,10 @@ impl PartialEq for Entry {
 
 impl Eq for Entry {}
 
-fn hash_it(s: String) -> String {
+fn hash_it(s: &str) -> String {
 	let mut hasher = Sha256::new();
-	hasher.input_str(&s);
-	hasher.result_str()
+	Digest::update(&mut hasher, s);
+	format!("{:x}", hasher.finalize())
 }
 
 impl Cache {
@@ -73,7 +73,7 @@ impl Cache {
 	}
 	pub fn get_exec(&mut self, lang: &impl LangOption, src_path: &PathBuf) -> Result<PathBuf, Error> {
 		let src = fs::read_to_string(src_path)?;
-		let hash = hash_it(hash_it(src) + " " + &lang.hash_str());
+		let hash = hash_it(&(hash_it(&src) + " " + &lang.hash_str()));
 
 		let mut dest = self.dir.clone();
 		dest.push(&hash);
