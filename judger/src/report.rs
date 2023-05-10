@@ -62,7 +62,7 @@ impl From<sandbox::Termination> for TaskReport {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SubtaskResult {
+pub struct SubtaskReport {
     pub status: Status,
     pub time: u64,
     pub memory: u64,
@@ -71,7 +71,7 @@ pub struct SubtaskResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum JudgeDetail {
-    Subtask(Vec<SubtaskResult>),
+    Subtask(Vec<SubtaskReport>),
     Tests(Vec<TaskReport>),
 }
 
@@ -90,7 +90,7 @@ pub struct JudgeReport {
 mod tests {
     use crate::{JudgeReport, TaskReport};
 
-    use super::SubtaskResult;
+    use super::SubtaskReport;
 
     #[test]
     fn test_judge_result_serde() {
@@ -98,7 +98,7 @@ mod tests {
             status: crate::Status::WrongAnswer,
             time: 114,
             memory: 514,
-            detail: super::JudgeDetail::Subtask(vec![SubtaskResult {
+            detail: super::JudgeDetail::Subtask(vec![SubtaskReport {
                 status: crate::Status::WrongAnswer,
                 time: 114,
                 memory: 514,
