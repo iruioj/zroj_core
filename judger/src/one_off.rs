@@ -4,14 +4,14 @@ use std::path::PathBuf;
 
 use sandbox::{sigton, ExecSandBox};
 
-use crate::{lang::LangOption, Error, Status, TaskReport};
+use crate::{lang::Compile, Error, Status, TaskReport};
 
 /// OneOff 用于执行自定义测试，流程包含：编译、运行可执行文件。
 ///
 /// OneOff 只需要处理简单的时空限制即可
 /// OneOff 假定你已经在 working_dir（默认当前目录）准备好了相关的原始文件
 #[cfg(all(unix))]
-pub struct OneOff<L: LangOption> {
+pub struct OneOff<L: Compile> {
     lang: L,
     source: PathBuf,
     stdin: Option<PathBuf>,
@@ -21,7 +21,7 @@ pub struct OneOff<L: LangOption> {
     // memory_limit: u64,
 }
 
-impl<L: LangOption> OneOff<L> {
+impl<L: Compile> OneOff<L> {
     /// 新建一个 OneOff，工作目录默认为 cwd（生成可执行文件的路径）
     pub fn new(source: PathBuf, stdin: Option<PathBuf>, lang: L) -> Self {
         return Self {
@@ -43,7 +43,7 @@ impl<L: LangOption> OneOff<L> {
             // 可执行文件名
             let dest = self.working_dir.join("main");
 
-            let cpl = self.lang.build_sigton(&self.source, &dest);
+            let cpl = self.lang.compile(&self.source, &dest);
             let term = cpl.exec_sandbox()?;
             let st = term.status.clone();
             if st != sandbox::Status::Ok {
