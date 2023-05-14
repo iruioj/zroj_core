@@ -6,7 +6,7 @@
 //! 传递数据的过程，于是我们直接让 judger 返回可以直接在前端显示的数据格式。
 
 use crate::truncstr::TruncStr;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 /// 一个测试点提交的可能的返回状态
 #[derive(Debug, Clone, Serialize, Deserialize)]

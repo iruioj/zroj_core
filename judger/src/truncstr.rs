@@ -1,4 +1,4 @@
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 /// 裁剪过的文本内容。
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,20 +1,17 @@
+use sandbox::{sigton, ExecSandBox};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-use serde::{Serialize, Deserialize};
+use crate::sha_hash::{ShaHash, Update};
 
-/// 可以转化为字符串的哈希值
-pub trait HashStr {
-    fn hash_str(&self) -> String;
-}
-
-/// 一个 LangOption 是指对 **单个源文件** 指定的语言，并提供对应的编译指令
-pub trait LangOption: HashStr {
+/// 一个 Compile 是指对 **单个源文件** 指定的语言，并提供对应的编译指令
+pub trait Compile: ShaHash {
     /// 生成一个编译指令
     ///
     /// - source: 源文件路径
     /// - dest: 编译产生的可执行文件的路径
     #[cfg(all(unix))]
-    fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton;
+    fn compile(&self, source: &PathBuf, dest: &PathBuf) -> Box<dyn ExecSandBox>;
 }
 
 /// 使用 g++ 编译 C++ 源文件
@@ -24,8 +21,9 @@ pub struct GnuCpp {
 }
 
 impl GnuCpp {
-    pub fn new(args: Vec<&'static str>) -> Self {
-        let gpp_path = crate::env::which("x86_64-linux-gnu-g++-11").unwrap();
+    /// 默认编译器为 g++
+    pub fn new(gpp_path: Option<PathBuf>, args: Vec<&'static str>) -> Self {
+        let gpp_path = gpp_path.unwrap_or(crate::env::which("g++").unwrap());
         let extra_args: Vec<String> = args.into_iter().map(|s| s.to_string()).collect();
         GnuCpp {
             gpp_path,
@@ -34,22 +32,25 @@ impl GnuCpp {
     }
 }
 
-impl HashStr for GnuCpp {
-    fn hash_str(&self) -> String {
-        let mut hsh = self.gpp_path.to_str().unwrap().to_owned();
-        hsh.push_str(&self.extra_args.join("$"));
-        hsh
+impl ShaHash for GnuCpp {
+    fn sha_hash(&self, state: &mut sha2::Sha256) {
+        state.update(self.gpp_path.to_str().unwrap().as_bytes());
+        for ele in &self.extra_args {
+            state.update("$".as_bytes());
+            state.update(ele.as_bytes());
+        }
     }
 }
-impl LangOption for GnuCpp {
-    fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
+
+impl Compile for GnuCpp {
+    fn compile(&self, source: &PathBuf, dest: &PathBuf) -> Box<dyn ExecSandBox> {
         let mut envs = Vec::new();
         for (key, value) in std::env::vars() {
             envs.push(format!("{}={}", key, value));
         }
         let envs = envs;
 
-        sandbox::sigton! {
+        Box::new(sigton! {
             exec: &self.gpp_path;
             cmd: "g++" self.extra_args.clone() source "-o" dest;
             env: envs;
@@ -60,43 +61,75 @@ impl LangOption for GnuCpp {
             lim stack: 1024 * 1024 * 1024 1024 * 1024 * 1024;
             lim output: 64 * 1024 * 1024 64 * 1024 * 1024;
             lim fileno: 50 50;
-        }
+        })
     }
 }
-pub fn gnu_cpp20_o2() -> GnuCpp {
-    GnuCpp::new(vec!["-std=c++2a", "-O2"])
-}
-pub fn gnu_cpp17_o2() -> GnuCpp {
-    GnuCpp::new(vec!["-std=c++17", "-O2"])
-}
-pub fn gnu_cpp14_o2() -> GnuCpp {
-    GnuCpp::new(vec!["-std=c++14", "-O2"])
-}
-/// 内置的支持的语言
+
+/// 内置的支持的文件类型
 #[derive(Serialize, Deserialize)]
-pub enum Builtin {
+pub enum FileType {
     #[serde(rename = "gnu_cpp20_o2")]
     GnuCpp20O2,
     #[serde(rename = "gnu_cpp17_o2")]
     GnuCpp17O2,
     #[serde(rename = "gnu_cpp14_o2")]
     GnuCpp14O2,
+    #[serde(rename = "plain")]
+    Plain,
+    #[serde(rename = "binary")]
+    Binary,
+    #[serde(rename = "python3")]
+    Python,
+    #[serde(rename = "rust")]
+    Rust,
+    #[serde(rename = "gnu_assembly")]
+    Assembly,
 }
-impl HashStr for Builtin {
-    fn hash_str(&self) -> String {
-        match &self {
-            Builtin::GnuCpp20O2 => "GnuCpp20O2".into(),
-            Builtin::GnuCpp17O2 => "GnuCpp17O2".into(),
-            Builtin::GnuCpp14O2 => "GnuCpp14O2".into(),
-        }
+
+/// 纯文本语言的 “编译器”：直接复制
+struct PlainCompile {
+    src: PathBuf,
+    dest: PathBuf,
+}
+
+impl ExecSandBox for PlainCompile {
+    fn exec_sandbox(&self) -> Result<sandbox::Termination, sandbox::error::UniError> {
+        let mut dest = std::fs::File::create(&self.dest)?;
+        let mut src = std::fs::File::open(&self.src)?;
+        std::io::copy(&mut src, &mut dest)?;
+
+        Ok(sandbox::Termination {
+            status: sandbox::Status::Ok,
+            real_time: 0,
+            cpu_time: 0,
+            memory: 0,
+        })
     }
 }
-impl LangOption for Builtin {
-    fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
+
+impl ShaHash for FileType {
+    fn sha_hash(&self, state: &mut sha2::Sha256) {
+        state.update(serde_json::to_string(self).unwrap().as_bytes())
+    }
+}
+
+impl Compile for FileType {
+    fn compile(&self, source: &PathBuf, dest: &PathBuf) -> Box<dyn ExecSandBox> {
         match self {
-            Builtin::GnuCpp20O2 => gnu_cpp20_o2().build_sigton(source, dest),
-            Builtin::GnuCpp17O2 => gnu_cpp17_o2().build_sigton(source, dest),
-            Builtin::GnuCpp14O2 => gnu_cpp14_o2().build_sigton(source, dest),
+            FileType::GnuCpp20O2 => {
+                GnuCpp::new(None, vec!["-std=c++2a", "-O2"]).compile(source, dest)
+            }
+            FileType::GnuCpp17O2 => {
+                GnuCpp::new(None, vec!["-std=c++17", "-O2"]).compile(source, dest)
+            }
+            FileType::GnuCpp14O2 => {
+                GnuCpp::new(None, vec!["-std=c++14", "-O2"]).compile(source, dest)
+            }
+            FileType::Plain => Box::new(PlainCompile {
+                src: source.to_owned(),
+                dest: dest.to_owned(),
+            }),
+            _ => todo!(),
         }
     }
 }

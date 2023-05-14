@@ -14,16 +14,20 @@ mod basic;
 pub mod cache;
 mod env;
 mod error;
-pub mod lang;
+mod lang;
 mod one_off;
 mod report;
 pub mod truncstr;
 
+// pub use basic::Submission;
+pub use cache::Cache;
 pub use error::Error;
-pub use basic::Submission;
 pub use one_off::OneOff;
 pub use report::{JudgeReport, Status, TaskReport};
-pub use cache::Cache;
+pub use lang::FileType;
+
+/// Judger 表示一个评测服务，可以提供评测环境的信息，访问相关缓存等等
+pub trait Judger {}
 
 /// Judge 表示的评测过程.
 ///
@@ -35,11 +39,41 @@ pub use cache::Cache;
 /// - judge：枚举测试点去评测（可能要考虑依赖），然后直接返回
 /// - post_judge：收尾（删除临时文件啥的）
 ///
-trait Judge {
-    type Problem: problem::Problem;
-
-    fn judge(&mut self, problem: Self::Problem) -> Result<JudgeReport, Error>;
-}
+trait Judge {}
 
 /// Hack 表示证伪选手代码的过程
 trait Hack {}
+pub mod sha_hash {
+    pub use sha2::digest::Update; // re-export
+
+    /// 可以转化为 SHA256 的哈希值（模仿 std::hash::Hash）
+    pub trait ShaHash {
+        fn sha_hash(&self, state: &mut sha2::Sha256);
+    }
+
+    impl ShaHash for String {
+        fn sha_hash(&self, state: &mut sha2::Sha256) {
+            state.update(self.as_bytes());
+        }
+    }
+
+    impl ShaHash for &str {
+        fn sha_hash(&self, state: &mut sha2::Sha256) {
+            state.update(self.as_bytes());
+        }
+    }
+
+    /// sequential hash: 将一系列（实现了 ShaHash）的对象哈希到一起。顺序会影响哈希值
+    #[macro_export]
+    macro_rules! seq_hash {
+    [$( $e:expr ),*] => {
+        {
+            use sha2::{Sha256, Digest};
+            use $crate::sha_hash::ShaHash;
+			let mut hasher: Sha256 = Sha256::new();
+			$( $e.sha_hash(&mut hasher); )*
+			format!("{:x}", hasher.finalize())
+        }
+    };
+}
+}
