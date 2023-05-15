@@ -1,49 +1,69 @@
-use crate::{data::Data, Error};
+use std::io;
+
+use crate::{
+    data::{tempdir_unzip, Data},
+    Error, Override,
+};
 
 use store::FsStore;
+use tempfile::TempDir;
 
-/// 不会涉及到对数据文件的修改。
-pub trait Problem
+pub struct ProblemStore<T, M, S>
 where
-    Self: Sized,
+    T: FsStore,
+    M: FsStore,
+    S: Override<M> + FsStore,
 {
-    /// Meta, SubtaskMeta, Task 里最好只包含基本类型数据和 Key 类型的数据
-    /// 可以用 derive 做 type safe
-    /// Meta 包含题目的全局配置，例如 checker，validator，时空限制等等
-    type Meta: FsStore;
-    /// SubtaskMeta 用于在子任务评测时覆盖全面配置（例如单独的时空限制）
-    type SubtaskMeta: FsStore + crate::Override<Self::Meta>;
-    /// 描述一个测试点的评测任务，可以计算 Hash 值
-    type Task: FsStore;
-
-    fn data(&self) -> Result<Data<Self::Task, Self::Meta, Self::SubtaskMeta>, Error>;
+    #[allow(unused)]
+    dir: TempDir,
+    data: Data<T, M, S>,
 }
 
-pub trait JudgeProblem
+impl<T, M, S> ProblemStore<T, M, S>
 where
-    Self: Problem,
+    T: FsStore,
+    M: FsStore,
+    S: Override<M> + FsStore,
 {
-    type SubmKey: Sized + ToString;
+    pub fn unzip_reader(reader: impl io::Read + io::Seek) -> Result<Self, Error> {
+        let dir = tempdir_unzip(reader)?;
+        let ctx = store::Handle::new(dir.path());
+        Ok(Self {
+            dir,
+            data: FsStore::open(ctx)?,
+        })
+    }
+    /// read only data
+    pub fn data(&self) -> &Data<T, M, S> {
+        &self.data
+    }
+}
+
+pub trait JudgeProblem {
+    type T: FsStore;
+    type M: FsStore;
+    type S: FsStore + Override<Self::M>;
     type Subm: FsStore;
 
-    /// 评测该任务，self 表示任务本身的信息
+    /// 单个测试点的评测
+    ///
+    /// 注意，源文件的编译、checker 的编译等等事情也会放在这里一起做。
+    /// 从“多测试点评测”的概念上看，其最本质的写法就是对不同的测试点，把所有的流程都走一遍。
+    /// 当然我们可以在实现的时候结合缓存系统来提高效率。
     fn judge_task(
         &self,
         judger: impl judger::Judger,
-        meta: &Self::Meta,
-        task: &Self::Task,
+        meta: &Self::M,
+        task: &Self::T,
         subm: Self::Subm,
     ) -> Result<judger::TaskReport, Error>;
 }
 
 pub mod traditional {
-    use std::io;
-
-    use crate::data::{tempdir_unzip, StoreFile};
-    use store::{FsStore, Handle};
-    use tempfile::TempDir;
-
-    use crate::{data::Data, Error};
+    use super::{JudgeProblem, ProblemStore};
+    use crate::data::StoreFile;
+    use judger::Compile;
+    use store::FsStore;
 
     #[derive(FsStore)]
     pub struct Meta {
@@ -63,26 +83,52 @@ pub mod traditional {
         pub output: StoreFile,
     }
 
+    #[derive(FsStore)]
+    pub struct Subm {
+        source: StoreFile,
+    }
+
     /// 传统题
-    pub struct Traditional {
-        dir: TempDir,
-    }
+    pub struct Traditional(ProblemStore<Task, Meta, ()>);
 
-    impl super::Problem for Traditional {
-        type Meta = Meta;
-        type SubtaskMeta = ();
-        type Task = Task;
+    impl JudgeProblem for Traditional {
+        type T = Task;
+        type M = Meta;
+        type S = ();
+        type Subm = Subm;
 
-        fn data(&self) -> Result<Data<Self::Task, Self::Meta, Self::SubtaskMeta>, Error> {
-            let ctx = Handle::new(self.dir.path());
-            Ok(Data::open(ctx)?)
-        }
-    }
-    impl Traditional {
-        pub fn from_zip(reader: impl io::Read + io::Seek) -> Result<Self, Error> {
-            Ok(Self {
-                dir: tempdir_unzip(reader)?,
-            })
+        // 先写了一个粗糙的，后面再来错误处理
+        fn judge_task(
+            &self,
+            judger: impl judger::Judger,
+            meta: &Self::M,
+            task: &Self::T,
+            subm: Self::Subm,
+        ) -> Result<judger::TaskReport, crate::Error> {
+            let wd = judger.working_dir();
+            let Subm { mut source } = subm;
+
+            let src = wd.join(String::from("source") + source.file_type.ext());
+            let exec = wd.join("main");
+
+            source.copy_all(&mut src.open_file()?).unwrap();
+
+            let compile_cmd = source.file_type.compile(&src, &exec);
+
+            let term = compile_cmd.exec_fork().unwrap();
+
+            // Compile Error
+            if !term.status.ok() {
+                return Ok(judger::TaskReport {
+                    status: judger::Status::CompileError(term.status),
+                    time: term.cpu_time,
+                    memory: term.memory,
+                    // todo: add log
+                    payload: vec![],
+                });
+            }
+
+            todo!()
         }
     }
 }

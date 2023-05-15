@@ -1,5 +1,6 @@
 use sandbox::{sigton, ExecSandBox};
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use std::path::PathBuf;
 
 use crate::sha_hash::{ShaHash, Update};
@@ -11,7 +12,7 @@ pub trait Compile: ShaHash {
     /// - source: 源文件路径
     /// - dest: 编译产生的可执行文件的路径
     #[cfg(all(unix))]
-    fn compile(&self, source: &PathBuf, dest: &PathBuf) -> Box<dyn ExecSandBox>;
+    fn compile(&self, source: impl AsRef<Path>, dest: impl AsRef<Path>) -> Box<dyn ExecSandBox>;
 }
 
 /// 使用 g++ 编译 C++ 源文件
@@ -43,7 +44,7 @@ impl ShaHash for GnuCpp {
 }
 
 impl Compile for GnuCpp {
-    fn compile(&self, source: &PathBuf, dest: &PathBuf) -> Box<dyn ExecSandBox> {
+    fn compile(&self, source: impl AsRef<Path>, dest: impl AsRef<Path>) -> Box<dyn ExecSandBox> {
         let mut envs = Vec::new();
         for (key, value) in std::env::vars() {
             envs.push(format!("{}={}", key, value));
@@ -52,7 +53,7 @@ impl Compile for GnuCpp {
 
         Box::new(sigton! {
             exec: &self.gpp_path;
-            cmd: "g++" self.extra_args.clone() source "-o" dest;
+            cmd: "g++" self.extra_args.clone() source.as_ref() "-o" dest.as_ref();
             env: envs;
             lim cpu_time: 10000 10000; // 10s
             lim real_time: 10000;
@@ -106,6 +107,21 @@ impl ExecSandBox for PlainCompile {
         })
     }
 }
+impl FileType {
+    /// 获取文件类型对应的后缀名
+    pub fn ext(&self) -> &'static str {
+        match &self {
+            FileType::GnuCpp20O2 => ".cpp",
+            FileType::GnuCpp17O2 => ".cpp",
+            FileType::GnuCpp14O2 => ".cpp",
+            FileType::Plain => ".txt",
+            FileType::Binary => ".blob",
+            FileType::Python => ".py",
+            FileType::Rust => ".rs",
+            FileType::Assembly => ".s",
+        }
+    }
+}
 
 impl ShaHash for FileType {
     fn sha_hash(&self, state: &mut sha2::Sha256) {
@@ -114,7 +130,7 @@ impl ShaHash for FileType {
 }
 
 impl Compile for FileType {
-    fn compile(&self, source: &PathBuf, dest: &PathBuf) -> Box<dyn ExecSandBox> {
+    fn compile(&self, source: impl AsRef<Path>, dest: impl AsRef<Path>) -> Box<dyn ExecSandBox> {
         match self {
             FileType::GnuCpp20O2 => {
                 GnuCpp::new(None, vec!["-std=c++2a", "-O2"]).compile(source, dest)
@@ -126,8 +142,8 @@ impl Compile for FileType {
                 GnuCpp::new(None, vec!["-std=c++14", "-O2"]).compile(source, dest)
             }
             FileType::Plain => Box::new(PlainCompile {
-                src: source.to_owned(),
-                dest: dest.to_owned(),
+                src: source.as_ref().to_path_buf(),
+                dest: dest.as_ref().to_path_buf(),
             }),
             _ => todo!(),
         }

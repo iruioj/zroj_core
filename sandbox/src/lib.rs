@@ -58,6 +58,17 @@ pub enum Status {
     DangerousSyscall,
 }
 
+impl Status {
+    /// if it is ok
+    pub fn ok(&self) -> bool {
+        if let Self::Ok = self {
+            true
+        } else {
+            false
+        }
+    }
+}
+
 #[cfg(all(unix))]
 impl From<nix::sys::signal::Signal> for Status {
     fn from(signal: nix::sys::signal::Signal) -> Self {

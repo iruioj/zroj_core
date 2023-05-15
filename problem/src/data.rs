@@ -1,6 +1,6 @@
 //! 题目数据存储的抽象
 
-use std::io::{self, Seek};
+use std::io::{self, Seek, Write};
 
 use serde::{Deserialize, Serialize};
 use store::{FsStore, Handle};
@@ -21,8 +21,9 @@ use crate::{Error, Override};
 
 /// 题目的数据
 ///
-/// - Task: 测试数据的类型（任务类型）
-/// - SubtaskMeta: 子任务的元数据类型。
+/// - T: Task, 测试数据的类型（任务类型）
+/// - M: Meta, 元数据类型，例如时空限制，checker 等等
+/// - S: SubtaskMeta, 子任务的元数据类型，用于覆盖默认限制。
 ///
 /// 设置为多态的原因是，并非所有的题目都是以时间限制+空间限制的形式给出限定。
 /// 比如对于交互题，可以有更细致的限制；对提答题可以有文件大小限制；
@@ -35,18 +36,18 @@ use crate::{Error, Override};
 /// - 子任务/测试点的评分模式是可以固定的（分数的计算可以自定义）
 /// - 子任务具有与整个评测任务相似的结构，除了不能有子任务
 #[derive(FsStore)]
-pub struct Data<Task, Meta, SubtaskMeta>
+pub struct Data<T, M, S>
 where
-    Task: FsStore,
-    Meta: FsStore,
-    SubtaskMeta: Override<Meta> + FsStore,
+    T: FsStore,
+    M: FsStore,
+    S: Override<M> + FsStore,
 {
     /// 测试数据
-    pub tasks: Taskset<Task, SubtaskMeta>,
+    pub tasks: Taskset<T, S>,
     /// 默认的子任务元数据。
     ///
     /// 在评测时如果没有子任务就按这里的限制评测，如果有那么各自子任务的元数据会代替
-    pub meta: Meta,
+    pub meta: M,
     /// 子任务计分规则
     pub rule: Rule,
 }
@@ -141,7 +142,8 @@ pub fn tempdir_unzip(reader: impl io::Read + io::Seek) -> Result<TempDir, Error>
 #[derive(FsStore)]
 pub struct StoreFile {
     pub file: std::fs::File,
-    #[meta] pub file_type: judger::FileType,
+    #[meta]
+    pub file_type: judger::FileType,
 }
 
 impl StoreFile {
@@ -149,24 +151,29 @@ impl StoreFile {
         self.file.seek(io::SeekFrom::Start(0))?;
         Ok(())
     }
+    pub fn copy_all(&mut self, dest: &mut impl Write) -> Result<(), std::io::Error> {
+        self.reset_cursor()?;
+        std::io::copy(&mut self.file, dest)?;
+        Ok(())
+    }
 }
 
-impl io::Read for StoreFile {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.file.read(buf)
-    }
-}
-impl io::Seek for StoreFile {
-    fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
-        self.file.seek(pos)
-    }
-}
-impl io::Write for StoreFile {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.file.write(buf)
-    }
+// impl io::Read for StoreFile {
+//     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+//         self.file.read(buf)
+//     }
+// }
+// impl io::Seek for StoreFile {
+//     fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
+//         self.file.seek(pos)
+//     }
+// }
+// impl io::Write for StoreFile {
+//     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+//         self.file.write(buf)
+//     }
 
-    fn flush(&mut self) -> io::Result<()> {
-        self.file.flush()
-    }
-}
+//     fn flush(&mut self) -> io::Result<()> {
+//         self.file.flush()
+//     }
+// }
