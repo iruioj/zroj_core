@@ -8,12 +8,14 @@ use crate::{
 use store::FsStore;
 use tempfile::TempDir;
 
+/// 题目的存储
 pub struct ProblemStore<T, M, S>
 where
     T: FsStore,
     M: FsStore,
     S: Override<M> + FsStore,
 {
+    /// 临时文件夹
     #[allow(unused)]
     dir: TempDir,
     data: Data<T, M, S>,
@@ -25,6 +27,7 @@ where
     M: FsStore,
     S: Override<M> + FsStore,
 {
+    /// 从 reader 中解压 zip 文件到一个临时文件夹中，然后解析为题目数据
     pub fn unzip_reader(reader: impl io::Read + io::Seek) -> Result<Self, Error> {
         let dir = tempdir_unzip(reader)?;
         let ctx = store::Handle::new(dir.path());
@@ -33,7 +36,7 @@ where
             data: FsStore::open(ctx)?,
         })
     }
-    /// read only data
+    /// get read only data
     pub fn data(&self) -> &Data<T, M, S> {
         &self.data
     }
@@ -60,7 +63,7 @@ pub trait JudgeProblem {
 }
 
 pub mod traditional {
-    use super::{JudgeProblem, ProblemStore};
+    use super::JudgeProblem;
     use crate::data::StoreFile;
     use judger::Compile;
     use store::FsStore;
@@ -88,8 +91,8 @@ pub mod traditional {
         source: StoreFile,
     }
 
-    /// 传统题
-    pub struct Traditional(ProblemStore<Task, Meta, ()>);
+    /// 传统题（只是一个评测，数据直接用 ProblemStore 存）
+    pub struct Traditional;
 
     impl JudgeProblem for Traditional {
         type T = Task;
