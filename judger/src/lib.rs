@@ -22,12 +22,20 @@ pub mod truncstr;
 // pub use basic::Submission;
 pub use cache::Cache;
 pub use error::Error;
+pub use lang::Compile;
+pub use lang::FileType;
 pub use one_off::OneOff;
 pub use report::{JudgeReport, Status, TaskReport};
-pub use lang::FileType;
 
-/// Judger 表示一个评测服务，可以提供评测环境的信息，访问相关缓存等等
-pub trait Judger {}
+/// Judger 是一个评测服务的上下文，可以提供评测环境的信息，访问相关缓存等等
+/// 
+/// Judger 不依赖于具体的题目类型，并且一般不会随题目评测完毕而销毁（持久化）
+/// 
+/// 写成 trait 的原因是 Judger 可以有不同的实现，例如是否有缓存、是否实现了一些安全机制等等
+pub trait Judger {
+    /// 返回当前的工作目录
+    fn working_dir(&self) -> store::Handle;
+}
 
 /// Judge 表示的评测过程.
 ///

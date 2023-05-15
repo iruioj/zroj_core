@@ -17,7 +17,12 @@ use nix::{
     },
     unistd::{execve, fork, setpgid, ForkResult, Pid},
 };
-use std::{ffi::CString, path::PathBuf, thread, time::Instant};
+use std::{
+    ffi::CString,
+    path::{Path, PathBuf},
+    thread,
+    time::Instant,
+};
 
 /// 执行单个可执行文件
 #[derive(Debug)]
@@ -224,6 +229,14 @@ impl From<&PathBuf> for Arg {
 impl From<PathBuf> for Arg {
     fn from(value: PathBuf) -> Self {
         (&value).into()
+    }
+}
+impl From<&Path> for Arg {
+    fn from(value: &Path) -> Self {
+        match value.to_str() {
+            Some(s) => s.into(),
+            None => panic!("invalid argument!"),
+        }
     }
 }
 impl From<&Vec<String>> for Arg {
