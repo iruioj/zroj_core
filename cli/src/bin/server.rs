@@ -6,7 +6,7 @@ use actix_web::web::Data;
 use actix_web::{cookie::Key, App, HttpServer};
 use server::actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use server::auth::SessionManager;
-use server::data::problem_config;
+use server::data::problem_config::{self, Manager};
 use server::data::{
     group::{self, Manager as GroupManager},
     user::{self, Manager as UserManager},
