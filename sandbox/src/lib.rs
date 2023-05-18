@@ -178,3 +178,11 @@ pub trait ExecSandBox {
         }
     }
 }
+
+/// Builder trait indicates something can be transform into an [`ExecSandBox`].
+pub trait Builder {
+    #[allow(missing_docs)]
+    type Target: ExecSandBox;
+    /// Consume self to build the target.
+    fn build(self) -> Result<Self::Target, UniError>;
+}

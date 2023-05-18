@@ -1,7 +1,7 @@
 pub(crate) mod singleton;
+pub use singleton::Arg;
 pub use singleton::Singleton;
 pub use singleton::SingletonBuilder;
-pub use singleton::Arg;
 
 use serde::{Deserialize, Serialize};
 
@@ -32,4 +32,19 @@ pub struct Limitation {
     ///
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
     pub fileno: Option<(u64, u64)>,
+}
+
+/// 考虑安全性的默认限制，简单来说时间限制 1 分钟，空间限制 1 GB，最多同时打开 100 个文件
+impl Default for Limitation {
+    fn default() -> Self {
+        Self {
+            real_time: Some(60000),
+            cpu_time: Some((60000, 60000)),
+            virtual_memory: Some((1 << 30, 1 << 30)),
+            real_memory: Some(1 << 30),
+            stack_memory: Some((1 << 30, 1 << 30)),
+            output_memory: Some((1 << 30, 1 << 30)),
+            fileno: Some((100, 100)),
+        }
+    }
 }
