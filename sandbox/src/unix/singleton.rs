@@ -1,9 +1,9 @@
 use crate::{
     error::{msg_err, UniError},
     unix::Limitation,
-    vec_str_to_vec_cstr, MemoryLimitExceededKind, Status, Termination, TimeLimitExceededKind,
+    vec_str_to_vec_cstr, Builder, MemoryLimitExceededKind, Status, Termination,
+    TimeLimitExceededKind,
 };
-use core::panic;
 use nix::{
     errno::Errno,
     fcntl::{self, OFlag},
@@ -19,6 +19,7 @@ use nix::{
 };
 use std::{
     ffi::CString,
+    os::unix::prelude::OsStrExt,
     path::{Path, PathBuf},
     thread,
     time::Instant,
@@ -28,12 +29,12 @@ use std::{
 #[derive(Debug)]
 pub struct Singleton {
     limits: Limitation,
-    exec_path: String,
+    exec_path: PathBuf,
     arguments: Vec<String>,
     envs: Vec<String>,
     /// 为 None 表示不提供/不获取 读入/输出
-    stdin: Option<String>,
-    stdout: Option<String>,
+    stdin: Option<PathBuf>,
+    stdout: Option<PathBuf>,
     // stderr: Option<String>,
 }
 
@@ -42,14 +43,14 @@ impl Singleton {
         setpgid(Pid::from_raw(0), Pid::from_raw(0))?;
         // 提前计算好需要的东西
         let (path, args, env) = (
-            &CString::new(self.exec_path.clone())?,
+            &CString::new(self.exec_path.as_os_str().as_bytes())?,
             &vec_str_to_vec_cstr(&self.arguments)?,
             &vec_str_to_vec_cstr(&self.envs)?,
         );
 
         if let Some(stdin) = &self.stdin {
             let fd: std::os::fd::RawFd = fcntl::open(
-                stdin.as_str(),
+                stdin.as_os_str(),
                 OFlag::O_RDONLY,
                 nix::sys::stat::Mode::S_IRUSR,
             )?;
@@ -57,7 +58,7 @@ impl Singleton {
         }
         if let Some(stdout) = &self.stdout {
             let fd: std::os::fd::RawFd = fcntl::open(
-                stdout.as_str(),
+                stdout.as_os_str(),
                 OFlag::O_WRONLY | OFlag::O_TRUNC | OFlag::O_CREAT,
                 Mode::S_IRUSR | Mode::S_IWUSR,
             )?;
@@ -272,11 +273,11 @@ impl_option!(&PathBuf);
 /// 创建一个 Singleton，请使用对应的 macro [`crate::sigton`].
 pub struct SingletonBuilder {
     limits: Limitation,
-    exec_path: Option<String>,
+    exec_path: Option<PathBuf>,
     arguments: Vec<String>,
     envs: Vec<String>,
-    stdin: Option<String>,
-    stdout: Option<String>,
+    stdin: Option<PathBuf>,
+    stdout: Option<PathBuf>,
 }
 
 macro_rules! lim_fn {
@@ -298,7 +299,7 @@ macro_rules! lim_fn {
 
 impl SingletonBuilder {
     #[doc(hidden)]
-    pub fn new() -> Self {
+    pub fn new_legacy() -> Self {
         SingletonBuilder {
             limits: Limitation {
                 real_time: None,
@@ -317,16 +318,16 @@ impl SingletonBuilder {
         }
     }
     #[doc(hidden)]
-    pub fn exec_path<T: Into<Arg>>(&mut self, str: T) -> &mut Self {
+    pub fn exec_path_legacy<T: Into<Arg>>(&mut self, str: T) -> &mut Self {
         match str.into() as Arg {
-            Arg::Str(s) => self.exec_path = Some(s),
+            Arg::Str(s) => self.exec_path = Some(s.into()),
             Arg::Vec(_) => panic!("invalid exec_path"),
             Arg::Nothing => {}
         };
         self
     }
     #[doc(hidden)]
-    pub fn push_arg<T: Into<Arg>>(&mut self, arg: T) -> &mut Self {
+    pub fn push_arg_legacy<T: Into<Arg>>(&mut self, arg: T) -> &mut Self {
         match arg.into() as Arg {
             Arg::Str(s) => self.arguments.push(s),
             Arg::Vec(mut v) => self.arguments.append(&mut v),
@@ -346,7 +347,7 @@ impl SingletonBuilder {
     #[doc(hidden)]
     pub fn set_stdin(&mut self, val: impl Into<Arg>) -> &mut Self {
         self.stdin = match val.into() as Arg {
-            Arg::Str(s) => Some(s),
+            Arg::Str(s) => Some(s.into()),
             Arg::Vec(_) => panic!("invalid args"),
             Arg::Nothing => None,
         };
@@ -355,7 +356,7 @@ impl SingletonBuilder {
     #[doc(hidden)]
     pub fn set_stdout(&mut self, val: impl Into<Arg>) -> &mut Self {
         self.stdout = match val.into() as Arg {
-            Arg::Str(s) => Some(s),
+            Arg::Str(s) => Some(s.into()),
             Arg::Vec(_) => panic!("invalid args"),
             Arg::Nothing => None,
         };
@@ -369,20 +370,60 @@ impl SingletonBuilder {
     lim_fn!(stack_memory, 2);
     lim_fn!(output_memory, 2);
     lim_fn!(fileno, 2);
+}
 
-    #[doc(hidden)]
-    pub fn finish(self) -> Singleton {
-        Singleton {
+impl Builder for SingletonBuilder {
+    type Target = Singleton;
+
+    fn build(self) -> Result<Self::Target, UniError> {
+        Ok(Singleton {
             limits: self.limits,
-            exec_path: match self.exec_path {
-                Some(s) => s,
-                None => panic!("singleton 缺少可执行文件的路径"),
-            },
+            exec_path: self.exec_path.unwrap(),
             stdin: self.stdin,
             stdout: self.stdout,
             arguments: self.arguments,
             envs: self.envs,
+        })
+    }
+}
+
+// new API
+impl SingletonBuilder {
+    /// Create a new builder with the path of executable
+    pub fn new(exec: impl AsRef<Path>) -> Self {
+        SingletonBuilder {
+            limits: Limitation::default(),
+            stdin: None,
+            stdout: None,
+            exec_path: Some(exec.as_ref().to_path_buf()),
+            arguments: Vec::new(),
+            envs: Vec::new(),
         }
+    }
+    /// set the path of input file, which will be rediected to stdin.
+    pub fn stdin(mut self, arg: impl AsRef<Path>) -> Self {
+        self.stdin = Some(arg.as_ref().to_path_buf());
+        self
+    }
+    /// set the path of input file, which will be rediected to stdout.
+    pub fn stdout(mut self, arg: impl AsRef<Path>) -> Self {
+        self.stdout = Some(arg.as_ref().to_path_buf());
+        self
+    }
+    /// add an argument to the end of argument list
+    pub fn push_arg(mut self, arg: impl Into<String>) -> Self {
+        self.arguments.push(arg.into());
+        self
+    }
+    /// add an argument to the end of environment list
+    pub fn push_env(mut self, arg: impl Into<String>) -> Self {
+        self.envs.push(arg.into());
+        self
+    }
+    /// set resource limitation
+    pub fn set_limits(mut self, modifier: impl FnOnce(Limitation) -> Limitation) -> Self {
+        self.limits = modifier(self.limits);
+        self
     }
 }
 
@@ -422,18 +463,19 @@ impl SingletonBuilder {
 /// };
 /// ```
 #[macro_export]
+#[deprecated]
 macro_rules! sigton {
     ($( $( $cmds:ident )+ $(: $( $args:expr )*)? );*$(;)?) => {
         // 使用新建代码块的方式解决定义域问题
         {
-            let mut __singleton__ = $crate::unix::SingletonBuilder::new();
+            let mut __singleton__ = $crate::unix::SingletonBuilder::new_legacy();
             $( $crate::sigton!("ln" __singleton__ $( $cmds )+ $(: $( $args ),* )? ) );*;
-            __singleton__.finish()
+            $crate::Builder::build(__singleton__).unwrap()
         }
     };
     // 解析子命令，$self 表示定义的 __singleton__
     ("ln" $self:ident exec : $arg:expr) => {
-        $self.exec_path($arg)
+        $self.exec_path_legacy($arg)
     };
     ("ln" $self:ident stdin : $arg:expr) => {
         $self.set_stdin($arg)
@@ -443,7 +485,7 @@ macro_rules! sigton {
     };
     ("ln" $self:ident cmd : $( $args:expr ),+ ) => {
         // $self.arguments(vec![$( $arg ),*])
-        $( $self.push_arg($args) );+
+        $( $self.push_arg_legacy($args) );+
     };
     ("ln" $self:ident env : $( $args:expr ),+ ) => {
         $( $self.add_env($args) );+
