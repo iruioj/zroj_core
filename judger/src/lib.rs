@@ -16,13 +16,13 @@ mod env;
 mod error;
 pub mod lang;
 mod one_off;
-mod result;
+mod report;
 pub mod truncstr;
 
 pub use error::Error;
 pub use basic::Submission;
 pub use one_off::OneOff;
-pub use result::{JudgeResult, Status, TaskResult};
+pub use report::{JudgeReport, Status, TaskReport};
 pub use cache::Cache;
 
 /// Judge 表示的评测过程.
@@ -35,7 +35,11 @@ pub use cache::Cache;
 /// - judge：枚举测试点去评测（可能要考虑依赖），然后直接返回
 /// - post_judge：收尾（删除临时文件啥的）
 ///
-trait Judge {}
+trait Judge {
+    type Problem: problem::Problem;
+
+    fn judge(&mut self, problem: Self::Problem) -> Result<JudgeReport, Error>;
+}
 
 /// Hack 表示证伪选手代码的过程
 trait Hack {}

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use sandbox::{sigton, ExecSandBox};
 
-use crate::{lang::LangOption, Error, Status, TaskResult};
+use crate::{lang::LangOption, Error, Status, TaskReport};
 
 /// OneOff 用于执行自定义测试，流程包含：编译、运行可执行文件。
 ///
@@ -37,7 +37,7 @@ impl<L: LangOption> OneOff<L> {
         self.working_dir = dir;
         self
     }
-    pub fn exec(&self) -> Result<TaskResult, Error> {
+    pub fn exec(&self) -> Result<TaskReport, Error> {
         eprintln!("source = {}", self.source.display());
         if cfg!(all(unix)) {
             // 可执行文件名
@@ -47,7 +47,7 @@ impl<L: LangOption> OneOff<L> {
             let term = cpl.exec_sandbox()?;
             let st = term.status.clone();
             if st != sandbox::Status::Ok {
-                let mut r: TaskResult = term.into();
+                let mut r: TaskReport = term.into();
                 r.status = Status::CompileError(st);
                 return Ok(r);
             }
@@ -66,7 +66,7 @@ impl<L: LangOption> OneOff<L> {
                 lim fileno: 6 6;
             };
             let term = s.exec_fork()?;
-            let mut r: TaskResult = term.into();
+            let mut r: TaskReport = term.into();
             r.payload.push(("stdout".to_string(), std::fs::read_to_string(out)
                     .map_err(|e| Error::IOError(e))?
                     .into()));
