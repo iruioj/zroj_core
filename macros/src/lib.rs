@@ -44,7 +44,7 @@ impl Parse for ScopeServiceAttr {
 ///   ```
 #[proc_macro_attribute]
 pub fn scope_service(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let it = item.clone();
+    let it = item;
     let itemfn: ItemFn = parse_macro_input!(it);
 
     let name = itemfn.sig.ident;

@@ -77,7 +77,7 @@ impl Cache {
         let mut dest = self.dir.clone();
         dest.push(&hash);
 
-        self.cur_height = self.cur_height + 1;
+        self.cur_height += 1;
 
         /*
                 eprintln!("");
@@ -88,7 +88,7 @@ impl Cache {
         */
 
         if let Some(entry) = self.map.get_mut(&hash) {
-            self.sorted.remove(&entry);
+            self.sorted.remove(entry);
             entry.height = self.cur_height;
             self.sorted.insert(entry.clone(), hash);
 
@@ -103,17 +103,17 @@ impl Cache {
             self.map.remove(&s);
         }
 
-        let cpl = lang.compile(&src_path, &dest);
+        let cpl = lang.compile(src_path, &dest);
         let term = cpl.exec_sandbox()?;
-        let st = term.status.clone();
+        let st = term.status;
         let entry = Entry::new(self.cur_height, st);
 
         self.map.insert(hash.clone(), entry.clone());
         self.sorted.insert(entry.clone(), hash);
 
-        return match entry.stat {
+        match entry.stat {
             Stat::Ok => Ok(dest),
             x => Err(CacheCE(x)),
-        };
+        }
     }
 }

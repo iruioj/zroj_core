@@ -28,7 +28,7 @@ impl ProblemManager {
                 error::ErrorInternalServerError(format!(
                     "Fail to establish problem directory {}, error: {}",
                     path.display(),
-                    e.to_string(),
+                    e,
                 ))
             })?;
         }
@@ -41,13 +41,13 @@ impl ProblemManager {
             error::ErrorInternalServerError(format!(
                 "Fail to read from {}, error: {}",
                 path.display(),
-                e.to_string()
+                e
             ))
         })?;
         let result = serde_json::from_str::<Metadata>(&result).map_err(|e| {
             error::ErrorInternalServerError(format!(
                 "Error, the metadata in problem folder is broken: {}",
-                e.to_string()
+                e
             ))
         })?;
         drop(guard);

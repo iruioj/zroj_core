@@ -88,8 +88,8 @@ impl Singleton {
         let (tx, rx) = mpsc::channel();
         // 如果有实际运行时间限制，就开一个计时线程
         let handle = self.limits.real_time.map(|tl| {
-            let child_inhandle = child.clone();
-            let st = start.clone();
+            let child_inhandle = child;
+            let st = start;
             thread::spawn(move || {
                 loop {
                     thread::sleep(std::time::Duration::from_millis(500));

@@ -170,23 +170,21 @@ mod hashmap {
             let r = Self::load(&path).unwrap_or(Data(HashMap::new(), Vec::new()));
             Self {
                 data: RwLock::new(r),
-                path: path.clone(),
+                path,
             }
         }
         fn load(path: &PathBuf) -> std::result::Result<Data, ()> {
             let s = std::fs::read_to_string(path)
                 .map_err(|_| eprintln!("Fail to read from path: {}", path.display()))?;
-            Ok(from_str::<Data>(&s)
-                .map_err(|_| eprintln!("Fail to parse file content as user data"))?)
+            from_str::<Data>(&s)
+                .map_err(|_| eprintln!("Fail to parse file content as user data"))
         }
         /// save data to json file, must be saved or panic!!!
         fn save(&self) {
             let guard = self.data.read().expect("Fail to fetch guard when saving");
             let s = serde_json::to_string::<Data>(&guard).expect("Fail to parse user data as json");
-            std::fs::write(&self.path, s).expect(&format!(
-                "Fail to write user data to path: {}",
-                self.path.display()
-            ));
+            std::fs::write(&self.path, s).unwrap_or_else(|_| panic!("Fail to write user data to path: {}",
+                self.path.display()));
         }
     }
     #[async_trait]
@@ -237,7 +235,7 @@ mod hashmap {
                     guard.1.len()
                 )));
             }
-            let value = &mut (*guard).1[uid as usize];
+            let value = &mut guard.1[uid as usize];
             info.over(value);
             drop(guard);
             self.save();

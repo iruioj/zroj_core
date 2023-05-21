@@ -29,7 +29,7 @@ impl SessionManager {
             .0
             .read()
             .map_err(|e| error::ErrorInternalServerError(e.to_string()))?;
-        let res: Option<AuthInfo> = mp.get(&id).map(|d| d.clone());
+        let res: Option<AuthInfo> = mp.get(&id).cloned();
         Ok(res)
     }
     pub fn set(&self, id: SessionID, data: AuthInfo) -> Result<()> {

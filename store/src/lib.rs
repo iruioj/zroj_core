@@ -38,7 +38,7 @@ impl Handle {
     /// 打开该路径下的文件（要求其必须存在）
     pub fn open_file(&self) -> Result<std::fs::File, Error> {
         if self.dir.is_file() {
-            std::fs::File::open(&self).map_err(|e| Error::OpenFile(e))
+            std::fs::File::open(self).map_err(Error::OpenFile)
         } else {
             Err(Error::NotFile)
         }
@@ -46,21 +46,21 @@ impl Handle {
     /// 在该路径下新建文件，会自动补齐父级目录，要求其不存在
     pub fn create_new_file(&self) -> Result<std::fs::File, Error> {
         if let Some(par) = self.dir.parent() {
-            std::fs::create_dir_all(par).map_err(|e| Error::CreateParentDir(e))?;
+            std::fs::create_dir_all(par).map_err(Error::CreateParentDir)?;
         }
         std::fs::File::options()
             .write(true)
             .create_new(true)
             .open(self.as_ref())
-            .map_err(|e| Error::CreateNewFile(e))
+            .map_err(Error::CreateNewFile)
     }
     /// 从该路径下的文件中解析数据（要求文件存在）
     pub fn deserialize<T: DeserializeOwned>(&self) -> Result<T, Error> {
-        serde_json::from_reader(self.open_file()?).map_err(|e| Error::Deserialize(e))
+        serde_json::from_reader(self.open_file()?).map_err(Error::Deserialize)
     }
     /// 将数据序列化到该路径下（要求文件不存在）
     pub fn serialize_new_file<T: Serialize>(&self, data: &T) -> Result<(), Error> {
-        serde_json::to_writer(self.create_new_file()?, data).map_err(|e| Error::Serialize(e))
+        serde_json::to_writer(self.create_new_file()?, data).map_err(Error::Serialize)
     }
 }
 
@@ -73,18 +73,18 @@ impl Handle {
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
         if prefix.is_none() {
-            write!(f, "{}\n", slug.as_ref().display())?;
+            writeln!(f, "{}", slug.as_ref().display())?;
         } else if is_last {
-            write!(
+            writeln!(
                 f,
-                "{}└── {}\n",
+                "{}└── {}",
                 prefix.clone().unwrap(),
                 slug.as_ref().display()
             )?;
         } else {
-            write!(
+            writeln!(
                 f,
-                "{}├── {}\n",
+                "{}├── {}",
                 prefix.clone().unwrap(),
                 slug.as_ref().display()
             )?;
@@ -110,20 +110,20 @@ impl Handle {
                     ._fmt(Some(prefix.clone()), slug, false, f)?;
             }
             let slug = last.file_name();
-            self.join(&slug)._fmt(Some(prefix.clone()), slug, true, f)?;
+            self.join(&slug)._fmt(Some(prefix), slug, true, f)?;
         }
         Ok(())
     }
 }
 impl Debug for Handle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self._fmt(None, self.dir.to_str().unwrap().to_owned(), true, f)
+        self._fmt(None, self.dir.to_str().unwrap(), true, f)
     }
 }
 
 impl AsRef<Path> for Handle {
     fn as_ref(&self) -> &Path {
-        &self.dir.as_ref()
+        self.dir.as_ref()
     }
 }
 

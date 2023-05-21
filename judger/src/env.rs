@@ -10,9 +10,9 @@ use crate::Error;
 #[allow(dead_code)]
 pub fn os_family() -> &'static str {
     if cfg!(all(unix)) {
-        return "unix";
+        "unix"
     } else {
-        return "windows";
+        "windows"
     }
 }
 /// 注意，我们希望 judger 执行的命令都是我们已知的命令，

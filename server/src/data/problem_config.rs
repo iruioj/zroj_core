@@ -47,27 +47,25 @@ mod hashmap {
             Self {
                 data: RwLock::new(r),
                 groups,
-                path: path.clone(),
+                path,
             }
         }
         fn load(path: &PathBuf) -> std::result::Result<Data, ()> {
             let s = std::fs::read_to_string(path)
                 .map_err(|_| eprintln!("Fail to read from path: {}", path.display()))?;
-            Ok(serde_json::from_str::<Data>(&s)
-                .map_err(|_| eprintln!("Fail to parse file content as user data"))?)
+            serde_json::from_str::<Data>(&s)
+                .map_err(|_| eprintln!("Fail to parse file content as user data"))
         }
         /// save data to json file, must be saved or panic!!!
         fn save(&self) {
             let guard = self.data.read().expect("Fail to fetch guard when saving");
             let s = serde_json::to_string::<Data>(&guard).expect("Fail to parse user data as json");
-            std::fs::write(&self.path, s).expect(&format!(
-                "Fail to write user data to path: {}",
-                self.path.display()
-            ));
+            std::fs::write(&self.path, s).unwrap_or_else(|_| panic!("Fail to write user data to path: {}",
+                self.path.display()));
         }
         fn _get(&self, pid: ProblemID) -> Result<ProblemConfig> {
             let guard = self.data.read()?;
-            Ok((*guard)
+            Ok(guard
                 .0
                 .get(&pid)
                 .ok_or(Error::InvalidArgument(format!(
@@ -88,15 +86,15 @@ mod hashmap {
             if value.owner != uid {
                 Err(Error::Forbidden("Only owner can access config".to_string()))
             } else {
-                Ok(value.clone())
+                Ok(value)
             }
         }
         async fn insert(&mut self, pid: ProblemID, value: ProblemConfig) -> Result<()> {
             let mut guard = self.data.write()?;
-            if let Some(_) = (*guard).0.get(&pid) {
+            if guard.0.get(&pid).is_some() {
                 Err(Error::InvalidArgument(format!("Problem {} already exists", pid)))
             } else {
-                if let Some(_) = guard.0.insert(pid, value) {
+                if guard.0.insert(pid, value).is_some() {
                     panic!("impossible")
                 }
                 self.save();
@@ -112,8 +110,8 @@ mod hashmap {
         }
         async fn set(&mut self, pid: ProblemID, uid: UserID, value: ProblemConfig) -> Result<()> {
             let mut guard = self.data.write()?;
-            if let Some(v) = (*guard).0.get_mut(&pid) {
-                if (*v).owner != uid {
+            if let Some(v) = guard.0.get_mut(&pid) {
+                if v.owner != uid {
                     Err(Error::Forbidden("only owner can access the config".to_string()))
                 } else {
                     *v = value;

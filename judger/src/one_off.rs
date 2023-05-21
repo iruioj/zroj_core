@@ -24,14 +24,14 @@ pub struct OneOff<L: Compile> {
 impl<L: Compile> OneOff<L> {
     /// 新建一个 OneOff，工作目录默认为 cwd（生成可执行文件的路径）
     pub fn new(source: PathBuf, stdin: Option<PathBuf>, lang: L) -> Self {
-        return Self {
+        Self {
             lang,
             source,
             stdin,
             working_dir: std::env::current_dir().unwrap(),
             // time_limit: 1000,
             // memory_limit: 256 * 1024 * 1024,
-        };
+        }
     }
     pub fn set_wd(&mut self, dir: PathBuf) -> &mut Self {
         self.working_dir = dir;
@@ -68,7 +68,7 @@ impl<L: Compile> OneOff<L> {
             let term = s.exec_fork()?;
             let mut r: TaskReport = term.into();
             r.payload.push(("stdout".to_string(), std::fs::read_to_string(out)
-                    .map_err(|e| Error::IOError(e))?
+                    .map_err(Error::IOError)?
                     .into()));
             Ok(r)
         } else {

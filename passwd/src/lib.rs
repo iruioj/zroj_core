@@ -14,7 +14,7 @@ fn sha_hash(plain: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(plain.as_bytes());
     let res: Vec<u8> = hasher.finalize().to_vec();
-    general_purpose::STANDARD.encode(&res)
+    general_purpose::STANDARD.encode(res)
 }
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]

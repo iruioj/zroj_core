@@ -16,8 +16,8 @@ impl AppConfigManager {
     fn load(path: &String) -> std::result::Result<AppConfig, ()> {
         let s = std::fs::read_to_string(path)
             .map_err(|_| eprintln!("Fail to read from path: {}", path))?;
-        Ok(from_str::<AppConfig>(&s)
-            .map_err(|_| eprintln!("Fail to parse file content as user data"))?)
+        from_str::<AppConfig>(&s)
+            .map_err(|_| eprintln!("Fail to parse file content as user data"))
     }
     /// save data to json file, must be saved or panic!!!
     fn save(&self) {
@@ -25,7 +25,7 @@ impl AppConfigManager {
         let s =
             serde_json::to_string::<AppConfig>(&guard).expect("Fail to parse user data as json");
         std::fs::write(&self.path, s)
-            .expect(&format!("Fail to write user data to path: {}", self.path));
+            .unwrap_or_else(|_| panic!("Fail to write user data to path: {}", self.path));
     }
     fn new(path: String) -> Self {
         let data = Self::load(&path).unwrap_or(AppConfig {});

@@ -52,7 +52,7 @@ async fn custom_test_post(
     uid: web::ReqData<UserID>,
 ) -> Result<String> {
     let base = manager.get_user_folder(&uid)?;
-    let input = base.clone().join("input");
+    let input = base.join("input");
     if let Some(file_name) = payload.source.file_name.clone() {
         let (name, lang) = parse_source_file_name(file_name)?;
         let source = base.join(name);

@@ -16,13 +16,11 @@ impl std::fmt::Display for TcpListenInfo {
 pub fn netstat() -> Vec<TcpListenInfo> {
     let tcp_inodes: HashMap<u64, (SocketAddr, SocketAddr)> = procfs::process::all_processes()
         .unwrap()
-        .map(|prc| prc.unwrap().tcp().unwrap())
-        .flatten()
+        .flat_map(|prc| prc.unwrap().tcp().unwrap())
         .chain(
             procfs::process::all_processes()
                 .unwrap()
-                .map(|prc| prc.unwrap().tcp6().unwrap())
-                .flatten(),
+                .flat_map(|prc| prc.unwrap().tcp6().unwrap()),
         )
         .filter(|tcp| match tcp.state {
             procfs::net::TcpState::Listen => true,
@@ -34,7 +32,6 @@ pub fn netstat() -> Vec<TcpListenInfo> {
     let mut res = Vec::new();
     for prc in procfs::process::all_processes()
         .unwrap()
-        .into_iter()
         .filter_map(Result::ok)
     {
         let pid = prc.pid;

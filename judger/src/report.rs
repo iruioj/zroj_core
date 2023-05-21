@@ -45,7 +45,7 @@ pub struct TaskReport {
 
 impl From<sandbox::Termination> for TaskReport {
     fn from(value: sandbox::Termination) -> Self {
-        return Self {
+        Self {
             status: match value.status {
                 sandbox::Status::Ok => Status::Accepted,
                 sandbox::Status::RuntimeError(_, _) => Status::RuntimeError,
@@ -57,7 +57,7 @@ impl From<sandbox::Termination> for TaskReport {
             time: value.cpu_time,
             memory: value.memory,
             payload: Vec::new(),
-        };
+        }
     }
 }
 

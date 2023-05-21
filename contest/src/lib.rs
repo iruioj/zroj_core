@@ -31,7 +31,7 @@ pub fn modify_rating<T: RatingChanger>(contestants: &mut Vec<T>, k: f64) {
     for i in 0..contestants.len(){
         let num = *contestants[i].rating();
         let mut sum:f64 = calc(contestants,num,i);
-        sum = sum + 1f64;
+        sum += 1f64;
         seed.push(sum);
     }
     let mut dir: Vec<i32> = Vec::new();

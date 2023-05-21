@@ -50,15 +50,15 @@ async fn login(
         None => return Err(error::ErrorBadRequest("User does not exist")),
     };
     if !passwd::verify(&user.password_hash, &payload.password_hash) {
-        return Err(error::ErrorBadRequest("Password not correct"));
+        Err(error::ErrorBadRequest("Password not correct"))
     } else {
         let id = SessionID::new_v4(); // generate a random session-id
         eprintln!("generate new session id {}", id);
         session_container.set(id, AuthInfo { uid: user.id })?;
         session.insert("session-id", id)?;
-        return Ok(HttpResponse::Ok()
+        Ok(HttpResponse::Ok()
             .cookie(Cookie::build("username", user.username).path("/").finish())
-            .body("login success"));
+            .body("login success"))
     }
 }
 

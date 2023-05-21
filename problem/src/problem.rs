@@ -104,8 +104,8 @@ pub mod traditional {
         fn judge_task(
             &self,
             judger: impl judger::Judger,
-            meta: &Self::M,
-            task: &Self::T,
+            _meta: &Self::M,
+            _task: &Self::T,
             subm: Self::Subm,
         ) -> Result<judger::TaskReport, crate::Error> {
             let wd = judger.working_dir();

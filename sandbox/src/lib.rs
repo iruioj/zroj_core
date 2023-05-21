@@ -115,7 +115,6 @@ impl From<nix::sys::signal::Signal> for Termination {
 fn vec_str_to_vec_cstr(strs: &Vec<String>) -> Result<Vec<CString>, NulError> {
     strs.iter()
         .map(|s| CString::new(s.clone()))
-        .into_iter()
         .collect()
 }
 
