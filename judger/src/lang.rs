@@ -1,4 +1,5 @@
-use sandbox::{sigton, ExecSandBox};
+use sandbox::unix::{Limitation, SingletonBuilder};
+use sandbox::{Builder, ExecSandBox};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::path::PathBuf;
@@ -49,20 +50,26 @@ impl Compile for GnuCpp {
         for (key, value) in std::env::vars() {
             envs.push(format!("{}={}", key, value));
         }
-        let envs = envs;
-
-        Box::new(sigton! {
-            exec: &self.gpp_path;
-            cmd: "g++" self.extra_args.clone() source.as_ref() "-o" dest.as_ref();
-            env: envs;
-            lim cpu_time: 10000 10000; // 10s
-            lim real_time: 10000;
-            lim real_memory: 1024 * 1024 * 1024;
-            lim virtual_memory: 1024 * 1024 * 1024 1024 * 1024 * 1024;
-            lim stack: 1024 * 1024 * 1024 1024 * 1024 * 1024;
-            lim output: 64 * 1024 * 1024 64 * 1024 * 1024;
-            lim fileno: 50 50;
-        })
+        Box::new(
+            SingletonBuilder::new(&self.gpp_path)
+                .push_arg("g++")
+                .push_arg(&self.extra_args)
+                .push_arg(source.as_ref())
+                .push_arg("-o")
+                .push_arg(dest.as_ref())
+                .push_env(envs)
+                .set_limits(|_| Limitation {
+                    real_time: Some(10000),
+                    cpu_time: Some((10000, 10000)),
+                    virtual_memory: Some((1024 * 1024 * 1024, 1024 * 1024 * 1024)),
+                    real_memory: Some(1024 * 1024 * 1024),
+                    stack_memory: Some((1024 * 1024 * 1024, 1024 * 1024 * 1024)),
+                    output_memory: Some((64 * 1024 * 1024, 64 * 1024 * 1024)),
+                    fileno: Some((50, 50)),
+                })
+                .build()
+                .unwrap(),
+        )
     }
 }
 
@@ -94,7 +101,7 @@ struct PlainCompile {
 }
 
 impl ExecSandBox for PlainCompile {
-    fn exec_sandbox(&self) -> Result<sandbox::Termination, sandbox::error::UniError> {
+    fn exec_sandbox(&self) -> Result<sandbox::Termination, sandbox::error::Error> {
         let mut dest = std::fs::File::create(&self.dest)?;
         let mut src = std::fs::File::open(&self.src)?;
         std::io::copy(&mut src, &mut dest)?;

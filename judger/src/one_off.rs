@@ -2,7 +2,10 @@
 
 use std::path::PathBuf;
 
-use sandbox::{sigton, ExecSandBox};
+use sandbox::{
+    unix::{Limitation, SingletonBuilder},
+    Builder, ExecSandBox,
+};
 
 use crate::{lang::Compile, Error, Status, TaskReport};
 
@@ -53,23 +56,24 @@ impl<L: Compile> OneOff<L> {
             }
             eprintln!("编译成功");
             let out = self.working_dir.join("main.output");
-            let s = sigton! {
-                exec: dest;
-                stdin: self.stdin.clone();
-                stdout: out.clone();
-                lim cpu_time: 2000 2000; // 2s
-                lim real_time: 2000;
-                lim real_memory: 512 * 1024 * 1024;
-                lim virtual_memory: 512 * 1024 * 1024 512 * 1024 * 1024;
-                lim stack: 512 * 1024 * 1024 612 * 1024 * 1024;
-                lim output: 64 * 1024 * 1024 64 * 1024 * 1024;
-                lim fileno: 6 6;
-            };
+            let s = SingletonBuilder::new(dest)
+                .set_limits(|_| Limitation {
+                    real_time: Some(2000),
+                    cpu_time: Some((2000, 2000)),
+                    virtual_memory: Some((512 * 1024 * 1024, 512 * 1024 * 1024)),
+                    real_memory: Some(512 * 1024 * 1024),
+                    stack_memory: Some((512 * 1024 * 1024, 512 * 1024 * 1024)),
+                    output_memory: Some((64 * 1024 * 1024, 64 * 1024 * 1024)),
+                    fileno: Some((6, 6)),
+                })
+                .build()
+                .unwrap();
             let term = s.exec_fork()?;
             let mut r: TaskReport = term.into();
-            r.payload.push(("stdout".to_string(), std::fs::read_to_string(out)
-                    .map_err(Error::IOError)?
-                    .into()));
+            r.payload.push((
+                "stdout".to_string(),
+                std::fs::read_to_string(out).map_err(Error::IOError)?.into(),
+            ));
             Ok(r)
         } else {
             todo!()

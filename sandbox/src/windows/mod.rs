@@ -49,7 +49,7 @@ pub struct Singleton {
 // https://learn.microsoft.com/zh-cn/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output?redirectedfrom=MSDN
 // https://learn.microsoft.com/zh-cn/windows/win32/procthread/creating-processes
 impl ExecSandBox for Singleton {
-    fn exec_sandbox(&self) -> Result<crate::Termination, crate::error::UniError> {
+    fn exec_sandbox(&self) -> Result<crate::Termination, crate::error::Error> {
         let job = unsafe {
             let job_handle = CreateJobObjectW(ptr::null_mut(), ptr::null());
             let job = job_handle;

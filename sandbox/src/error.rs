@@ -4,25 +4,25 @@ use serde::{Serialize, Deserialize};
 
 /// 一个通用的错误类型
 #[derive(Debug,Clone, Serialize, Deserialize)]
-pub enum UniError {
+pub enum Error {
     /// 基于信息的错误
     Msg(String),
 }
 
-impl<'a> Display for UniError {
+impl<'a> Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let UniError::Msg(str) = self;
+        let Error::Msg(str) = self;
         write!(f, "Error: {}", str)
     }
 }
-impl std::error::Error for UniError{}
+impl std::error::Error for Error{}
 
 macro_rules! impl_err {
     ($( $t:ty )+) => {
         $(
-            impl From<$t> for UniError {
+            impl From<$t> for Error {
                 fn from(value: $t) -> Self {
-                    UniError::Msg(format!("{:?}", value))
+                    Error::Msg(format!("{:?}", value))
                 }
             }
         )+
@@ -43,6 +43,6 @@ impl_err!(
 );
 
 /// return a Result error containing a message
-pub fn msg_err<'a, T, M: Into<String>>(msg: M) -> Result<T, UniError> {
-    Err(UniError::Msg(msg.into()))
+pub fn msg_err<'a, T, M: Into<String>>(msg: M) -> Result<T, Error> {
+    Err(Error::Msg(msg.into()))
 }

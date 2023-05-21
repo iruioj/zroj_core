@@ -1,9 +1,12 @@
 #[test]
 #[cfg(target_os = "linux")]
-fn test_cat_stdio() -> Result<(), sandbox::UniError> {
+fn test_cat_stdio() -> Result<(), sandbox::Error> {
     use std::io::Write;
 
-    use sandbox::{sigton, ExecSandBox};
+    use sandbox::{
+        unix::{Limitation, SingletonBuilder},
+        Builder, ExecSandBox,
+    };
     use tempfile::tempdir;
 
     let dir = tempdir()?;
@@ -18,18 +21,19 @@ fn test_cat_stdio() -> Result<(), sandbox::UniError> {
     const MB: u64 = 1024 * 1024_u64;
     const GB: u64 = 1024 * MB;
 
-    let s = sigton! {
-        exec: "/usr/bin/cat";
-        stdin: filepath;
-        stdout: outputpath;
-        lim cpu_time:       6000       7000;
-        lim real_time:      7000;
-        lim real_memory:    2 * GB;
-        lim virtual_memory: 2 * GB     3 * GB;
-        lim stack:          2 * GB     3 * GB;
-        lim output:         256 * MB   1 * GB;
-        lim fileno:         30         30;
-    };
+    let s = SingletonBuilder::new("/usr/bin/cat")
+        .stdin(filepath)
+        .stdout(outputpath)
+        .set_limits(|_| Limitation {
+            real_time: Some(7000),
+            cpu_time: Some((6000, 7000)),
+            virtual_memory: Some((2 * GB, 3 * GB)),
+            real_memory: Some(2 * GB),
+            stack_memory: Some((2 * GB, 3 * GB)),
+            output_memory: Some((256 * MB, 1 * GB)),
+            fileno: Some((30, 30)),
+        })
+        .build()?;
 
     let term = s.exec_sandbox()?;
 

@@ -1,5 +1,5 @@
 use crate::{
-    error::{msg_err, UniError},
+    error::{msg_err, Error},
     unix::Limitation,
     vec_str_to_vec_cstr, Builder, MemoryLimitExceededKind, Status, Termination,
     TimeLimitExceededKind,
@@ -39,7 +39,7 @@ pub struct Singleton {
 }
 
 impl Singleton {
-    fn exec_child(&self) -> Result<(), UniError> {
+    fn exec_child(&self) -> Result<(), Error> {
         setpgid(Pid::from_raw(0), Pid::from_raw(0))?;
         // 提前计算好需要的东西
         let (path, args, env) = (
@@ -83,7 +83,7 @@ impl Singleton {
         execve(path, args, env)?;
         Ok(())
     }
-    fn exec_parent(&self, child: Pid, start: Instant) -> Result<Termination, UniError> {
+    fn exec_parent(&self, child: Pid, start: Instant) -> Result<Termination, Error> {
         use std::sync::mpsc;
         let (tx, rx) = mpsc::channel();
         // 如果有实际运行时间限制，就开一个计时线程
@@ -186,7 +186,7 @@ impl Singleton {
 }
 
 impl crate::ExecSandBox for Singleton {
-    fn exec_sandbox(&self) -> Result<crate::Termination, UniError> {
+    fn exec_sandbox(&self) -> Result<crate::Termination, Error> {
         let start = Instant::now();
         match unsafe { fork() } {
             Err(_) => msg_err("fork failed"),
@@ -282,6 +282,7 @@ pub struct SingletonBuilder {
 
 macro_rules! lim_fn {
     ($i:ident) => {
+        #[deprecated]
         /// 添加资源限制（一个参数）
         pub fn $i(&mut self, val: u64) -> &mut Self {
             self.limits.$i = Some(val);
@@ -289,6 +290,7 @@ macro_rules! lim_fn {
         }
     };
     ($i:ident, 2) => {
+        #[deprecated]
         /// 添加资源限制（soft and hard）
         pub fn $i(&mut self, soft: u64, hard: u64) -> &mut Self {
             self.limits.$i = Some((soft, hard));
@@ -298,6 +300,7 @@ macro_rules! lim_fn {
 }
 
 impl SingletonBuilder {
+    #[deprecated]
     #[doc(hidden)]
     pub fn new_legacy() -> Self {
         SingletonBuilder {
@@ -317,6 +320,7 @@ impl SingletonBuilder {
             envs: Vec::new(),
         }
     }
+    #[deprecated]
     #[doc(hidden)]
     pub fn exec_path_legacy<T: Into<Arg>>(&mut self, str: T) -> &mut Self {
         match str.into() as Arg {
@@ -326,6 +330,7 @@ impl SingletonBuilder {
         };
         self
     }
+    #[deprecated]
     #[doc(hidden)]
     pub fn push_arg_legacy<T: Into<Arg>>(&mut self, arg: T) -> &mut Self {
         match arg.into() as Arg {
@@ -335,6 +340,7 @@ impl SingletonBuilder {
         };
         self
     }
+    #[deprecated]
     #[doc(hidden)]
     pub fn add_env<T: Into<Arg>>(&mut self, val: T) -> &mut Self {
         match val.into() as Arg {
@@ -344,6 +350,7 @@ impl SingletonBuilder {
         };
         self
     }
+    #[deprecated]
     #[doc(hidden)]
     pub fn set_stdin(&mut self, val: impl Into<Arg>) -> &mut Self {
         self.stdin = match val.into() as Arg {
@@ -353,6 +360,7 @@ impl SingletonBuilder {
         };
         self
     }
+    #[deprecated]
     #[doc(hidden)]
     pub fn set_stdout(&mut self, val: impl Into<Arg>) -> &mut Self {
         self.stdout = match val.into() as Arg {
@@ -375,7 +383,7 @@ impl SingletonBuilder {
 impl Builder for SingletonBuilder {
     type Target = Singleton;
 
-    fn build(self) -> Result<Self::Target, UniError> {
+    fn build(self) -> Result<Self::Target, Error> {
         Ok(Singleton {
             limits: self.limits,
             exec_path: self.exec_path.unwrap(),
@@ -411,13 +419,29 @@ impl SingletonBuilder {
         self
     }
     /// add an argument to the end of argument list
-    pub fn push_arg(mut self, arg: impl Into<String>) -> Self {
-        self.arguments.push(arg.into());
+    pub fn push_arg(mut self, arg: impl Into<Arg>) -> Self {
+        match arg.into() as Arg {
+            Arg::Str(s) => {
+                self.arguments.push(s);
+            }
+            Arg::Vec(mut v) => {
+                self.arguments.append(&mut v);
+            }
+            Arg::Nothing => {}
+        }
         self
     }
     /// add an argument to the end of environment list
-    pub fn push_env(mut self, arg: impl Into<String>) -> Self {
-        self.envs.push(arg.into());
+    pub fn push_env(mut self, arg: impl Into<Arg>) -> Self {
+        match arg.into() as Arg {
+            Arg::Str(s) => {
+                self.envs.push(s);
+            }
+            Arg::Vec(mut v) => {
+                self.envs.append(&mut v);
+            }
+            Arg::Nothing => {}
+        }
         self
     }
     /// set resource limitation
@@ -515,24 +539,30 @@ macro_rules! sigton {
 
 #[cfg(test)]
 mod tests {
+    use singleton::SingletonBuilder;
+
     use super::Status;
+    use crate::unix::singleton;
+    use crate::Builder;
     use crate::ExecSandBox;
     use crate::TimeLimitExceededKind;
     // use super::un
 
     #[test]
     #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_free() -> Result<(), super::UniError> {
+    fn singleton_free() -> Result<(), super::Error> {
         let ls_path = if cfg!(target_os = "linux") {
             "/usr/bin/ls"
         } else {
             "/bin/ls"
         };
 
-        let singleton = sigton! {
-            exec: ls_path;
-            cmd: "ls" "." "-l";
-        };
+        let singleton = SingletonBuilder::new(ls_path)
+            .push_arg("ls")
+            .push_arg(".")
+            .push_arg("-l")
+            .build()?;
+
         let term = singleton.exec_fork()?;
         assert_eq!(term.status, Status::Ok);
         println!("termination: {:?}", term);
@@ -541,7 +571,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_tle_real() -> Result<(), super::UniError> {
+    fn singleton_tle_real() -> Result<(), super::Error> {
         let sleep_path = if cfg!(target_os = "linux") {
             "/usr/bin/sleep"
         } else {
@@ -549,12 +579,16 @@ mod tests {
         };
         // sleep 5 秒，触发 TLE
         // sleep 不会占用 CPU，因此触发 real time tle
-        let singleton = sigton! {
-            exec: sleep_path;
-            cmd: "sleep" "2";
-            lim cpu_time: 1000 3000;
-            lim real_time: 1000;
-        };
+        let singleton = SingletonBuilder::new(sleep_path)
+            .push_arg("sleep")
+            .push_arg("2")
+            .set_limits(|mut l| {
+                l.cpu_time = Some((1000, 3000));
+                l.real_time = Some(1000);
+                l
+            })
+            .build()?;
+
         let term = singleton.exec_fork()?;
         assert_eq!(
             term.status,
@@ -566,18 +600,18 @@ mod tests {
 
     #[test]
     #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_env() -> Result<(), super::UniError> {
+    fn singleton_env() -> Result<(), super::Error> {
         let env_path = if cfg!(target_os = "linux") {
             "/usr/bin/env"
         } else {
             "/bin/env"
         };
 
-        let singleton = sigton! {
-            exec: env_path;
-            cmd: "env";
-            env: "DIR=/usr" "A=b"
-        };
+        let singleton = SingletonBuilder::new(env_path)
+            .push_arg("env")
+            .push_env("DIR=/usr")
+            .push_env("A=b")
+            .build()?;
 
         let term = singleton.exec_fork()?;
         assert_eq!(term.status, Status::Ok);
