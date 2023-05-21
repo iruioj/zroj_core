@@ -10,7 +10,7 @@ use actix_web::{
     error::{self, ErrorBadRequest},
     get, post, web, Result,
 };
-use judger::TaskResult;
+use judger::TaskReport;
 use macros::scope_service;
 use serde::Serialize;
 use serde_json::json;
@@ -73,7 +73,7 @@ async fn custom_test_post(
 #[derive(Debug, Serialize)]
 pub struct CustomTestResult {
     /// return None if the judging or failed
-    pub result: Option<TaskResult>,
+    pub result: Option<TaskReport>,
 }
 
 #[get("")]

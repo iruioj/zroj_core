@@ -32,7 +32,7 @@ pub enum Status {
 
 /// 一个测试点的测试结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TaskResult {
+pub struct TaskReport {
     /// 评测结果
     pub status: Status,
     /// 花费时间
@@ -43,7 +43,7 @@ pub struct TaskResult {
     pub payload: Vec<(String, TruncStr)>,
 }
 
-impl From<sandbox::Termination> for TaskResult {
+impl From<sandbox::Termination> for TaskReport {
     fn from(value: sandbox::Termination) -> Self {
         return Self {
             status: match value.status {
@@ -66,17 +66,17 @@ pub struct SubtaskResult {
     pub status: Status,
     pub time: u64,
     pub memory: u64,
-    pub tasks: Vec<TaskResult>,
+    pub tasks: Vec<TaskReport>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum JudgeDetail {
     Subtask(Vec<SubtaskResult>),
-    Tests(Vec<TaskResult>),
+    Tests(Vec<TaskReport>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JudgeResult {
+pub struct JudgeReport {
     pub status: Status,
     pub time: u64,
     pub memory: u64,
@@ -88,13 +88,13 @@ pub struct JudgeResult {
 
 #[cfg(test)]
 mod tests {
-    use crate::{JudgeResult, TaskResult};
+    use crate::{JudgeReport, TaskReport};
 
     use super::SubtaskResult;
 
     #[test]
     fn test_judge_result_serde() {
-        let r = JudgeResult {
+        let r = JudgeReport {
             status: crate::Status::WrongAnswer,
             time: 114,
             memory: 514,
@@ -102,7 +102,7 @@ mod tests {
                 status: crate::Status::WrongAnswer,
                 time: 114,
                 memory: 514,
-                tasks: vec![TaskResult {
+                tasks: vec![TaskReport {
                     status: crate::Status::Partial(1., 2.),
                     time: 114,
                     memory: 514,
