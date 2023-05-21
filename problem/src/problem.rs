@@ -1,106 +1,88 @@
-use crate::error::Result;
-use std::{fs, io, path::PathBuf};
+use crate::{data::Data, Error};
 
-/// 一个只读的可评测的题目的数据
-///
-/// 其本体保存于文件系统中的某个（临时）文件
-///
+use store::FsStore;
+
 /// 不会涉及到对数据文件的修改。
 pub trait Problem
 where
     Self: Sized,
 {
-    /// 题目的元数据。
-    ///
-    /// 对于内置题目，元数据以 enum Builtin 的形式给出，这样只需要实现一个 Problem<Meta = BuiltinMeta>
-    /// 即可。而如果想要定义新的题目类型，可以自己实现对应的 ProblemSet。这不无道理，
-    /// 因为新形式的题目很可能与老题目的评测方式完全不同，可以作为一个新的题目集。
-    /// 而如果要在一个题目集中加入新的题目类型，那就得在 Builtin 里加东西，
-    /// 那么建议自己修改源代码和前后端然后编译。
-    type Meta: Sized;
+    /// Meta, SubtaskMeta, Task 里最好只包含基本类型数据和 Key 类型的数据
+    /// 可以用 derive 做 type safe
+    /// Meta 包含题目的全局配置，例如 checker，validator，时空限制等等
+    type Meta: FsStore;
+    /// SubtaskMeta 用于在子任务评测时覆盖全面配置（例如单独的时空限制）
+    type SubtaskMeta: FsStore + crate::Override<Self::Meta>;
+    /// 描述一个测试点的评测任务，可以计算 Hash 值
+    type Task: FsStore;
 
-    /// 读取题目时返回的文件类型
-    type File: io::Read + io::Seek;
-
-    /// 从一个文件读取题目
-    fn open(path: &PathBuf) -> Result<Self>;
-
-    /// 该题目的文件路径
-    fn path(&self) -> &PathBuf;
-
-    fn meta(&self) -> &Self::Meta;
-
-    /// 读取题目数据中的文件
-    fn open_file(&self, path: &PathBuf) -> Result<Self::File>;
-
-    /// 不会验证 reader 里的内容是否合法
-    fn replace_reader(&self, reader: &mut (impl io::Read + io::Seek)) -> Result<()> {
-        // create a file if it does not exist, and will truncate it if it does.
-        let mut file = fs::File::create(self.path())?;
-        io::copy(reader, &mut file)?;
-        Ok(())
-    }
-
-    /// 不会验证 file 里的内容是否合法
-    fn replace(&self, file: &PathBuf) -> Result<()> {
-        let mut this = fs::File::create(self.path())?;
-        let mut file = fs::File::open(file)?;
-        io::copy(&mut file, &mut this)?;
-        Ok(())
-    }
+    fn data(&self) -> Result<Data<Self::Task, Self::Meta, Self::SubtaskMeta>, Error>;
 }
 
-pub mod zip {
-    use std::fs;
-    use std::path::PathBuf;
+pub trait JudgeProblem
+where
+    Self: Problem,
+{
+    type SubmKey: Sized + ToString;
+    type Subm: FsStore;
 
-    use crate::error::Result;
-    use crate::Builtin;
+    /// 评测该任务，self 表示任务本身的信息
+    fn judge_task(
+        &self,
+        judger: impl judger::Judger,
+        meta: &Self::Meta,
+        task: &Self::Task,
+        subm: Self::Subm,
+    ) -> Result<judger::TaskReport, Error>;
+}
 
-    /// 在打开压缩文件时解压到临时文件夹
-    pub struct ZipProblem {
-        path: PathBuf,
-        dir: tempfile::TempDir,
-        meta: Builtin,
+pub mod traditional {
+    use std::io;
+
+    use crate::data::{tempdir_unzip, StoreFile};
+    use store::{FsStore, Handle};
+    use tempfile::TempDir;
+
+    use crate::{data::Data, Error};
+
+    #[derive(FsStore)]
+    pub struct Meta {
+        pub checker: StoreFile,
+        // pub validator: String,
+        /// 时间限制
+        #[meta]
+        pub time_limit: u32,
+        /// 空间限制
+        #[meta]
+        pub memory_limit: u32,
     }
 
-    impl super::Problem for ZipProblem {
-        type Meta = Builtin;
-        type File = fs::File;
+    #[derive(FsStore)]
+    pub struct Task {
+        pub input: StoreFile,
+        pub output: StoreFile,
+    }
 
-        fn open(path: &PathBuf) -> Result<Self> {
-            let dir = tempfile::tempdir()?;
-            let file = fs::File::open(path)?;
-            let mut zip = zip::ZipArchive::new(file)?;
+    /// 传统题
+    pub struct Traditional {
+        dir: TempDir,
+    }
 
-            // extract to temporary dir
-            // not atomic
-            zip.extract(dir.path())?;
+    impl super::Problem for Traditional {
+        type Meta = Meta;
+        type SubtaskMeta = ();
+        type Task = Task;
 
-            let meta = {
-                let meta = zip.by_name("meta")?;
-                // let meta = std::io::read_to_string(meta)?;
-                let meta: Builtin = serde_json::from_reader(meta)?;
-                meta
-            };
-            // 获取 comment 的第一个字节
+        fn data(&self) -> Result<Data<Self::Task, Self::Meta, Self::SubtaskMeta>, Error> {
+            let ctx = Handle::new(self.dir.path());
+            Ok(Data::open(ctx)?)
+        }
+    }
+    impl Traditional {
+        pub fn from_zip(reader: impl io::Read + io::Seek) -> Result<Self, Error> {
             Ok(Self {
-                path: path.clone(),
-                dir,
-                meta,
+                dir: tempdir_unzip(reader)?,
             })
-        }
-
-        fn path(&self) -> &PathBuf {
-            &self.path
-        }
-
-        fn meta(&self) -> &Self::Meta {
-            &self.meta
-        }
-
-        fn open_file(&self, relative_path: &PathBuf) -> Result<Self::File> {
-            Ok(fs::File::open(self.dir.path().join(relative_path))?)
         }
     }
 }

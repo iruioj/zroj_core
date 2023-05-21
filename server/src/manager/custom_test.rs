@@ -19,7 +19,7 @@ use super::judge_queue::JudgeQueue;
 //     GnuCpp14O2,
 // }
 
-// impl LangOption for CodeLang {
+// impl Compile for CodeLang {
 //     fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
 //         match *self {
 //             Self::GnuCpp14O2 => judger::lang::gnu_cpp14_o2().build_sigton(source, dest),
@@ -73,7 +73,7 @@ pub fn start_custom_test(
     base: PathBuf,
     source: PathBuf,
     input: PathBuf,
-    lang: judger::lang::Builtin,
+    lang: judger::FileType,
 ) -> Result<()> {
     let state = manager.state.clone();
     queue.add(move || {
