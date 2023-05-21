@@ -17,7 +17,7 @@ use serde_json::json;
 use std::fmt::Debug;
 
 /// warning: this funtion contains probable leak
-fn parse_source_file_name(s: String) -> Result<(String, judger::lang::Builtin)> {
+fn parse_source_file_name(s: String) -> Result<(String, judger::FileType)> {
     if s.contains('/') {
         return Err(ErrorBadRequest(format!("invalid source file name {s:?}")));
     }
@@ -27,7 +27,7 @@ fn parse_source_file_name(s: String) -> Result<(String, judger::lang::Builtin)> 
         return Err(ErrorBadRequest(format!("invalid source file name {s:?}")));
     }
     let lang = split[1];
-    let lang: judger::lang::Builtin = serde_json::from_value(json!(lang))
+    let lang: judger::FileType = serde_json::from_value(json!(lang))
         .map_err(|_| ErrorBadRequest(format!("Unkown language {lang:?}")))?;
     let suffix = split[2];
     Ok(("source.".to_string() + suffix, lang))

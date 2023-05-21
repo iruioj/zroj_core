@@ -9,7 +9,9 @@ members = [
     "judger",
     "cli",
     "passwd",
-    "macros"
+    "macros",
+    "store_derive",
+    "store"
 ]
 
 [workspace.package]

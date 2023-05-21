@@ -4,6 +4,8 @@ pub enum Error {
     SerdeJson(serde_json::Error),
     NoVersion,
     InvalidVersion,
+    InvalidData(String),
+    Store(store::Error),
 }
 
 impl From<std::io::Error> for Error {
@@ -21,5 +23,10 @@ impl From<serde_json::Error> for Error {
         Error::SerdeJson(value)
     }
 }
+impl From<store::Error> for Error {
+    fn from(value: store::Error) -> Self {
+        Error::Store(value)
+    }
+}
 
-pub type Result<T> = std::result::Result<T, Error>;
+// pub type Result<T> = std::result::Result<T, Error>;
