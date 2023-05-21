@@ -3,7 +3,11 @@ mod error;
 pub use error::Error;
 use serde::{de::DeserializeOwned, Serialize};
 
-use std::{path::{Path, PathBuf}, io::Seek};
+use std::{
+    fmt::Debug,
+    io::Seek,
+    path::{Path, PathBuf},
+};
 
 // Re-export #[derive(FsStore)]
 #[allow(unused_imports)]
@@ -25,6 +29,7 @@ impl Handle {
             dir: path.as_ref().to_path_buf(),
         }
     }
+    /// 在末尾添加一个新的文件夹/路径
     pub fn join(&self, p: impl AsRef<Path>) -> Self {
         Self {
             dir: self.dir.join(p),
@@ -56,6 +61,63 @@ impl Handle {
     /// 将数据序列化到该路径下（要求文件不存在）
     pub fn serialize_new_file<T: Serialize>(&self, data: &T) -> Result<(), Error> {
         serde_json::to_writer(self.create_new_file()?, data).map_err(|e| Error::Serialize(e))
+    }
+}
+
+impl Handle {
+    fn _fmt(
+        &self,
+        prefix: Option<String>,
+        slug: impl AsRef<Path>,
+        is_last: bool,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
+        if prefix.is_none() {
+            write!(f, "{}\n", slug.as_ref().display())?;
+        } else if is_last {
+            write!(
+                f,
+                "{}└── {}\n",
+                prefix.clone().unwrap(),
+                slug.as_ref().display()
+            )?;
+        } else {
+            write!(
+                f,
+                "{}├── {}\n",
+                prefix.clone().unwrap(),
+                slug.as_ref().display()
+            )?;
+        }
+        let prefix = prefix
+            .map(|p| p + if is_last { "    " } else { "│   " })
+            .unwrap_or_default();
+        if self.dir.is_dir() {
+            let mut items = self
+                .dir
+                .read_dir()
+                .expect("read dir error")
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap();
+            if items.is_empty() {
+                return Ok(());
+            }
+            items.sort_by_cached_key(|d| d.file_name());
+            let (last, others) = items.split_last_mut().unwrap();
+            for dir in others {
+                let slug = dir.file_name();
+                self.join(&slug)
+                    ._fmt(Some(prefix.clone()), slug, false, f)?;
+            }
+            let slug = last.file_name();
+            self.join(&slug)._fmt(Some(prefix.clone()), slug, true, f)?;
+        }
+        Ok(())
+    }
+}
+impl Debug for Handle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self._fmt(None, self.dir.to_str().unwrap().to_owned(), true, f)
     }
 }
 
@@ -152,4 +214,3 @@ impl FsStore for std::fs::File {
 #[allow(unused_imports)]
 extern crate serde;
 pub use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
-
