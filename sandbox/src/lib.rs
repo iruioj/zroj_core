@@ -89,6 +89,7 @@ pub struct Termination {
     pub memory: u64,
 }
 impl Termination {
+    #[deprecated]
     fn _new() -> Self {
         Termination {
             status: Status::Ok,

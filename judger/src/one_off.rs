@@ -70,10 +70,7 @@ impl<L: Compile> OneOff<L> {
                 .unwrap();
             let term = s.exec_fork()?;
             let mut r: TaskReport = term.into();
-            r.payload.push((
-                "stdout".to_string(),
-                std::fs::read_to_string(out).map_err(Error::IOError)?.into(),
-            ));
+            r.add_payload("stdout", out)?;
             Ok(r)
         } else {
             todo!()

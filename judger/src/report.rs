@@ -5,12 +5,12 @@
 //! 但是这样做不利于自定义题目的显示，为此我们需要打通从 judger 到前端
 //! 传递数据的过程，于是我们直接让 judger 返回可以直接在前端显示的数据格式。
 
-use crate::truncstr::TruncStr;
+use crate::{truncstr::TruncStr, Error};
 use serde::{Deserialize, Serialize};
 
 /// 一个测试点提交的可能的返回状态
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "name", content = "payload", rename_all="snake_case")]
+#[serde(tag = "name", content = "payload", rename_all = "snake_case")]
 pub enum Status {
     /// 通过
     Accepted,
@@ -41,6 +41,23 @@ pub struct TaskReport {
     pub memory: u64,
     /// 相关载荷（stdin, stdout, answer ...)
     pub payload: Vec<(String, TruncStr)>,
+}
+
+impl TaskReport {
+    /// 从 path 中读取文件内容作为 payload
+    pub(crate) fn add_payload(
+        &mut self,
+        name: impl AsRef<str>,
+        path: impl AsRef<std::path::Path>,
+    ) -> Result<(), Error> {
+        self.payload.push((
+            name.as_ref().to_string(),
+            std::fs::read_to_string(path)
+                .map_err(Error::IOError)?
+                .into(),
+        ));
+        Ok(())
+    }
 }
 
 impl From<sandbox::Termination> for TaskReport {
@@ -110,10 +127,10 @@ mod tests {
                         ("stdin".to_string(), "1 2".into()),
                         ("stdout".to_string(), "2".into()),
                         ("answer".to_string(), "3".into()),
-                    ]
+                    ],
                 }],
             }]),
         };
-        eprintln!("{}",serde_json::to_string_pretty(&r).unwrap());
+        eprintln!("{}", serde_json::to_string_pretty(&r).unwrap());
     }
 }
