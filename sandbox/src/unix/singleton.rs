@@ -1,5 +1,5 @@
 use crate::{
-    error::{msg_err, Error},
+    error::{msg_err, SandboxError},
     unix::Limitation,
     vec_str_to_vec_cstr, Builder, MemoryLimitExceededKind, Status, Termination,
     TimeLimitExceededKind,
@@ -39,7 +39,7 @@ pub struct Singleton {
 }
 
 impl Singleton {
-    fn exec_child(&self) -> Result<(), Error> {
+    fn exec_child(&self) -> Result<(), SandboxError> {
         setpgid(Pid::from_raw(0), Pid::from_raw(0))?;
         // 提前计算好需要的东西
         let (path, args, env) = (
@@ -83,7 +83,7 @@ impl Singleton {
         execve(path, args, env)?;
         Ok(())
     }
-    fn exec_parent(&self, child: Pid, start: Instant) -> Result<Termination, Error> {
+    fn exec_parent(&self, child: Pid, start: Instant) -> Result<Termination, SandboxError> {
         use std::sync::mpsc;
         let (tx, rx) = mpsc::channel();
         // 如果有实际运行时间限制，就开一个计时线程
@@ -186,7 +186,7 @@ impl Singleton {
 }
 
 impl crate::ExecSandBox for Singleton {
-    fn exec_sandbox(&self) -> Result<crate::Termination, Error> {
+    fn exec_sandbox(&self) -> Result<crate::Termination, SandboxError> {
         let start = Instant::now();
         match unsafe { fork() } {
             Err(_) => msg_err("fork failed"),
@@ -383,7 +383,7 @@ impl SingletonBuilder {
 impl Builder for SingletonBuilder {
     type Target = Singleton;
 
-    fn build(self) -> Result<Self::Target, Error> {
+    fn build(self) -> Result<Self::Target, SandboxError> {
         Ok(Singleton {
             limits: self.limits,
             exec_path: self.exec_path.unwrap(),
@@ -550,7 +550,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_free() -> Result<(), super::Error> {
+    fn singleton_free() -> Result<(), super::SandboxError> {
         let ls_path = if cfg!(target_os = "linux") {
             "/usr/bin/ls"
         } else {
@@ -571,7 +571,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_tle_real() -> Result<(), super::Error> {
+    fn singleton_tle_real() -> Result<(), super::SandboxError> {
         let sleep_path = if cfg!(target_os = "linux") {
             "/usr/bin/sleep"
         } else {
@@ -600,7 +600,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_env() -> Result<(), super::Error> {
+    fn singleton_env() -> Result<(), super::SandboxError> {
         let env_path = if cfg!(target_os = "linux") {
             "/usr/bin/env"
         } else {

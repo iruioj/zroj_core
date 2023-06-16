@@ -101,7 +101,7 @@ struct PlainCompile {
 }
 
 impl ExecSandBox for PlainCompile {
-    fn exec_sandbox(&self) -> Result<sandbox::Termination, sandbox::error::Error> {
+    fn exec_sandbox(&self) -> Result<sandbox::Termination, sandbox::SandboxError> {
         let mut dest = std::fs::File::create(&self.dest)?;
         let mut src = std::fs::File::open(&self.src)?;
         std::io::copy(&mut src, &mut dest)?;

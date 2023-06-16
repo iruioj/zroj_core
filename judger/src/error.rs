@@ -8,13 +8,13 @@ pub enum Error {
     CmdNotFound,
     /// 找到了命令，但是是一个 symlink
     CmdSymLink,
-    Sandbox(sandbox::Error),
+    Sandbox(sandbox::SandboxError),
     IOError(std::io::Error),
     CacheCE(sandbox::Status),
 }
 
-impl From<sandbox::Error> for Error {
-    fn from(value: sandbox::Error) -> Self {
+impl From<sandbox::SandboxError> for Error {
+    fn from(value: sandbox::SandboxError) -> Self {
         Error::Sandbox(value)
     }
 }

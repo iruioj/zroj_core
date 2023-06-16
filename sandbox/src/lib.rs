@@ -13,7 +13,7 @@ use std::{
 
 /// 沙盒运行过程中产生的错误（系统错误）
 pub mod error;
-pub use error::Error;
+pub use error::SandboxError;
 /// Unix 系统下的沙盒 API
 #[cfg(all(unix))]
 pub mod unix;
@@ -114,9 +114,7 @@ impl From<nix::sys::signal::Signal> for Termination {
 }
 
 fn vec_str_to_vec_cstr(strs: &Vec<String>) -> Result<Vec<CString>, NulError> {
-    strs.iter()
-        .map(|s| CString::new(s.clone()))
-        .collect()
+    strs.iter().map(|s| CString::new(s.clone())).collect()
 }
 
 /// 在沙箱中执行一系列的任务，返回相应的结果
@@ -125,11 +123,11 @@ pub trait ExecSandBox {
     ///
     /// <https://docs.rs/nix/latest/nix/unistd/fn.fork.html#safety>
     ///
-    fn exec_sandbox(&self) -> Result<Termination, error::Error>;
+    fn exec_sandbox(&self) -> Result<Termination, SandboxError>;
 
     /// Unix Only: 在执行 exec_fork 内部执行此函数，如果失败会直接返回 Error，子进程会返回异常
     #[cfg(all(unix))]
-    fn exec_sandbox_fork(&self, result_file: &mut std::fs::File) -> Result<(), error::Error> {
+    fn exec_sandbox_fork(&self, result_file: &mut std::fs::File) -> Result<(), SandboxError> {
         use std::io::Write;
 
         result_file.write(serde_json::to_string(&self.exec_sandbox()?)?.as_bytes())?;
@@ -138,7 +136,7 @@ pub trait ExecSandBox {
 
     /// Unix only: 先 fork 一个子进程再执行程序，避免主进程终止导致整个进程终止
     #[cfg(all(unix))]
-    fn exec_fork(&self) -> Result<Termination, error::Error> {
+    fn exec_fork(&self) -> Result<Termination, SandboxError> {
         use crate::error::msg_err;
         use std::io::{Seek, SeekFrom};
         use tempfile::tempfile;
@@ -184,5 +182,5 @@ pub trait Builder {
     #[allow(missing_docs)]
     type Target: ExecSandBox;
     /// Consume self to build the target.
-    fn build(self) -> Result<Self::Target, Error>;
+    fn build(self) -> Result<Self::Target, SandboxError>;
 }

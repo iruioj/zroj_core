@@ -4,25 +4,25 @@ use serde::{Serialize, Deserialize};
 
 /// 一个通用的错误类型
 #[derive(Debug,Clone, Serialize, Deserialize)]
-pub enum Error {
+pub enum SandboxError {
     /// 基于信息的错误
     Msg(String),
 }
 
-impl<'a> Display for Error {
+impl<'a> Display for SandboxError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Error::Msg(str) = self;
-        write!(f, "Error: {}", str)
+        let SandboxError::Msg(str) = self;
+        write!(f, "SandboxError: {}", str)
     }
 }
-impl std::error::Error for Error{}
+impl std::error::Error for SandboxError{}
 
 macro_rules! impl_err {
     ($( $t:ty )+) => {
         $(
-            impl From<$t> for Error {
+            impl From<$t> for SandboxError {
                 fn from(value: $t) -> Self {
-                    Error::Msg(format!("{:?}", value))
+                    SandboxError::Msg(format!("{:?}", value))
                 }
             }
         )+
@@ -43,6 +43,6 @@ impl_err!(
 );
 
 /// return a Result error containing a message
-pub fn msg_err<'a, T, M: Into<String>>(msg: M) -> Result<T, Error> {
-    Err(Error::Msg(msg.into()))
+pub fn msg_err<'a, T, M: Into<String>>(msg: M) -> Result<T, SandboxError> {
+    Err(SandboxError::Msg(msg.into()))
 }

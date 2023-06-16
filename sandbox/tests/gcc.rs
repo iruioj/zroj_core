@@ -4,7 +4,7 @@ use tempfile::tempdir;
 #[test]
 #[cfg(all(unix))]
 #[cfg_attr(not(target_os = "linux"), ignore = "not linux")]
-fn test_gcc_linux() -> Result<(), sandbox::Error> {
+fn test_gcc_linux() -> Result<(), sandbox::SandboxError> {
     use sandbox::{
         unix::{Limitation, SingletonBuilder},
         Builder, ExecSandBox, Status,

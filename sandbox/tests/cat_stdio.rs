@@ -1,6 +1,6 @@
 #[test]
 #[cfg(target_os = "linux")]
-fn test_cat_stdio() -> Result<(), sandbox::Error> {
+fn test_cat_stdio() -> Result<(), sandbox::SandboxError> {
     use std::io::Write;
 
     use sandbox::{
