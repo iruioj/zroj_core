@@ -35,7 +35,7 @@ pub struct Singleton {
     /// 为 None 表示不提供/不获取 读入/输出
     stdin: Option<PathBuf>,
     stdout: Option<PathBuf>,
-    // stderr: Option<String>,
+    stderr: Option<PathBuf>,
 }
 
 impl Singleton {
@@ -63,6 +63,14 @@ impl Singleton {
                 Mode::S_IRUSR | Mode::S_IWUSR,
             )?;
             nix::unistd::dup2(fd, libc::STDOUT_FILENO).unwrap();
+        }
+        if let Some(stderr) = &self.stderr {
+            let fd: std::os::fd::RawFd = fcntl::open(
+                stderr.as_os_str(),
+                OFlag::O_WRONLY | OFlag::O_TRUNC | OFlag::O_CREAT,
+                Mode::S_IRUSR | Mode::S_IWUSR,
+            )?;
+            nix::unistd::dup2(fd, libc::STDERR_FILENO).unwrap();
         }
 
         if let Some((s, h)) = self.limits.cpu_time {
@@ -278,6 +286,7 @@ pub struct SingletonBuilder {
     envs: Vec<String>,
     stdin: Option<PathBuf>,
     stdout: Option<PathBuf>,
+    stderr: Option<PathBuf>,
 }
 
 macro_rules! lim_fn {
@@ -315,6 +324,7 @@ impl SingletonBuilder {
             },
             stdin: None,
             stdout: None,
+            stderr: None,
             exec_path: None,
             arguments: Vec::new(),
             envs: Vec::new(),
@@ -389,6 +399,7 @@ impl Builder for SingletonBuilder {
             exec_path: self.exec_path.unwrap(),
             stdin: self.stdin,
             stdout: self.stdout,
+            stderr: self.stderr,
             arguments: self.arguments,
             envs: self.envs,
         })
@@ -403,6 +414,7 @@ impl SingletonBuilder {
             limits: Limitation::default(),
             stdin: None,
             stdout: None,
+            stderr: None,
             exec_path: Some(exec.as_ref().to_path_buf()),
             arguments: Vec::new(),
             envs: Vec::new(),
@@ -413,9 +425,14 @@ impl SingletonBuilder {
         self.stdin = Some(arg.as_ref().to_path_buf());
         self
     }
-    /// set the path of input file, which will be rediected to stdout.
+    /// set the path of output file, which will be rediected to stdout.
     pub fn stdout(mut self, arg: impl AsRef<Path>) -> Self {
         self.stdout = Some(arg.as_ref().to_path_buf());
+        self
+    }
+    /// set the path of error output file, which will be rediected to stderr.
+    pub fn stderr(mut self, arg: impl AsRef<Path>) -> Self {
+        self.stderr = Some(arg.as_ref().to_path_buf());
         self
     }
     /// add an argument to the end of argument list

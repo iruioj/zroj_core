@@ -12,8 +12,14 @@ pub trait Compile: ShaHash {
     ///
     /// - source: 源文件路径
     /// - dest: 编译产生的可执行文件的路径
+    /// - log: 编译日志文件
     #[cfg(all(unix))]
-    fn compile(&self, source: impl AsRef<Path>, dest: impl AsRef<Path>) -> Box<dyn ExecSandBox>;
+    fn compile(
+        &self,
+        source: impl AsRef<Path>,
+        dest: impl AsRef<Path>,
+        log: impl AsRef<Path>,
+    ) -> Box<dyn ExecSandBox>;
 }
 
 /// 使用 g++ 编译 C++ 源文件
@@ -45,7 +51,12 @@ impl ShaHash for GnuCpp {
 }
 
 impl Compile for GnuCpp {
-    fn compile(&self, source: impl AsRef<Path>, dest: impl AsRef<Path>) -> Box<dyn ExecSandBox> {
+    fn compile(
+        &self,
+        source: impl AsRef<Path>,
+        dest: impl AsRef<Path>,
+        log: impl AsRef<Path>,
+    ) -> Box<dyn ExecSandBox> {
         let mut envs = Vec::new();
         for (key, value) in std::env::vars() {
             envs.push(format!("{}={}", key, value));
@@ -67,6 +78,7 @@ impl Compile for GnuCpp {
                     output_memory: Some((64 * 1024 * 1024, 64 * 1024 * 1024)),
                     fileno: Some((50, 50)),
                 })
+                .stderr(log)
                 .build()
                 .unwrap(),
         )
@@ -137,16 +149,16 @@ impl ShaHash for FileType {
 }
 
 impl Compile for FileType {
-    fn compile(&self, source: impl AsRef<Path>, dest: impl AsRef<Path>) -> Box<dyn ExecSandBox> {
+    fn compile(&self, source: impl AsRef<Path>, dest: impl AsRef<Path>, log: impl AsRef<Path>) -> Box<dyn ExecSandBox> {
         match self {
             FileType::GnuCpp20O2 => {
-                GnuCpp::new(None, vec!["-std=c++2a", "-O2"]).compile(source, dest)
+                GnuCpp::new(None, vec!["-std=c++2a", "-O2"]).compile(source, dest, log)
             }
             FileType::GnuCpp17O2 => {
-                GnuCpp::new(None, vec!["-std=c++17", "-O2"]).compile(source, dest)
+                GnuCpp::new(None, vec!["-std=c++17", "-O2"]).compile(source, dest, log)
             }
             FileType::GnuCpp14O2 => {
-                GnuCpp::new(None, vec!["-std=c++14", "-O2"]).compile(source, dest)
+                GnuCpp::new(None, vec!["-std=c++14", "-O2"]).compile(source, dest, log)
             }
             FileType::Plain => Box::new(PlainCompile {
                 src: source.as_ref().to_path_buf(),

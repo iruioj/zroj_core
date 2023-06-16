@@ -45,8 +45,9 @@ impl<L: Compile> OneOff<L> {
         if cfg!(all(unix)) {
             // 可执行文件名
             let dest = self.working_dir.join("main");
-
-            let cpl = self.lang.compile(&self.source, &dest);
+            let clog = self.working_dir.join("compile.log");
+            // compilation
+            let cpl = self.lang.compile(&self.source, &dest, &clog);
             let term = cpl.exec_sandbox()?;
             let st = term.status.clone();
             if st != sandbox::Status::Ok {
@@ -55,22 +56,33 @@ impl<L: Compile> OneOff<L> {
                 return Ok(r);
             }
             eprintln!("编译成功");
+            // execution
             let out = self.working_dir.join("main.output");
-            let s = SingletonBuilder::new(dest)
+            let log = self.working_dir.join("main.log");
+            assert!(dest.exists());
+            let mut s = SingletonBuilder::new(dest)
                 .set_limits(|_| Limitation {
-                    real_time: Some(2000),
-                    cpu_time: Some((2000, 2000)),
+                    real_time: Some(5000),
+                    cpu_time: Some((5000, 5000)),
                     virtual_memory: Some((512 * 1024 * 1024, 512 * 1024 * 1024)),
                     real_memory: Some(512 * 1024 * 1024),
                     stack_memory: Some((512 * 1024 * 1024, 512 * 1024 * 1024)),
                     output_memory: Some((64 * 1024 * 1024, 64 * 1024 * 1024)),
                     fileno: Some((6, 6)),
                 })
-                .build()
-                .unwrap();
+                .stdout(&out)
+                .stderr(&log);
+            if let Some(stdin) = &self.stdin {
+                s = s.stdin(stdin);
+            }
+            let s = s.build().unwrap();
             let term = s.exec_fork()?;
+            dbg!(&term);
             let mut r: TaskReport = term.into();
-            r.add_payload("stdout", out)?;
+            // ignore error
+            let _ = r.add_payload("compile log", clog);
+            let _ = r.add_payload("stdout", out);
+            let _ = r.add_payload("stderr", log);
             Ok(r)
         } else {
             todo!()

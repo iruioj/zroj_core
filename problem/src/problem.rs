@@ -113,10 +113,11 @@ pub mod traditional {
 
             let src = wd.join(String::from("source") + source.file_type.ext());
             let exec = wd.join("main");
+            let log = wd.join("compile.log");
 
             source.copy_all(&mut src.open_file()?).unwrap();
 
-            let compile_cmd = source.file_type.compile(&src, &exec);
+            let compile_cmd = source.file_type.compile(&src, &exec, &log);
 
             let term = compile_cmd.exec_fork().unwrap();
 

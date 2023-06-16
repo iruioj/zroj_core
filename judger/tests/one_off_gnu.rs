@@ -36,7 +36,7 @@ int main() {
         let res = one.exec()?;
         if let Status::Accepted = res.status {
             eprintln!("res = {:?}", res);
-            assert_eq!(String::from(&res.payload[0].1), "3\n");
+            assert_eq!(String::from(&res.payload[1].1), "3\n");
         } else {
             panic!("compile failed")
         }
