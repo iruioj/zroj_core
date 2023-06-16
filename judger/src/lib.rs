@@ -1,13 +1,4 @@
 //! ZROJ 的评测模块
-//!
-//! To 高爸：
-//!
-//! 传统题的评测放在 crate::basic 中，
-//! 交互题放在 crate::interact 中，
-//! 提交答案题放在 crate::chkraw 中，
-//! 通信题放在 crate::comms 中。
-//!
-
 #![allow(dead_code)]
 
 mod basic;

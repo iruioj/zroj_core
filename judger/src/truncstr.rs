@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// 裁剪过的文本内容。
+/// 裁剪过的文本内容，用于提交记录中文本文件的展示
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TruncStr {
     str: String,
@@ -9,7 +9,7 @@ pub struct TruncStr {
 }
 
 impl TruncStr {
-    /// 将文本按字符数裁剪
+    /// 将文本按字符数 <= limit 裁剪
     fn new(str: String, limit: usize) -> Self {
         let mut s = String::new();
         let mut counter = limit;

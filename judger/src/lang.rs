@@ -59,7 +59,7 @@ impl Compile for GnuCpp {
                 .push_arg(dest.as_ref())
                 .push_env(envs)
                 .set_limits(|_| Limitation {
-                    real_time: Some(10000),
+                    real_time: Some(10000), // 编译时间限制为 10s
                     cpu_time: Some((10000, 10000)),
                     virtual_memory: Some((1024 * 1024 * 1024, 1024 * 1024 * 1024)),
                     real_memory: Some(1024 * 1024 * 1024),

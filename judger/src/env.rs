@@ -35,7 +35,8 @@ pub fn which(cmd_name: &'static str) -> Result<PathBuf, Error> {
                     if let Ok(r) = file.file_type() {
                         if file.file_name() == os_cmd_name {
                             if r.is_symlink() {
-                                return Err(Error::CmdSymLink);
+                                return Ok(file.path());
+                                // return Err(Error::CmdSymLink);
                             }
                             if r.is_file() {
                                 return Ok(file.path());

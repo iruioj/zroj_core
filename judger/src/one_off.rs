@@ -1,4 +1,4 @@
-//! Experimental. one off mode: 自定义评测，目前只支持 C++ 语言
+//! Experimental. one off mode: 自定义评测
 
 use std::path::PathBuf;
 
@@ -25,7 +25,7 @@ pub struct OneOff<L: Compile> {
 }
 
 impl<L: Compile> OneOff<L> {
-    /// 新建一个 OneOff，工作目录默认为 cwd（生成可执行文件的路径）
+    /// 新建一个 OneOff 评测环境，工作目录默认为 cwd（生成可执行文件的路径），编译语言为 lang
     pub fn new(source: PathBuf, stdin: Option<PathBuf>, lang: L) -> Self {
         Self {
             lang,
