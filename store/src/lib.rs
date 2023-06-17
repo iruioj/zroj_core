@@ -9,14 +9,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-// Re-export #[derive(FsStore)]
-#[allow(unused_imports)]
-#[macro_use]
-extern crate store_derive;
-pub use store_derive::FsStore;
-
-/// 文件系统中的一个文件或文件夹，不保证其存在性
-///
+/// 文件系统中的一个文件或文件夹的句柄，不保证其存在性
 #[derive(Clone)]
 pub struct Handle {
     dir: PathBuf,
@@ -214,3 +207,9 @@ impl FsStore for std::fs::File {
 #[allow(unused_imports)]
 extern crate serde;
 pub use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
+
+// Re-export #[derive(FsStore)]
+#[allow(unused_imports)]
+#[macro_use]
+extern crate store_derive;
+pub use store_derive::FsStore;

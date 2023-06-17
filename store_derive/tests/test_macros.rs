@@ -11,6 +11,22 @@ struct TestStore {
     file: std::fs::File,
 }
 
+#[derive(FsStore)]
+enum TestEnumStore {
+    Apple,
+    Banana,
+    Custom {
+        #[meta]
+        name: String,
+        info: std::fs::File,
+    },
+    #[meta]
+    Invalid {
+        panic: bool,
+        line: u32,
+    },
+}
+
 #[test]
 fn test_derive_fs_store() {
     let mut file = tempfile::tempfile().unwrap();

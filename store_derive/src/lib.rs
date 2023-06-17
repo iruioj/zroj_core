@@ -1,16 +1,20 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::quote;
-use syn::Item;
+use syn::{Attribute, Item, token::Comma, punctuated::Punctuated};
+
+fn has_meta(attrs: &Vec<Attribute>) -> bool {
+    attrs.iter().any(|attr| attr.meta.path().is_ident("meta"))
+}
 
 /// 可将文件夹下文件保存的信息自动初始化到结构体中
 ///
 /// `meta` 属性表示将此字段保存到一个统一的元数据文件中，此字段类型需要实现 Serialize 和 Deserialize
 ///
 /// 没有 `meta` 属性的字段类型需要实现 FsStore
-/// 
+///
 /// 目前不支持 enum 和匿名字段的结构体（即 struct(A, B)），需要手动实现
-/// 
+///
 /// 需要 serde/derive
 #[proc_macro_derive(FsStore, attributes(meta))]
 pub fn derive_fs_store(item: TokenStream) -> TokenStream {
@@ -18,7 +22,7 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
     let mut output = proc_macro2::TokenStream::new();
 
     if let Item::Struct(item) = input {
-        let ident = item.ident;
+        let ident: Ident = item.ident;
         let mut fields = proc_macro2::TokenStream::new();
         let mut ret_fields = proc_macro2::TokenStream::new();
         let mut into_meta_fields = proc_macro2::TokenStream::new();
@@ -31,26 +35,25 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
             where_clause,
         } = item.generics;
 
-        for field in item.fields {
-            if let Some(name) = &field.ident {
-                if field
-                    .attrs
-                    .iter()
-                    .any(|attr| attr.meta.path().is_ident("meta"))
-                {
-                    // store in meta file
-                    let ty = field.ty;
-                    fields.extend(quote!( #name : #ty, ));
-                    ret_fields.extend(quote!( #name : __meta__.#name, ));
-                    into_meta_fields.extend(quote!( #name : self.#name.clone(), ));
-                } else {
-                    let name_str = name.to_string();
-                    ret_fields.extend(quote!( #name : FsStore::open(path.join(#name_str))?, ));
-                    save_block.extend(quote!( self.#name.save(path.join(#name_str))?; ));
+        match item.fields {
+            syn::Fields::Named(itemfields) => {
+                for field in itemfields.named {
+                    let name = field.ident.unwrap();
+                    if has_meta(&field.attrs) {
+                        // store in meta file
+                        let ty = field.ty;
+                        fields.extend(quote!( #name : #ty, ));
+                        ret_fields.extend(quote!( #name : __meta__.#name, ));
+                        into_meta_fields.extend(quote!( #name : self.#name.clone(), ));
+                    } else {
+                        let name_str = name.to_string();
+                        ret_fields.extend(quote!( #name : FsStore::open(path.join(#name_str))?, ));
+                        save_block.extend(quote!( self.#name.save(path.join(#name_str))?; ));
+                    }
                 }
-            } else {
-                unimplemented!()
             }
+            syn::Fields::Unnamed(fields) => todo!(),
+            syn::Fields::Unit => todo!(),
         }
 
         let meta_struct_ident =
@@ -87,8 +90,109 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
         };
 
         output.extend(stmt);
-    } else if let Item::Enum(_item) = input {
-        unimplemented!()
+    }
+    // enum
+    else if let Item::Enum(item) = input {
+        let ident = item.ident;
+
+        let syn::Generics {
+            lt_token: _,
+            params,
+            gt_token: _,
+            where_clause,
+        } = item.generics;
+
+        let mut save_branches = proc_macro2::TokenStream::new();
+        let mut meta_branches = proc_macro2::TokenStream::new();
+        let mut ret_branches = proc_macro2::TokenStream::new();
+
+        let meta_enum_ident =
+            Ident::new((ident.to_string() + "__Meta").as_str(), Span::call_site());
+
+        for varient in item.variants {
+            let varient_meta = has_meta(&varient.attrs);
+            let varname = varient.ident;
+
+            assert!(varient.discriminant.is_none());
+
+            match varient.fields {
+                syn::Fields::Named(varfields) => {
+                    let mut save_meta_fields = proc_macro2::TokenStream::new();
+                    let mut fields = proc_macro2::TokenStream::new();
+                    let mut ret_fields = proc_macro2::TokenStream::new();
+                    let mut save_block = proc_macro2::TokenStream::new();
+
+                    let mut meta_fieldnames: Punctuated<Ident, Comma> = Punctuated::new();
+                    let mut fieldnames: Punctuated<Ident, Comma> = Punctuated::new();
+                    for field in varfields.named {
+                        let name = field.ident.unwrap();
+                        fieldnames.push(name.clone());
+                        if varient_meta || has_meta(&field.attrs) {
+                            // store in meta file
+                            let ty = field.ty;
+                            fields.extend(quote!( #name : #ty, ));
+                            ret_fields.extend(quote!( #name : #name, ));
+                            save_meta_fields.extend(quote!( #name : #name.clone(), ));
+                            meta_fieldnames.push(name);
+                        } else {
+                            let name_str = name.to_string();
+                            ret_fields
+                                .extend(quote!( #name : FsStore::open(path.join(#name_str))?, ));
+
+                            save_block.extend(quote!( #name.save(path.join(#name_str))?; ));
+                        }
+                    }
+                    meta_branches.extend(quote!(#varname{#fields},));
+                    save_branches.extend(quote!(
+                        #ident::#varname{#fieldnames} => {
+                            #save_block
+
+                            #meta_enum_ident::#varname{#save_meta_fields}
+                        },
+                    ));
+                    ret_branches.extend(quote!(
+                        #meta_enum_ident::#varname{#meta_fieldnames} => #ident::#varname{#ret_fields},
+                    ));
+                }
+                syn::Fields::Unnamed(_) => todo!(),
+                syn::Fields::Unit => {
+                    meta_branches.extend(quote!(#varname,));
+                    save_branches.extend(quote!( #ident::#varname => #meta_enum_ident::#varname, ));
+                    ret_branches.extend(quote!( #meta_enum_ident::#varname => #ident::#varname,));
+                }
+            }
+        }
+
+        let meta_enum_stmt = quote! {
+            #[derive(store::SerdeSerialize, store::SerdeDeserialize)]
+            #[allow(non_camel_case_types)]
+            enum #meta_enum_ident {
+                #meta_branches
+            };
+        };
+        let stmt = quote! {
+            #[automatically_derived]
+            impl<#params> FsStore for #ident<#params> #where_clause {
+                fn open(path: store::Handle) -> Result<Self, store::Error> {
+                    use std::fs::File;
+                    let __meta__: #meta_enum_ident =
+                        path.join("__meta__").deserialize::<#meta_enum_ident>()?;
+
+                    Ok(match __meta__ {
+                        #ret_branches
+                    })
+                }
+                fn save(&mut self, path: store::Handle) -> Result<(), store::Error> {
+                    path.join("__meta__").serialize_new_file(& match self {
+                        #save_branches
+                    })?;
+                    Ok(())
+                }
+            }
+
+            #meta_enum_stmt
+        };
+        output.extend(stmt);
     }
 
     output.into()
