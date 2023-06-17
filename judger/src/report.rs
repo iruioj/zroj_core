@@ -41,7 +41,7 @@ pub struct TaskReport {
 
 impl TaskReport {
     /// 从 path 中读取文件内容作为 payload
-    pub(crate) fn add_payload(
+    pub fn add_payload(
         &mut self,
         name: impl AsRef<str>,
         path: impl AsRef<std::path::Path>,
@@ -57,6 +57,7 @@ impl TaskReport {
 }
 
 impl From<sandbox::Termination> for TaskReport {
+    /// 从 termination 自动生成 task report，默认没有 payload
     fn from(value: sandbox::Termination) -> Self {
         Self {
             status: match value.status {

@@ -10,7 +10,7 @@ pub struct TruncStr {
 
 impl TruncStr {
     /// 将文本按字符数 <= limit 裁剪
-    fn new(str: String, limit: usize) -> Self {
+    pub fn new(str: String, limit: usize) -> Self {
         let mut s = String::new();
         let mut counter = limit;
         let mut truncated = 0;

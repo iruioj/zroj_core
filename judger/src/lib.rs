@@ -1,7 +1,6 @@
 //! ZROJ 的评测模块
 #![allow(dead_code)]
 
-mod basic;
 pub mod cache;
 mod env;
 mod error;
@@ -75,4 +74,9 @@ pub mod sha_hash {
         }
     };
 }
+}
+
+// re-export
+pub mod sandbox {
+    pub use sandbox::*;
 }
