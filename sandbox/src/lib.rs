@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     ffi::{CString, NulError},
     fmt::Debug,
+    time::Duration,
 };
 
 /// 沙盒运行过程中产生的错误（系统错误）
@@ -82,22 +83,11 @@ pub struct Termination {
     /// 终止状态
     pub status: Status,
     /// 实际运行时间 (ms)
-    pub real_time: u64,
+    pub real_time: Elapse,
     /// CPU 占用时间 (ms)
-    pub cpu_time: u64,
+    pub cpu_time: Elapse,
     /// 实际占用内存 (byte)
-    pub memory: u64,
-}
-impl Termination {
-    #[deprecated]
-    fn _new() -> Self {
-        Termination {
-            status: Status::Ok,
-            real_time: 0,
-            cpu_time: 0,
-            memory: 0,
-        }
-    }
+    pub memory: Memory,
 }
 
 #[cfg(all(unix))]
@@ -106,9 +96,9 @@ impl From<nix::sys::signal::Signal> for Termination {
         // 存在优化的可能，即通过 signal 判断状态
         Self {
             status: Status::from(signal),
-            real_time: 0,
-            cpu_time: 0,
-            memory: 0,
+            real_time: Elapse::default(),
+            cpu_time: Elapse::default(),
+            memory: Memory::default(),
         }
     }
 }
@@ -184,3 +174,53 @@ pub trait Builder {
     /// Consume self to build the target.
     fn build(self) -> Result<Self::Target, SandboxError>;
 }
+
+/// 时间表示，数值单位为 ms
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd)]
+pub struct Elapse(u64);
+
+impl Elapse {
+    /// 输出以秒为单位的时间
+    pub fn sec(self) -> u64 {
+        return self.0 / 1000;
+    }
+    /// 输出以毫秒为单位的时间
+    pub fn ms(self) -> u64 {
+        return self.0
+    }
+}
+
+impl From<u64> for Elapse {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+impl From<Duration> for Elapse {
+    fn from(value: Duration) -> Self {
+        Self(value.as_millis() as u64)
+    }
+}
+
+/// 内存空间表示，数值单位为 byte
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd)]
+pub struct Memory(u64);
+
+impl From<u64> for Memory {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+impl Memory {
+    /// 输出以字节为单位的时间
+    pub fn byte(self) -> u64 {
+        return self.0;
+    }
+    
+}
+
+#[allow(unused_imports)]
+#[macro_use]
+extern crate sandbox_macro;
+pub use sandbox_macro::time;
+pub use sandbox_macro::mem;

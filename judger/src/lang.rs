@@ -1,5 +1,5 @@
 use sandbox::unix::{Limitation, SingletonBuilder};
-use sandbox::{Builder, ExecSandBox};
+use sandbox::{Builder, ExecSandBox, time, mem, Elapse, Memory};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::path::PathBuf;
@@ -13,8 +13,7 @@ pub trait Compile: ShaHash {
     /// - source: 源文件路径
     /// - dest: 编译产生的可执行文件的路径
     /// - log: 编译日志文件
-    #[cfg(all(unix))]
-    fn compile(
+    fn compile_sandbox(
         &self,
         source: impl AsRef<Path>,
         dest: impl AsRef<Path>,
@@ -51,7 +50,7 @@ impl ShaHash for GnuCpp {
 }
 
 impl Compile for GnuCpp {
-    fn compile(
+    fn compile_sandbox(
         &self,
         source: impl AsRef<Path>,
         dest: impl AsRef<Path>,
@@ -70,13 +69,13 @@ impl Compile for GnuCpp {
                 .push_arg(dest.as_ref())
                 .push_env(envs)
                 .set_limits(|_| Limitation {
-                    real_time: Some(10000), // 编译时间限制为 10s
-                    cpu_time: Some((10000, 10000)),
-                    virtual_memory: Some((1024 * 1024 * 1024, 1024 * 1024 * 1024)),
-                    real_memory: Some(1024 * 1024 * 1024),
-                    stack_memory: Some((1024 * 1024 * 1024, 1024 * 1024 * 1024)),
-                    output_memory: Some((64 * 1024 * 1024, 64 * 1024 * 1024)),
-                    fileno: Some((50, 50)),
+                    real_time: time!(10s).into(),
+                    cpu_time: time!(10s).into(),
+                    virtual_memory: mem!(1gb).into(),
+                    real_memory: mem!(1gb).into(),
+                    stack_memory: mem!(1gb).into(),
+                    output_memory: mem!(64mb).into(),
+                    fileno: 50.into(),
                 })
                 .stderr(log)
                 .build()
@@ -120,9 +119,9 @@ impl ExecSandBox for PlainCompile {
 
         Ok(sandbox::Termination {
             status: sandbox::Status::Ok,
-            real_time: 0,
-            cpu_time: 0,
-            memory: 0,
+            real_time: Default::default(),
+            cpu_time: Default::default(),
+            memory: Default::default(),
         })
     }
 }
@@ -149,16 +148,16 @@ impl ShaHash for FileType {
 }
 
 impl Compile for FileType {
-    fn compile(&self, source: impl AsRef<Path>, dest: impl AsRef<Path>, log: impl AsRef<Path>) -> Box<dyn ExecSandBox> {
+    fn compile_sandbox(&self, source: impl AsRef<Path>, dest: impl AsRef<Path>, log: impl AsRef<Path>) -> Box<dyn ExecSandBox> {
         match self {
             FileType::GnuCpp20O2 => {
-                GnuCpp::new(None, vec!["-std=c++2a", "-O2"]).compile(source, dest, log)
+                GnuCpp::new(None, vec!["-std=c++2a", "-O2"]).compile_sandbox(source, dest, log)
             }
             FileType::GnuCpp17O2 => {
-                GnuCpp::new(None, vec!["-std=c++17", "-O2"]).compile(source, dest, log)
+                GnuCpp::new(None, vec!["-std=c++17", "-O2"]).compile_sandbox(source, dest, log)
             }
             FileType::GnuCpp14O2 => {
-                GnuCpp::new(None, vec!["-std=c++14", "-O2"]).compile(source, dest, log)
+                GnuCpp::new(None, vec!["-std=c++14", "-O2"]).compile_sandbox(source, dest, log)
             }
             FileType::Plain => Box::new(PlainCompile {
                 src: source.as_ref().to_path_buf(),

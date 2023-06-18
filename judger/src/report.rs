@@ -68,8 +68,8 @@ impl From<sandbox::Termination> for TaskReport {
                 sandbox::Status::OutputLimitExceeded => Status::OutputLimitExceeded,
                 sandbox::Status::DangerousSyscall => Status::DangerousSyscall,
             },
-            time: value.cpu_time,
-            memory: value.memory,
+            time: value.cpu_time.ms(),
+            memory: value.memory.byte(),
             payload: Vec::new(),
         }
     }

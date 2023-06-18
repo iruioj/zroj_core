@@ -5,7 +5,7 @@ use crate::{
     Checker, RuntimeError,
 };
 use judger::{
-    sandbox::{unix::SingletonBuilder, Builder, ExecSandBox},
+    sandbox::{unix::SingletonBuilder, Builder, ExecSandBox, Elapse, Memory, mem},
     truncstr::{TruncStr, TRUNCATE_LEN},
 };
 use store::FsStore;
@@ -16,10 +16,10 @@ pub struct Meta {
     // pub validator: String,
     /// 时间限制
     #[meta]
-    pub time_limit: u64,
+    pub time_limit: Elapse,
     /// 空间限制
     #[meta]
-    pub memory_limit: u64,
+    pub memory_limit: Memory,
 }
 
 #[derive(FsStore)]
@@ -61,8 +61,8 @@ impl JudgeProblem for Traditional {
             return Ok({
                 let mut r = judger::TaskReport {
                     status: judger::Status::CompileError(term.status),
-                    time: term.cpu_time,
-                    memory: term.memory,
+                    time: term.cpu_time.ms(),
+                    memory: term.memory.byte(),
                     // todo: add log
                     payload: Vec::new(),
                 };
@@ -80,13 +80,13 @@ impl JudgeProblem for Traditional {
             .stdout(wd.join("output"))
             .stderr(wd.join("log"))
             .set_limits(|_| judger::sandbox::unix::Limitation {
-                real_time: Some(meta.time_limit),
-                cpu_time: Some((meta.time_limit, meta.time_limit)),
-                virtual_memory: Some((meta.memory_limit, meta.memory_limit)),
-                real_memory: Some(meta.memory_limit),
-                stack_memory: Some((meta.memory_limit, meta.memory_limit)),
-                output_memory: Some((meta.memory_limit, meta.memory_limit)),
-                fileno: Some((5, 5)),
+                real_time: meta.time_limit.into(),
+                cpu_time: meta.time_limit.into(),
+                virtual_memory: meta.memory_limit.into(),
+                real_memory: meta.memory_limit.into(),
+                stack_memory: meta.memory_limit.into(),
+                output_memory: mem!(64mb).into(),
+                fileno: 5.into(),
             })
             .build()
             .unwrap();
@@ -122,7 +122,7 @@ impl JudgeProblem for Traditional {
 
 #[cfg(test)]
 mod tests {
-    use judger::DefaultJudger;
+    use judger::{DefaultJudger, sandbox::{time, mem, Elapse, Memory}};
     use store::Handle;
 
     use crate::{data::StoreFile, problem::JudgeProblem, Checker};
@@ -149,8 +149,8 @@ mod tests {
         let jd = DefaultJudger::new(wd);
         let mut meta = Meta {
             checker: Checker::FileCmp,
-            time_limit: 5000,
-            memory_limit: 256 << 20,
+            time_limit: time!(5s),
+            memory_limit: mem!(256mb),
         };
         let mut task = Task {
             input: StoreFile::create_tmp("1 2"),

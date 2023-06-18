@@ -5,46 +5,83 @@ pub use singleton::SingletonBuilder;
 
 use serde::{Deserialize, Serialize};
 
+use crate::Elapse;
+use crate::Memory;
+
+/// 对资源 T 类型的限制
+#[derive(Serialize, Deserialize, Debug)]
+pub enum Lim<T>
+where
+    T: PartialOrd,
+{
+    /// 无限制
+    None,
+    /// 一个硬限制
+    Single(T),
+    /// soft and hard
+    Double(T, T),
+}
+
+impl<T: PartialOrd + Copy> Lim<T> {
+    /// 判断是否超过限制
+    pub fn check(&self, usage: &T) -> bool {
+        match self {
+            Lim::None => true,
+            Lim::Single(l) => usage <= l,
+            Lim::Double(s, _) => usage <= s,
+        }
+    }
+    /// 将更低的限制作为值
+    fn to_soft_option(&self) -> Option<T> {
+        match self {
+            Lim::None => None,
+            Lim::Single(s) => Some(*s),
+            Lim::Double(s, _) => Some(*s),
+        }
+    }
+}
+impl<T: PartialOrd + Copy> From<T> for Lim<T> {
+    fn from(value: T) -> Self {
+        Lim::Single(value)
+    }
+}
+
 /// 对进程施加各种类型的资源限制
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Limitation {
     /// 限制实际运行时间，一般是用来做一个大保底
-    pub real_time: Option<u64>,
-    /// 限制 CPU 的运行时间，一般用来衡量程序的运行时间，单位：ms
+    pub real_time: Lim<Elapse>,
+    /// 限制 CPU 的运行时间，一般用来衡量程序的运行时间
     ///
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
-    pub cpu_time: Option<(u64, u64)>,
-    /// 可以导致数组开大就会 MLE 的结果，单位：byte
+    pub cpu_time: Lim<Elapse>,
+    /// 可以导致数组开大就会 MLE 的结果
     ///
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
-    pub virtual_memory: Option<(u64, u64)>,
-    /// 程序执行完后才统计内存占用情况 （byte）
-    pub real_memory: Option<u64>,
-    /// byte
-    ///
+    pub virtual_memory: Lim<Memory>,
+    /// 程序执行完后才统计内存占用情况
+    pub real_memory: Lim<Memory>,
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
-    pub stack_memory: Option<(u64, u64)>,
-    /// byte
-    ///
+    pub stack_memory: Lim<Memory>,
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
-    pub output_memory: Option<(u64, u64)>,
+    pub output_memory: Lim<Memory>,
     /// 限制文件指针数
     ///
     /// soft limit 和 hard limit，一般以 soft 为衡量标准
-    pub fileno: Option<(u64, u64)>,
+    pub fileno: Lim<u64>,
 }
 
 /// 考虑安全性的默认限制，简单来说时间限制 1 分钟，空间限制 1 GB，最多同时打开 100 个文件
 impl Default for Limitation {
     fn default() -> Self {
         Self {
-            real_time: Some(60000),
-            cpu_time: Some((60000, 60000)),
-            virtual_memory: Some((1 << 30, 1 << 30)),
-            real_memory: Some(1 << 30),
-            stack_memory: Some((1 << 30, 1 << 30)),
-            output_memory: Some((1 << 30, 1 << 30)),
-            fileno: Some((100, 100)),
+            real_time: Lim::Single(60000.into()),
+            cpu_time: Lim::Single(60000.into()),
+            virtual_memory: Lim::Single((1 << 30).into()),
+            real_memory: Lim::Single((1 << 30).into()),
+            stack_memory: Lim::Single((1 << 30).into()),
+            output_memory: Lim::Single((1 << 30).into()),
+            fileno: Lim::Single(100),
         }
     }
 }

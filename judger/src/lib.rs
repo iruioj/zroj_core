@@ -55,6 +55,7 @@ trait Judge {}
 
 /// Hack 表示证伪选手代码的过程
 trait Hack {}
+
 pub mod sha_hash {
     pub use sha2::digest::Update; // re-export
 

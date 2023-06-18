@@ -4,7 +4,7 @@ fn test_cat_stdio() -> Result<(), sandbox::SandboxError> {
     use std::io::Write;
 
     use sandbox::{
-        unix::{Limitation, SingletonBuilder},
+        unix::{Limitation, SingletonBuilder, Lim},
         Builder, ExecSandBox,
     };
     use tempfile::tempdir;
@@ -18,20 +18,17 @@ fn test_cat_stdio() -> Result<(), sandbox::SandboxError> {
     fin.write_all(content.as_bytes())?;
     drop(fin);
 
-    const MB: u64 = 1024 * 1024_u64;
-    const GB: u64 = 1024 * MB;
-
     let s = SingletonBuilder::new("/usr/bin/cat")
         .stdin(filepath)
         .stdout(outputpath)
         .set_limits(|_| Limitation {
-            real_time: Some(7000),
-            cpu_time: Some((6000, 7000)),
-            virtual_memory: Some((2 * GB, 3 * GB)),
-            real_memory: Some(2 * GB),
-            stack_memory: Some((2 * GB, 3 * GB)),
-            output_memory: Some((256 * MB, 1 * GB)),
-            fileno: Some((30, 30)),
+            real_time: Lim::Single(7000.into()),
+            cpu_time: Lim::Single(7000.into()),
+            virtual_memory: Lim::Single((2 << 30).into()),
+            real_memory: Lim::Single((2 << 30).into()),
+            stack_memory: Lim::Single((2 << 30).into()),
+            output_memory: Lim::Single((64 << 20).into()),
+            fileno: Lim::Single(10),
         })
         .build()?;
 

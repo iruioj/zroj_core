@@ -77,7 +77,7 @@ fn compile_in_wd(
 
     let term = file
         .file_type
-        .compile(&src, &exec, &clog)
+        .compile_sandbox(&src, &exec, &clog)
         .exec_fork()
         .unwrap();
     Ok(term)

@@ -1,17 +1,18 @@
 [workspace]
 
 members = [
-    "sandbox", 
-    "tools",
-    "contest",
-    "problem",
-    "server",
-    "judger",
     "cli",
+    "contest",
+    "judger",
     "passwd",
+    "problem",
+    "sandbox", 
+    "sandbox_macro", 
+    "server",
     "server_derive",
+    "store",
     "store_derive",
-    "store"
+    "tools"
 ]
 
 [workspace.package]

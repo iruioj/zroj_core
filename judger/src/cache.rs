@@ -104,7 +104,7 @@ impl Cache {
         }
 
         // !!! TODO !!! null
-        let cpl = lang.compile(src_path, &dest, "/dev/null");
+        let cpl = lang.compile_sandbox(src_path, &dest, "/dev/null");
         let term = cpl.exec_sandbox()?;
         let st = term.status;
         let entry = Entry::new(self.cur_height, st);

@@ -1,7 +1,7 @@
 use crate::{
     error::{msg_err, SandboxError},
     unix::Limitation,
-    vec_str_to_vec_cstr, Builder, MemoryLimitExceededKind, Status, Termination,
+    vec_str_to_vec_cstr, Builder, Elapse, Memory, MemoryLimitExceededKind, Status, Termination,
     TimeLimitExceededKind,
 };
 use nix::{
@@ -73,20 +73,24 @@ impl Singleton {
             nix::unistd::dup2(fd, libc::STDERR_FILENO).unwrap();
         }
         // set resource limit
-        if let Some((s, h)) = self.limits.cpu_time {
-            setrlimit(Resource::RLIMIT_CPU, s / 1000, h / 1000)?;
-        }
         macro_rules! setlim {
-            ($i:ident, $r:ident) => {
-                if let Some((s, h)) = self.limits.$i {
-                    setrlimit(Resource::$r, s, h)?;
+            ($i:ident, $r:ident, $f:ident) => {
+                match self.limits.$i {
+                    crate::unix::Lim::None => {}
+                    crate::unix::Lim::Single(s) => {
+                        setrlimit(Resource::$r, s.$f(), s.$f())?;
+                    }
+                    crate::unix::Lim::Double(s, h) => {
+                        setrlimit(Resource::$r, s.$f(), h.$f())?;
+                    }
                 }
             };
         }
-        setlim!(virtual_memory, RLIMIT_AS);
-        setlim!(stack_memory, RLIMIT_STACK);
-        setlim!(output_memory, RLIMIT_FSIZE);
-        setlim!(fileno, RLIMIT_NOFILE);
+        setlim!(cpu_time, RLIMIT_CPU, sec);
+        setlim!(virtual_memory, RLIMIT_AS, byte);
+        setlim!(stack_memory, RLIMIT_STACK, byte);
+        setlim!(output_memory, RLIMIT_FSIZE, byte);
+        setlim!(fileno, RLIMIT_NOFILE, into);
         // todo: set syscall limit
         execve(&path, &args, &env)?;
         Ok(())
@@ -95,7 +99,7 @@ impl Singleton {
         use std::sync::mpsc;
         let (tx, rx) = mpsc::channel();
         // 如果有实际运行时间限制，就开一个计时线程
-        let handle = self.limits.real_time.map(|tl| {
+        let handle = self.limits.real_time.to_soft_option().map(|tl| {
             let child_inhandle = child;
             let st = start;
             thread::spawn(move || {
@@ -108,7 +112,7 @@ impl Singleton {
                             break;
                         }
                         Err(mpsc::TryRecvError::Empty) => {
-                            if st.elapsed().as_millis() > tl as u128 {
+                            if tl < st.elapsed().into() {
                                 println!("[计时线程] 子进程超时");
                                 break;
                             }
@@ -132,19 +136,20 @@ impl Singleton {
         let waitres = waitpid(child, None)?;
         let duration = start.elapsed();
         let u = getrusage(UsageWho::RUSAGE_CHILDREN)?;
-        let real_time = duration.as_millis() as u64;
-        let cpu_time =
-            (u.user_time().num_milliseconds() + u.system_time().num_milliseconds()) as u64;
-        let memory = (u.max_rss() * 1024) as u64;
+        let real_time: Elapse = duration.into();
+        let cpu_time = Elapse::from(
+            (u.user_time().num_milliseconds() + u.system_time().num_milliseconds()) as u64,
+        );
+        let memory = Memory::from((u.max_rss() * 1024) as u64);
 
         macro_rules! real_tle {
             () => {
-                self.limits.real_time.is_some() && self.limits.real_time.unwrap() < real_time
+                !self.limits.real_time.check(&real_time)
             };
         }
         macro_rules! real_mle {
             () => {
-                self.limits.real_memory.is_some() && self.limits.real_memory.unwrap() < memory
+                !self.limits.real_memory.check(&memory)
             };
         }
         let status: Status = match waitres {
@@ -289,39 +294,12 @@ pub struct SingletonBuilder {
     stderr: Option<PathBuf>,
 }
 
-macro_rules! lim_fn {
-    ($i:ident) => {
-        #[deprecated]
-        /// 添加资源限制（一个参数）
-        pub fn $i(&mut self, val: u64) -> &mut Self {
-            self.limits.$i = Some(val);
-            self
-        }
-    };
-    ($i:ident, 2) => {
-        #[deprecated]
-        /// 添加资源限制（soft and hard）
-        pub fn $i(&mut self, soft: u64, hard: u64) -> &mut Self {
-            self.limits.$i = Some((soft, hard));
-            self
-        }
-    };
-}
-
 impl SingletonBuilder {
     #[deprecated]
     #[doc(hidden)]
     pub fn new_legacy() -> Self {
         SingletonBuilder {
-            limits: Limitation {
-                real_time: None,
-                cpu_time: None,
-                virtual_memory: None,
-                real_memory: None,
-                stack_memory: None,
-                output_memory: None,
-                fileno: None,
-            },
+            limits: Limitation::default(),
             stdin: None,
             stdout: None,
             stderr: None,
@@ -380,14 +358,6 @@ impl SingletonBuilder {
         };
         self
     }
-
-    lim_fn!(real_time);
-    lim_fn!(real_memory);
-    lim_fn!(cpu_time, 2);
-    lim_fn!(virtual_memory, 2);
-    lim_fn!(stack_memory, 2);
-    lim_fn!(output_memory, 2);
-    lim_fn!(fileno, 2);
 }
 
 impl Builder for SingletonBuilder {
@@ -468,98 +438,13 @@ impl SingletonBuilder {
     }
 }
 
-/// 使用宏规则来快速初始化 Singleton.
-///
-/// 目前支持的命令语法有：
-///
-/// - 指定可执行文件：`exec: {path}`;
-/// - 指定完整的执行命令：`cmd: {args...}`;
-/// - 设置环境变量：`env: {vars...};`
-/// - 设置读入文件重定向：`stdin: {path}`
-/// - 设置输出文件重定向：`stdout: {path}`
-/// - 限制 CPU 执行时间、虚拟内存、栈空间、输出内存、文件指针数：
-///   `lim cpu_time|virtual_memory|stack|output|fileno: {soft} {hard}`;
-/// - 限制实际运行时间、实际使用内存：`lim real_time|real_memory: {time}`;
-///
-/// `exec`、`cmd` 和 `env` 可以接受任何实现了 [Into]<Arg> 的类型。
-/// 按照官方文档，对于类型 T 你只需要对 Arg 实现 [From]<T> trait 就可以自动实现 [Into] trait。
-///
-/// 时间的单位是毫秒，内存的单位是字节。
-///
-/// Example:
-///
-/// ```rust
-/// use sandbox::sigton;
-/// let s = sigton! {
-///     exec: "/usr/bin/sleep";
-///     cmd: "sleep" "2";
-///     env: "PATH=/usr/local/bin:/usr/bin" "A=b";
-///     lim cpu_time: 1000 3000;
-///     lim real_time: 2000;
-///     lim real_memory: 256 * 1024 * 1024;
-///     lim virtual_memory: 256 * 1024 * 1024 1024 * 1024 * 1024;
-///     lim stack: 256 * 1024 * 1024 1024 * 1024 * 1024;
-///     lim output: 256 * 1024 * 1024 1024 * 1024 * 1024;
-///     lim fileno: 10 10;
-/// };
-/// ```
-#[macro_export]
-#[deprecated]
-macro_rules! sigton {
-    ($( $( $cmds:ident )+ $(: $( $args:expr )*)? );*$(;)?) => {
-        // 使用新建代码块的方式解决定义域问题
-        {
-            let mut __singleton__ = $crate::unix::SingletonBuilder::new_legacy();
-            $( $crate::sigton!("ln" __singleton__ $( $cmds )+ $(: $( $args ),* )? ) );*;
-            $crate::Builder::build(__singleton__).unwrap()
-        }
-    };
-    // 解析子命令，$self 表示定义的 __singleton__
-    ("ln" $self:ident exec : $arg:expr) => {
-        $self.exec_path_legacy($arg)
-    };
-    ("ln" $self:ident stdin : $arg:expr) => {
-        $self.set_stdin($arg)
-    };
-    ("ln" $self:ident stdout : $arg:expr) => {
-        $self.set_stdout($arg)
-    };
-    ("ln" $self:ident cmd : $( $args:expr ),+ ) => {
-        // $self.arguments(vec![$( $arg ),*])
-        $( $self.push_arg_legacy($args) );+
-    };
-    ("ln" $self:ident env : $( $args:expr ),+ ) => {
-        $( $self.add_env($args) );+
-    };
-    ("ln" $self:ident lim cpu_time : $soft:expr,$hard:expr) => {
-        $self.cpu_time($soft, $hard)
-    };
-    ("ln" $self:ident lim real_time : $val:expr) => {
-        $self.real_time($val)
-    };
-    ("ln" $self:ident lim virtual_memory: $soft:expr,$hard:expr) => {
-        $self.virtual_memory($soft, $hard)
-    };
-    ("ln" $self:ident lim stack: $soft:expr,$hard:expr) => {
-        $self.stack_memory($soft, $hard)
-    };
-    ("ln" $self:ident lim real_memory : $val:expr) => {
-        $self.real_memory($val)
-    };
-    ("ln" $self:ident lim output: $soft:expr,$hard:expr) => {
-        $self.output_memory($soft, $hard)
-    };
-    ("ln" $self:ident lim fileno: $soft:expr,$hard:expr) => {
-        $self.fileno($soft, $hard)
-    };
-}
-
 #[cfg(test)]
 mod tests {
     use singleton::SingletonBuilder;
 
     use super::Status;
     use crate::unix::singleton;
+    use crate::unix::Lim;
     use crate::Builder;
     use crate::ExecSandBox;
     use crate::TimeLimitExceededKind;
@@ -600,8 +485,8 @@ mod tests {
             .push_arg("sleep")
             .push_arg("2")
             .set_limits(|mut l| {
-                l.cpu_time = Some((1000, 3000));
-                l.real_time = Some(1000);
+                l.cpu_time = Lim::Double(1000.into(), 3000.into());
+                l.real_time = Lim::Single(1000.into());
                 l
             })
             .build()?;
