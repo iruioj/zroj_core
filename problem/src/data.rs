@@ -6,18 +6,7 @@ use serde::{Deserialize, Serialize};
 use store::{FsStore, Handle};
 use tempfile::TempDir;
 
-use crate::{Error, Override};
-
-// 题目的评测数据
-// pub trait Data {
-//     type Meta: Send;
-//     type Task: Send;
-//     type SubtaskMeta: Override<Self::Meta>;
-
-//     /// 测试数据
-//     fn tasks(&self)-> Taskset<Self::Task, Self::SubtaskMeta>;
-
-// }
+use crate::{DataError, Override};
 
 /// 题目的数据
 ///
@@ -131,7 +120,7 @@ impl FsStore for Rule {
 }
 
 /// 将文件解压到临时文件夹中
-pub fn tempdir_unzip(reader: impl io::Read + io::Seek) -> Result<TempDir, Error> {
+pub fn tempdir_unzip(reader: impl io::Read + io::Seek) -> Result<TempDir, DataError> {
     let dir = TempDir::new()?;
     let mut zip = zip::ZipArchive::new(reader)?;
     zip.extract(dir.path())?;
@@ -157,23 +146,3 @@ impl StoreFile {
         Ok(())
     }
 }
-
-// impl io::Read for StoreFile {
-//     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-//         self.file.read(buf)
-//     }
-// }
-// impl io::Seek for StoreFile {
-//     fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
-//         self.file.seek(pos)
-//     }
-// }
-// impl io::Write for StoreFile {
-//     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-//         self.file.write(buf)
-//     }
-
-//     fn flush(&mut self) -> io::Result<()> {
-//         self.file.flush()
-//     }
-// }

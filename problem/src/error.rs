@@ -1,4 +1,6 @@
-pub enum Error {
+/// 在创建、修改题目，操作题目数据时出错
+#[derive(Debug)]
+pub enum DataError {
     IO(std::io::Error),
     Zip(zip::result::ZipError),
     SerdeJson(serde_json::Error),
@@ -8,25 +10,36 @@ pub enum Error {
     Store(store::Error),
 }
 
-impl From<std::io::Error> for Error {
+impl From<std::io::Error> for DataError {
     fn from(value: std::io::Error) -> Self {
-        Error::IO(value)
+        Self::IO(value)
     }
 }
-impl From<zip::result::ZipError> for Error {
+impl From<zip::result::ZipError> for DataError {
     fn from(value: zip::result::ZipError) -> Self {
-        Error::Zip(value)
+        Self::Zip(value)
     }
 }
-impl From<serde_json::Error> for Error {
+impl From<serde_json::Error> for DataError {
     fn from(value: serde_json::Error) -> Self {
-        Error::SerdeJson(value)
+        Self::SerdeJson(value)
     }
 }
-impl From<store::Error> for Error {
+impl From<store::Error> for DataError {
     fn from(value: store::Error) -> Self {
-        Error::Store(value)
+        Self::Store(value)
     }
 }
 
-// pub type Result<T> = std::result::Result<T, Error>;
+/// 在评测题目时出现的错误，注意这里是指评测错误，不包括选手程序的错误
+#[derive(Debug)]
+pub enum RuntimeError {
+    /// 操作题目数据时出错
+    DataError(DataError)
+}
+
+impl From<DataError> for RuntimeError {
+    fn from(value: DataError) -> Self {
+        Self::DataError(value)
+    }
+}

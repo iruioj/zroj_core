@@ -1,11 +1,11 @@
 use std::io;
 
 use crate::{
-    data::{tempdir_unzip, Data},
-    Error, Override,
+    data::{tempdir_unzip, Data, StoreFile},
+    DataError, Override, RuntimeError,
 };
 
-use store::FsStore;
+use store::{FsStore, Handle};
 use tempfile::TempDir;
 
 /// 题目的存储
@@ -28,7 +28,7 @@ where
     S: Override<M> + FsStore,
 {
     /// 从 reader 中解压 zip 文件到一个临时文件夹中，然后解析为题目数据
-    pub fn unzip_reader(reader: impl io::Read + io::Seek) -> Result<Self, Error> {
+    pub fn unzip_reader(reader: impl io::Read + io::Seek) -> Result<Self, DataError> {
         let dir = tempdir_unzip(reader)?;
         let ctx = store::Handle::new(dir.path());
         Ok(Self {
@@ -56,83 +56,40 @@ pub trait JudgeProblem {
     fn judge_task(
         &self,
         judger: impl judger::Judger,
-        meta: &Self::M,
-        task: &Self::T,
-        subm: Self::Subm,
-    ) -> Result<judger::TaskReport, Error>;
+        meta: &mut Self::M,
+        task: &mut Self::T,
+        subm: &mut Self::Subm,
+    ) -> Result<judger::TaskReport, RuntimeError>;
 }
 
-pub mod traditional {
-    use super::JudgeProblem;
-    use crate::data::StoreFile;
+/// 自动编译文件，可执行文件名为 name，编译日志为 name.c.log
+fn compile_in_wd(
+    file: &mut StoreFile,
+    wd: &Handle,
+    name: impl AsRef<str>,
+) -> Result<judger::sandbox::Termination, RuntimeError> {
     use judger::Compile;
-    use store::FsStore;
+    let src = wd.join(String::from(name.as_ref()) + file.file_type.ext());
+    let exec = wd.join(name.as_ref());
+    let clog = wd.join(String::from(name.as_ref()) + ".c.log");
 
-    #[derive(FsStore)]
-    pub struct Meta {
-        pub checker: StoreFile,
-        // pub validator: String,
-        /// 时间限制
-        #[meta]
-        pub time_limit: u32,
-        /// 空间限制
-        #[meta]
-        pub memory_limit: u32,
-    }
+    file.copy_all(&mut src.create_new_file().map_err(DataError::from)?).unwrap();
 
-    #[derive(FsStore)]
-    pub struct Task {
-        pub input: StoreFile,
-        pub output: StoreFile,
-    }
-
-    #[derive(FsStore)]
-    pub struct Subm {
-        source: StoreFile,
-    }
-
-    /// 传统题（只是一个评测，数据直接用 ProblemStore 存）
-    pub struct Traditional;
-
-    impl JudgeProblem for Traditional {
-        type T = Task;
-        type M = Meta;
-        type S = ();
-        type Subm = Subm;
-
-        // 先写了一个粗糙的，后面再来错误处理
-        fn judge_task(
-            &self,
-            judger: impl judger::Judger,
-            _meta: &Self::M,
-            _task: &Self::T,
-            subm: Self::Subm,
-        ) -> Result<judger::TaskReport, crate::Error> {
-            let wd = judger.working_dir();
-            let Subm { mut source } = subm;
-
-            let src = wd.join(String::from("source") + source.file_type.ext());
-            let exec = wd.join("main");
-            let log = wd.join("compile.log");
-
-            source.copy_all(&mut src.open_file()?).unwrap();
-
-            let compile_cmd = source.file_type.compile(&src, &exec, &log);
-
-            let term = compile_cmd.exec_fork().unwrap();
-
-            // Compile Error
-            if !term.status.ok() {
-                return Ok(judger::TaskReport {
-                    status: judger::Status::CompileError(term.status),
-                    time: term.cpu_time,
-                    memory: term.memory,
-                    // todo: add log
-                    payload: vec![],
-                });
-            }
-
-            todo!()
-        }
-    }
+    let term = file
+        .file_type
+        .compile(&src, &exec, &clog)
+        .exec_fork()
+        .unwrap();
+    Ok(term)
 }
+fn copy_in_wd(
+    file: &mut StoreFile,
+    wd: &Handle,
+    name: impl AsRef<str>,
+) -> Result<(), DataError> {
+    let src = wd.join(name.as_ref());
+    file.copy_all(&mut src.create_new_file()?).unwrap();
+    Ok(())
+}
+
+pub mod traditional;

@@ -43,11 +43,11 @@ impl Singleton {
         setpgid(Pid::from_raw(0), Pid::from_raw(0))?;
         // 提前计算好需要的东西
         let (path, args, env) = (
-            &CString::new(self.exec_path.as_os_str().as_bytes())?,
-            &vec_str_to_vec_cstr(&self.arguments)?,
-            &vec_str_to_vec_cstr(&self.envs)?,
+            CString::new(self.exec_path.as_os_str().as_bytes())?,
+            vec_str_to_vec_cstr(&self.arguments)?,
+            vec_str_to_vec_cstr(&self.envs)?,
         );
-
+        // redirect standard IO
         if let Some(stdin) = &self.stdin {
             let fd: std::os::fd::RawFd = fcntl::open(
                 stdin.as_os_str(),
@@ -72,7 +72,7 @@ impl Singleton {
             )?;
             nix::unistd::dup2(fd, libc::STDERR_FILENO).unwrap();
         }
-
+        // set resource limit
         if let Some((s, h)) = self.limits.cpu_time {
             setrlimit(Resource::RLIMIT_CPU, s / 1000, h / 1000)?;
         }
@@ -87,8 +87,8 @@ impl Singleton {
         setlim!(stack_memory, RLIMIT_STACK);
         setlim!(output_memory, RLIMIT_FSIZE);
         setlim!(fileno, RLIMIT_NOFILE);
-
-        execve(path, args, env)?;
+        // todo: set syscall limit
+        execve(&path, &args, &env)?;
         Ok(())
     }
     fn exec_parent(&self, child: Pid, start: Instant) -> Result<Termination, SandboxError> {

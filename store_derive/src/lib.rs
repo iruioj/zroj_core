@@ -52,7 +52,7 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
                     }
                 }
             }
-            syn::Fields::Unnamed(fields) => todo!(),
+            syn::Fields::Unnamed(_) => todo!(),
             syn::Fields::Unit => todo!(),
         }
 

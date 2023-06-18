@@ -18,13 +18,27 @@ pub use one_off::OneOff;
 pub use report::{JudgeReport, Status, TaskReport};
 
 /// Judger 是一个评测服务的上下文，可以提供评测环境的信息，访问相关缓存等等
-/// 
+///
 /// Judger 不依赖于具体的题目类型，并且一般不会随题目评测完毕而销毁（持久化）
-/// 
-/// 写成 trait 的原因是 Judger 可以有不同的实现，例如是否有缓存、是否实现了一些安全机制等等
+///
+/// 写成 trait 的原因是 Judger 可以有不同的实现，例如跨平台实现、是否有缓存、是否实现了一些安全机制等等
 pub trait Judger {
     /// 返回当前的工作目录
     fn working_dir(&self) -> store::Handle;
+}
+
+pub struct DefaultJudger {
+    wd: store::Handle,
+}
+impl DefaultJudger {
+    pub fn new(wd: store::Handle) -> Self {
+        Self { wd }
+    }
+}
+impl Judger for DefaultJudger{
+    fn working_dir(&self) -> store::Handle {
+        self.wd.clone()
+    }
 }
 
 /// Judge 表示的评测过程.
