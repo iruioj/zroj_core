@@ -42,10 +42,16 @@ where
 }
 
 /// 任务集合
-pub enum Taskset<Task, SubtaskMeta> {
+#[derive(FsStore)]
+pub enum Taskset<Task, SubtaskMeta>
+where
+    Task: FsStore,
+    SubtaskMeta: FsStore,
+{
     Subtasks {
         tasks: Vec<(Task, SubtaskMeta)>,
         /// (a, b) 表示  b 依赖 a
+        #[meta]
         deps: DepOption,
     },
     Tests {
@@ -62,42 +68,6 @@ struct TasksetMeta {
     subtask: Option<DepOption>,
     #[meta]
     n_tests: usize,
-}
-
-impl<Task: FsStore, SubtaskMeta: FsStore> FsStore for Taskset<Task, SubtaskMeta> {
-    fn open(ctx: Handle) -> Result<Self, store::Error> {
-        let meta: TasksetMeta = ctx.join("_taskset_meta").deserialize()?;
-        if let Some(deps) = meta.subtask {
-            Ok(Taskset::Subtasks {
-                tasks: FsStore::open(ctx.join("tasks"))?,
-                deps,
-            })
-        } else {
-            Ok(Taskset::Tests {
-                tasks: FsStore::open(ctx.join("tasks"))?,
-            })
-        }
-    }
-
-    fn save(&mut self, ctx: Handle) -> Result<(), store::Error> {
-        match self {
-            Taskset::Subtasks { tasks, deps } => {
-                ctx.join("_taskset_meta").serialize_new_file(&TasksetMeta {
-                    subtask: Some(deps.clone()),
-                    n_tests: tasks.len(),
-                })?;
-                tasks.save(ctx.join("tasks"))?;
-            }
-            Taskset::Tests { tasks } => {
-                ctx.join("_taskset_meta").serialize_new_file(&TasksetMeta {
-                    subtask: None,
-                    n_tests: tasks.len(),
-                })?;
-                tasks.save(ctx.join("tasks"))?;
-            }
-        }
-        Ok(())
-    }
 }
 
 /// 子任务记分规则

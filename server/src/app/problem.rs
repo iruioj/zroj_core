@@ -4,7 +4,7 @@ use crate::{
     data::{problem_config::AManager, schema::ProblemAccess},
 };
 use actix_web::{error, get, web, Result};
-use macros::scope_service;
+use server_derive::scope_service;
 
 #[get("/{pid}")]
 async fn handle_view_problem(

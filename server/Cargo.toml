@@ -7,7 +7,7 @@ edition.workspace = true
 judger = { path = "../judger" }
 sandbox = { path = "../sandbox" }
 passwd = { path = "../passwd" }
-macros = { path = "../macros" }
+server_derive = { path = "../server_derive" }
 
 actix-web = "4"
 actix-session = { version = "0.7.2", features = ["cookie-session"] }

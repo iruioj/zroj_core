@@ -11,7 +11,7 @@ use actix_web::{
     get, post, web, Result,
 };
 use judger::TaskReport;
-use macros::scope_service;
+use server_derive::scope_service;
 use serde::Serialize;
 use serde_json::json;
 use std::fmt::Debug;

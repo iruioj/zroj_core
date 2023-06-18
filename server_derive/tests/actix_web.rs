@@ -1,5 +1,5 @@
 use actix_web::{HttpResponse, HttpRequest};
-use macros::scope_service;
+use server_derive::scope_service;
 
 async fn default_route(_: HttpRequest) -> HttpResponse {
     HttpResponse::NotFound().finish()

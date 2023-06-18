@@ -9,7 +9,7 @@ members = [
     "judger",
     "cli",
     "passwd",
-    "macros",
+    "server_derive",
     "store_derive",
     "store"
 ]

@@ -4,7 +4,7 @@ use crate::{SessionID, UserID};
 use actix_session::Session;
 use actix_web::cookie::Cookie;
 use actix_web::{error, get, post, web, HttpResponse};
-use macros::scope_service;
+use server_derive::scope_service;
 use serde::{Deserialize, Serialize};
 
 fn validate_username(username: &String) -> actix_web::Result<()> {

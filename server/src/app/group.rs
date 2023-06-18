@@ -6,7 +6,7 @@ use actix_web::{
     error::{self, Result},
     get, post, web,
 };
-use macros::scope_service;
+use server_derive::scope_service;
 
 #[get("/{gid}")]
 async fn group_info(
