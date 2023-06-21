@@ -24,7 +24,7 @@
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^4.2.1",
     "highlight.js": "^11.7.0",
-    "nuxt": "^3.4.2",
+    "nuxt": "^3.4.3",
     "nuxt-icons": "^3.2.1",
     "passwd": "../passwd/pkg",
     "pinia": "^2.0.35",
