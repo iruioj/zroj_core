@@ -102,8 +102,6 @@ async fn edit(
 */
 
 /// 提供自定义测试服务
-///
-/// scope path: `/custom_test`
 #[scope_service(path = "/custom_test")]
 pub fn service(
     custom_test_manager: web::Data<CustomTestManager>,
@@ -114,19 +112,3 @@ pub fn service(
     service(custom_test_get);
     service(custom_test_post);
 }
-/* -> actix_web::Scope<
-    impl actix_web::dev::ServiceFactory<
-        actix_web::dev::ServiceRequest,
-        Config = (),
-        Response = actix_web::dev::ServiceResponse,
-        Error = actix_web::Error,
-        InitError = (),
-    >,
-> {
-    web::scope("/custom_test")
-        .app_data(custom_test_manager)
-        .app_data(judge_queue)
-        .service(custom_test_post)
-        .service(custom_test_get)
-}
-*/

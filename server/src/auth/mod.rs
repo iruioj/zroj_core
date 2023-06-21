@@ -67,3 +67,5 @@ impl Clone for SessionManager {
         Self(self.0.clone())
     }
 }
+
+pub const SESSION_ID_KEY: &'static str = "session-id";

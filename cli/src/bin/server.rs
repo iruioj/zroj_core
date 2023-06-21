@@ -6,7 +6,7 @@ use actix_web::web::Data;
 use actix_web::{cookie::Key, App, HttpServer};
 use server::actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use server::auth::SessionManager;
-use server::data::problem_config::{self, Manager};
+// use server::data::problem_config::{self, Manager};
 use server::data::{
     group::{self, Manager as GroupManager},
     user::{self, Manager as UserManager},
@@ -19,12 +19,12 @@ async fn main() -> std::io::Result<()> {
         Data::from(user::FsManager::new(PathBuf::from("/var/users.json")).to_amanager());
     let group_manager =
         group::FsManager::new(PathBuf::from("/var/groups.json")).to_amanager();
-    let problem_config_manager =
-        Data::from(problem_config::FsManager::new(PathBuf::from("/var/groups/problem_config.json"), group_manager.clone()).to_amanager());
+    // let problem_config_manager =
+    //     Data::from(problem_config::FsManager::new(PathBuf::from("/var/groups/problem_config.json"), group_manager.clone()).to_amanager());
     let group_manager = Data::from(group_manager);
-    let problem_manager = Data::new(server::manager::problem::ProblemManager::new(
-        "/var/problems/".to_string(),
-    ));
+    // let problem_manager = Data::new(server::manager::_problem::ProblemManager::new(
+    //     "/var/problems/".to_string(),
+    // ));
     let custom_test_manager = Data::new(server::manager::custom_test::CustomTestManager::new(
         "/var/custom_test/".into(),
     ));
@@ -46,8 +46,8 @@ async fn main() -> std::io::Result<()> {
                 session_container.clone(),
                 user_data_manager.clone(),
                 group_manager.clone(),
-                problem_config_manager.clone(),
-                problem_manager.clone(),
+                // problem_config_manager.clone(),
+                // problem_manager.clone(),
                 custom_test_manager.clone(),
                 judge_queue.clone(),
             ))

@@ -6,14 +6,14 @@ use serde::{Deserialize, Serialize};
 table! {
     users (id) {
         /// id should be auto increment
-        id -> Integer,
+        id -> Unsigned<Integer>,
         username -> Varchar,
         password_hash -> Varchar,
         email -> Varchar,
         motto -> Varchar,
         name -> Varchar,
         register_time -> Varchar,
-        gender -> Integer,
+        gender -> Unsigned<Integer>,
         groups -> Varchar,
     }
 }
@@ -26,7 +26,7 @@ pub enum Gender {
     Private = 3,
 }
 impl Gender {
-    pub fn from_i32(value: i32) -> Self {
+    pub fn from_u32(value: u32) -> Self {
         match value {
             0 => Self::Male,
             1 => Self::Female,
@@ -40,14 +40,14 @@ impl Gender {
 /// struct for database query
 #[derive(Queryable, Debug, Serialize, Deserialize, Clone, AsChangeset)]
 pub struct User {
-    pub id: i32,
+    pub id: UserID,
     pub username: String,
     pub password_hash: String,
     pub email: String,
     pub motto: String,
     pub name: String,
     pub register_time: String,
-    pub gender: i32,
+    pub gender: u32,
     pub groups: String,
 }
 /// struct for database insertion
@@ -59,7 +59,7 @@ pub struct NewUser<'a> {
     pub email: &'a str,
     pub register_time: String,
     pub groups: String,
-    pub gender: i32,
+    pub gender: u32,
 }
 
 /*
@@ -76,9 +76,9 @@ pub struct UserUpdate {
 
 #[derive(Queryable, Debug, Serialize, Deserialize, Clone)]
 pub struct Group {
-    pub id: i32,
+    pub id: GroupID,
     pub name: String,
-    pub owner: i32,
+    pub owner: UserID,
     pub users: GroupUsers,
 }
 

@@ -1,5 +1,5 @@
 use crate::{
-    manager::problem::{Metadata, ProblemManager},
+    // manager::_problem::{Metadata, ProblemManager},
     ProblemID, UserID,
     data::{problem_config::AManager, schema::ProblemAccess},
 };
@@ -21,25 +21,9 @@ async fn handle_view_problem(
 }
 
 /// 提供 problem 相关服务
-///
-/// scope path: `/problem`
 #[scope_service(path = "/problem")]
 pub fn service(problem_manager: web::Data<ProblemManager>, config_manager: web::Data<AManager>) {
     app_data(problem_manager);
     app_data(config_manager);
     service(handle_view_problem);
 }
-
-/* -> actix_web::Scope<
-    impl actix_web::dev::ServiceFactory<
-        actix_web::dev::ServiceRequest,
-        Config = (),
-        Response = actix_web::dev::ServiceResponse,
-        Error = actix_web::Error,
-        InitError = (),
-    >,
-> {
-    web::scope("/problem")
-        .app_data(problem_manager)
-        .service(handle_view_problem)
-}*/

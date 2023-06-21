@@ -48,7 +48,7 @@ pub trait Manager {
     /// returns None if this group name is already taken
     /// otherwise returns group id
     async fn new_group(&self, owner: UserID, name: String) -> Result<Option<GroupID>>;
-    async fn group_contains(&self, gid: GroupID, uid: i32) -> Result<bool>;
+    async fn group_contains(&self, gid: GroupID, uid: UserID) -> Result<bool>;
     /// returns false if uid already exists
     async fn group_insert(&self, uid: UserID, gid: GroupID, users: &Vec<UserID>) -> Result<usize>;
     /// return false if uid does not exist

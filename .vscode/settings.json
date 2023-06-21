@@ -1,5 +1,10 @@
 {
   "editor.tabSize": 4,
   "deno.enable": true,
-  "rust-analyzer.check.features": ["server/mysql"]
+  "rust-analyzer.check.features": [
+    "server/mysql"
+  ],
+  "rust-analyzer.cargo.cfgs": {
+    "feature": "mysql"
+  }
 }

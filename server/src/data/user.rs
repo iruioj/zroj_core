@@ -1,4 +1,5 @@
-//! imp struct for different database queries
+//! 用户数据库
+
 use super::error::{Error, Result};
 use crate::data::schema::Gender;
 use crate::{app::user::UserUpdateInfo, data::schema::User};
@@ -7,14 +8,14 @@ use async_trait::async_trait;
 use std::sync::Arc;
 pub type AManager = dyn Manager + Sync + Send;
 use serde::{Deserialize, Serialize};
-use serde_json::from_str;
 
+// Result<Option<...>> pattern: Err 表示出错， None 表示未查到，Some 表示查到的值
 #[async_trait]
 pub trait Manager {
     async fn query_by_username(&self, username: &str) -> Result<Option<User>>;
-    async fn query_by_userid(&self, uid: i32) -> Result<Option<User>>;
+    async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>>;
     async fn new_user(&self, username: &str, password_hash: &str, email: &str) -> Result<User>;
-    async fn update(&self, uid: i32, info: UserUpdateInfo) -> Result<()>;
+    async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<()>;
     fn to_amanager(self) -> Arc<AManager>;
 }
 
@@ -87,7 +88,7 @@ mod database {
         async fn _query_by_userid(
             &self,
             conn: &mut MysqlPooledConnection,
-            uid: i32,
+            uid: UserID,
         ) -> Result<Option<User>> {
             let result = users::table.filter(users::id.eq(uid)).first(conn);
             match result {
@@ -105,7 +106,7 @@ mod database {
             self._query_by_username(&mut self.get_conn().await?, username)
                 .await
         }
-        async fn query_by_userid(&self, uid: i32) -> Result<Option<User>> {
+        async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>> {
             self._query_by_userid(&mut self.get_conn().await?, uid)
                 .await
         }
@@ -117,7 +118,7 @@ mod database {
                     password_hash,
                     email,
                     register_time: chrono::Local::now().to_string(),
-                    gender: Gender::Private as i32,
+                    gender: Gender::Private as u32,
                     groups: serde_json::to_string(&Vec::<GroupID>::new()).unwrap(),
                 };
                 diesel::insert_into(users::table)
@@ -131,7 +132,7 @@ mod database {
         fn to_amanager(self) -> Arc<AManager> {
             Arc::new(self)
         }
-        async fn update(&self, uid: i32, info: UserUpdateInfo) -> Result<()> {
+        async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<()> {
             let mut conn = self.get_conn().await?;
             let mut user =
                 self._query_by_userid(&mut conn, uid)
@@ -149,9 +150,12 @@ mod database {
     }
 }
 
-pub use hashmap::FsManager;
-mod hashmap {
-    use crate::data::user::*;
+pub use default::FsManager;
+
+mod default {
+    //! 默认实现方式（无 sql 依赖）
+
+    use super::*;
     use std::sync::RwLock;
     use std::{collections::HashMap, path::PathBuf};
 
@@ -175,9 +179,9 @@ mod hashmap {
         }
         fn load(path: &PathBuf) -> std::result::Result<Data, ()> {
             let s = std::fs::read_to_string(path)
-                .map_err(|_| eprintln!("Fail to read from path: {}", path.display()))?;
-            from_str::<Data>(&s)
-                .map_err(|_| eprintln!("Fail to parse file content as user data"))
+                .map_err(|_| eprintln!("warning: fail to read from path: {}", path.display()))?;
+            serde_json::from_str::<Data>(&s)
+                .map_err(|_| eprintln!("warning: fail to parse file content as user data"))
         }
         /// save data to json file, must be saved or panic!!!
         fn save(&self) {
@@ -216,7 +220,7 @@ mod hashmap {
                 motto: String::new(),
                 name: String::new(),
                 register_time: chrono::Local::now().to_string(),
-                gender: Gender::Private as i32,
+                gender: Gender::Private as u32,
                 groups: serde_json::to_string(&Vec::<GroupID>::new()).unwrap(),
             };
             guard.0.insert(new_user.username.clone(), new_user.id);
@@ -225,7 +229,7 @@ mod hashmap {
             self.save();
             Ok(new_user)
         }
-        async fn update(&self, uid: i32, info: UserUpdateInfo) -> Result<()> {
+        async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<()> {
             let mut guard = self.data.write()?;
             if uid < 0 || uid as usize >= guard.1.len() {
                 return Err(Error::InvalidArgument(format!(

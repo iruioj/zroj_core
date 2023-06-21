@@ -81,7 +81,7 @@ pub struct SessionAuthMiddleware<S> {
 impl<S> SessionAuthMiddleware<S> {
     pub fn work(&self, req: &ServiceRequest) -> Result<()> {
         let session = req.get_session();
-        if let Some(id) = session.get::<SessionID>("session-id")? {
+        if let Some(id) = session.get::<SessionID>(super::SESSION_ID_KEY)? {
             eprintln!("session id = {}", id);
             if let Some(info) = self.inner.store.get(id)? {
                 req.extensions_mut().insert(id);
@@ -89,7 +89,7 @@ impl<S> SessionAuthMiddleware<S> {
                 return Ok(());
             } else if self.inner.require {
                 // has session id but info not found
-                session.remove("session-id");
+                session.remove(super::SESSION_ID_KEY);
                 return Err(error::ErrorUnauthorized("invalid session id"));
             }
         } else {

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 struct UserDisplayInfo {
-    pub id: i32,
+    pub id: u32,
     pub username: String,
     pub email: String,
     pub motto: String,
@@ -32,7 +32,7 @@ impl From<User> for UserDisplayInfo {
             motto: value.motto,
             name: value.name,
             register_time: value.register_time,
-            gender: Gender::from_i32(value.gender),
+            gender: Gender::from_u32(value.gender),
             groups: serde_json::from_str(&value.groups)
                 .expect("Group info is not maintained properly"),
         }
@@ -66,7 +66,7 @@ async fn profile(
 
 #[derive(Serialize)]
 struct UserEditInfo {
-    pub id: i32,
+    pub id: u32,
     pub username: String,
     pub password_hash: String,
     pub email: String,
@@ -85,7 +85,7 @@ impl From<User> for UserEditInfo {
             motto: value.motto,
             name: value.name,
             register_time: value.register_time,
-            gender: Gender::from_i32(value.gender),
+            gender: Gender::from_u32(value.gender),
         }
     }
 }
@@ -126,7 +126,7 @@ impl crate::Override<User> for UserUpdateInfo {
             origin.name = n;
         }
         if let Some(g) = self.gender {
-            origin.gender = g as i32;
+            origin.gender = g as u32;
         }
     }
 }

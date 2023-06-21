@@ -10,14 +10,11 @@ use serde::{Deserialize, Serialize};
 fn validate_username(username: &String) -> actix_web::Result<()> {
     if username.chars().any(|c| !(c.is_alphanumeric() || c == '_')) {
         return Err(error::ErrorBadRequest(
-            "Username contains invalid character",
+            "username contains invalid character",
         ));
     }
-    if username.len() > 20 {
-        return Err(error::ErrorBadRequest("Username is too long"));
-    }
-    if username.len() < 6 {
-        return Err(error::ErrorBadRequest("Username is too short"));
+    if username.len() > 20  || username.len() > 6 {
+        return Err(error::ErrorBadRequest("length of username should between [6, 20]"));
     }
     Ok(())
 }
@@ -47,15 +44,15 @@ async fn login(
         .await?
     {
         Some(r) => r,
-        None => return Err(error::ErrorBadRequest("User does not exist")),
+        None => return Err(error::ErrorBadRequest("user does not exist")),
     };
     if !passwd::verify(&user.password_hash, &payload.password_hash) {
-        Err(error::ErrorBadRequest("Password not correct"))
+        Err(error::ErrorBadRequest("password not correct"))
     } else {
-        let id = SessionID::new_v4(); // generate a random session-id
+        let id = SessionID::new_v4(); // generate a random session id
         eprintln!("generate new session id {}", id);
         session_container.set(id, AuthInfo { uid: user.id })?;
-        session.insert("session-id", id)?;
+        session.insert(crate::auth::SESSION_ID_KEY, id)?;
         Ok(HttpResponse::Ok()
             .cookie(Cookie::build("username", user.username).path("/").finish())
             .body("login success"))
@@ -126,10 +123,10 @@ async fn logout(
     session_container: web::Data<SessionManager>,
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
-    let id = session.get::<SessionID>("session-id")?;
+    let id = session.get::<SessionID>(crate::auth::SESSION_ID_KEY)?;
     if let Some(id) = id {
         session_container.remove(id)?;
-        session.remove("session-id");
+        session.remove(crate::auth::SESSION_ID_KEY);
         return Ok(HttpResponse::Ok().body("logout success"));
     }
     Err(error::ErrorBadRequest("invalid session id"))

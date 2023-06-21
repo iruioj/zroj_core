@@ -1,9 +1,9 @@
-//! 题目数据存储的抽象
+//! 题目数据存储
 
 use std::io::{self, Seek, Write};
 
 use serde::{Deserialize, Serialize};
-use store::{FsStore, Handle};
+use store::FsStore;
 use tempfile::TempDir;
 
 use crate::{DataError, Override};
@@ -71,22 +71,12 @@ struct TasksetMeta {
 }
 
 /// 子任务记分规则
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, FsStore)]
 pub enum Rule {
     /// 各测试点得分和
     Sum,
     /// 取各测试点最低分
     Minimum,
-}
-
-impl FsStore for Rule {
-    fn open(path: Handle) -> Result<Self, store::Error> {
-        path.join("_rule").deserialize()
-    }
-
-    fn save(&mut self, path: Handle) -> Result<(), store::Error> {
-        path.join("_rule").serialize_new_file(&self)
-    }
 }
 
 /// 将文件解压到临时文件夹中

@@ -3,8 +3,9 @@
 use std::path::PathBuf;
 
 use sandbox::{
+    mem, time,
     unix::{Limitation, SingletonBuilder},
-    Builder, ExecSandBox, Elapse, Memory, time, mem,
+    Builder, Elapse, ExecSandBox, Memory,
 };
 
 use crate::{lang::Compile, Error, Status, TaskReport};
@@ -22,6 +23,8 @@ pub struct OneOff<L: Compile> {
     working_dir: PathBuf,
     time_limit: Elapse,
     memory_limit: Memory,
+    output_limit: Memory,
+    fileno_limit: u64,
 }
 
 impl<L: Compile> OneOff<L> {
@@ -34,6 +37,8 @@ impl<L: Compile> OneOff<L> {
             working_dir: std::env::current_dir().unwrap(),
             time_limit: time!(1s),
             memory_limit: mem!(512mb),
+            output_limit: mem!(64mb),
+            fileno_limit: 6,
         }
     }
     pub fn set_wd(&mut self, dir: PathBuf) -> &mut Self {
@@ -67,8 +72,8 @@ impl<L: Compile> OneOff<L> {
                     virtual_memory: self.memory_limit.into(),
                     real_memory: self.memory_limit.into(),
                     stack_memory: self.memory_limit.into(),
-                    output_memory: mem!(64mb).into(),
-                    fileno: 6.into(),
+                    output_memory: self.output_limit.into(),
+                    fileno: self.fileno_limit.into(),
                 })
                 .stdout(&out)
                 .stderr(&log);
