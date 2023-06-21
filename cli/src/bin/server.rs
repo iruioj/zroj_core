@@ -14,7 +14,7 @@ use server::data::{
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let session_container = SessionManager::new();
+    let session_container = SessionManager::default();
     let user_data_manager =
         Data::from(user::FsManager::new(PathBuf::from("/var/users.json")).to_amanager());
     let group_manager =

@@ -9,7 +9,7 @@ pub enum SandboxError {
     Msg(String),
 }
 
-impl<'a> Display for SandboxError {
+impl Display for SandboxError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let SandboxError::Msg(str) = self;
         write!(f, "SandboxError: {}", str)
@@ -43,6 +43,6 @@ impl_err!(
 );
 
 /// return a Result error containing a message
-pub fn msg_err<'a, T, M: Into<String>>(msg: M) -> Result<T, SandboxError> {
+pub fn msg_err<T, M: Into<String>>(msg: M) -> Result<T, SandboxError> {
     Err(SandboxError::Msg(msg.into()))
 }

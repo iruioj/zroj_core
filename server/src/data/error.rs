@@ -12,7 +12,7 @@ impl ToString for Error {
     fn to_string(&self) -> String {
         match self {
             #[cfg(feature = "mysql")]
-            Self::ConnectionError(e) => format!("Database connection error: {}", e.to_string()),
+            Self::ConnectionError(e) => format!("Database connection error: {}", e),
             Self::DbError(e) => format!("Database error: {}", e),
             Self::LockError => {
                 "Lock returned poisoned, which can be caused by a panicked thread".to_string()

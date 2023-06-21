@@ -15,7 +15,7 @@ fn test_gcc_linux() -> Result<(), sandbox::SandboxError> {
     let execpath = &dir.path().join("main");
     let mut file = std::fs::File::create(filepath)?;
     let source = include_str!("asserts/stress.txt");
-    file.write(source.as_bytes())?;
+    file.write_all(source.as_bytes())?;
     let s = SingletonBuilder::new("/usr/bin/g++")
         .push_arg("g++")
         .push_arg(filepath)

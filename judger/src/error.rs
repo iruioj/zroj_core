@@ -25,7 +25,7 @@ impl From<std::io::Error> for Error {
     }
 }
 
-impl<'a> Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::CmdNotFound => write!(f, "Command not found"),

@@ -41,8 +41,8 @@ impl Checker {
                 });
                 let fans = BufReader::new(answer.open_file().expect("can not open answer file"));
 
-                let fout = fout.lines().filter_map(|l| l.ok());
-                let fans = fans.lines().filter_map(|l| l.ok());
+                let fout = fout.lines().map_while(Result::ok);
+                let fans = fans.lines().map_while(Result::ok);
                 let diff = fout
                     .zip(fans)
                     .enumerate()
@@ -50,7 +50,7 @@ impl Checker {
 
                 match diff {
                     Some((id, _)) => (false, format!("different at line {}", id)),
-                    None => (true, format!("correct.")),
+                    None => (true, "correct.".to_string()),
                 }
             }
             Checker::Testlib { source: _ } => todo!(),

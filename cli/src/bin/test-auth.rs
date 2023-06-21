@@ -10,7 +10,7 @@ use server::data::user::Manager;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let dir = tempfile::tempdir().unwrap();
-    let session_container = SessionManager::new();
+    let session_container = SessionManager::default();
     let user_db = web::Data::from(user::FsManager::new(dir.path().join("user_data")).to_amanager());
     let host = "127.0.0.1".to_string();
     let port = 8080;

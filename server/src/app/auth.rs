@@ -82,9 +82,9 @@ async fn register(
     if !email_address::EmailAddress::is_valid(&payload.email) {
         return Err(error::ErrorBadRequest("Invalid email address"));
     }
-    if let Some(_) = user_data_manager
+    if user_data_manager
         .query_by_username(&payload.username)
-        .await?
+        .await?.is_some()
     {
         return Err(error::ErrorBadRequest("User already exists"));
     }

@@ -20,10 +20,14 @@ pub struct AuthInfo {
 
 /// session data container
 pub struct SessionManager(pub Arc<RwLock<HashMap<SessionID, AuthInfo>>>);
-impl SessionManager {
-    pub fn new() -> Self {
+
+impl Default for SessionManager {
+    fn default() -> Self {
         Self(Arc::new(RwLock::new(HashMap::<SessionID, AuthInfo>::new())))
     }
+}
+
+impl SessionManager {
     pub fn get(&self, id: SessionID) -> Result<Option<AuthInfo>> {
         let mp = self
             .0
@@ -68,4 +72,4 @@ impl Clone for SessionManager {
     }
 }
 
-pub const SESSION_ID_KEY: &'static str = "session-id";
+pub const SESSION_ID_KEY: &str = "session-id";

@@ -38,30 +38,14 @@ mod database {
     use crate::data::user::Manager;
 
     pub struct DbManager(MysqlPool);
-    /*use super::super::schema::UserUpdate;
-    impl UserUpdate {
-        fn from(value: &UserUpdateInfo) -> Self {
-            Self {
-                password_hash: value.password_hash.clone(),
-                email: value.email.clone(),
-                motto: value.motto.clone(),
-                name: value.name.clone(),
-                gender: match &value.gender {
-                    Some(g) => Some(g.clone() as i32),
-                    None => None,
-                },
-            }
-        }
-    }*/
+    
     /// 数据库存储
     impl DbManager {
-        pub fn new(url: &String) -> Self {
-            Self {
-                0: Pool::builder()
+        pub fn new(url: impl AsRef<str>) -> Self {
+            Self(Pool::builder()
                     .max_size(15)
-                    .build(ConnectionManager::<MysqlConnection>::new(url.clone()))
-                    .expect("fail to establish database connection pool"),
-            }
+                    .build(ConnectionManager::<MysqlConnection>::new(url.as_ref()))
+                    .expect("fail to establish database connection pool"))
         }
         async fn get_conn(&self) -> Result<MysqlPooledConnection> {
             Ok(self.0.get()?)
@@ -126,7 +110,7 @@ mod database {
                     .execute(conn)?;
                 users::table.order(users::id.desc()).first::<User>(conn)
             })
-            .map_err(|e| Error::DbError(e))
+            .map_err(Error::DbError)
         }
         /// consume self and return its Arc.
         fn to_amanager(self) -> Arc<AManager> {
@@ -204,7 +188,7 @@ mod default {
         }
         async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>> {
             let guard = self.data.read()?;
-            if uid < 0 || uid as usize >= guard.1.len() {
+            if uid as usize >= guard.1.len() {
                 Ok(None)
             } else {
                 Ok(Some(guard.1[uid as usize].clone()))
@@ -231,7 +215,7 @@ mod default {
         }
         async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<()> {
             let mut guard = self.data.write()?;
-            if uid < 0 || uid as usize >= guard.1.len() {
+            if uid as usize >= guard.1.len() {
                 return Err(Error::InvalidArgument(format!(
                     "userid = {} violates range: [{}, {})",
                     uid,

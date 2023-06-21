@@ -62,11 +62,7 @@ pub enum Status {
 impl Status {
     /// if it is ok
     pub fn ok(&self) -> bool {
-        if let Self::Ok = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Self::Ok)
     }
 }
 
@@ -103,7 +99,7 @@ impl From<nix::sys::signal::Signal> for Termination {
     }
 }
 
-fn vec_str_to_vec_cstr(strs: &Vec<String>) -> Result<Vec<CString>, NulError> {
+fn vec_str_to_vec_cstr(strs: &[String]) -> Result<Vec<CString>, NulError> {
     strs.iter().map(|s| CString::new(s.clone())).collect()
 }
 
@@ -120,7 +116,7 @@ pub trait ExecSandBox {
     fn exec_sandbox_fork(&self, result_file: &mut std::fs::File) -> Result<(), SandboxError> {
         use std::io::Write;
 
-        result_file.write(serde_json::to_string(&self.exec_sandbox()?)?.as_bytes())?;
+        result_file.write_all(serde_json::to_string(&self.exec_sandbox()?)?.as_bytes())?;
         Ok(())
     }
 
@@ -182,11 +178,11 @@ pub struct Elapse(u64);
 impl Elapse {
     /// 输出以秒为单位的时间
     pub fn sec(self) -> u64 {
-        return self.0 / 1000;
+        self.0 / 1000
     }
     /// 输出以毫秒为单位的时间
     pub fn ms(self) -> u64 {
-        return self.0
+        self.0
     }
 }
 
@@ -214,7 +210,7 @@ impl From<u64> for Memory {
 impl Memory {
     /// 输出以字节为单位的时间
     pub fn byte(self) -> u64 {
-        return self.0;
+        self.0
     }
     
 }

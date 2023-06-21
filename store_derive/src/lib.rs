@@ -3,7 +3,7 @@ use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::{Attribute, Item, token::Comma, punctuated::Punctuated};
 
-fn has_meta(attrs: &Vec<Attribute>) -> bool {
+fn has_meta(attrs: &[Attribute]) -> bool {
     attrs.iter().any(|attr| attr.meta.path().is_ident("meta"))
 }
 

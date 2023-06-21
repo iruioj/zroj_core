@@ -14,7 +14,7 @@ use server::manager::judge_queue::JudgeQueue;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let dir = tempfile::tempdir().unwrap();
-    let session_container = SessionManager::new();
+    let session_container = SessionManager::default();
     let user_db = web::Data::from(user::FsManager::new(dir.path().join("user_data")).to_amanager());
     // 预先插入一个用户方便测试
     user_db.new_user("testtest", &passwd::register_hash("testtest"), "test@test.com").await.unwrap();

@@ -22,10 +22,7 @@ pub fn netstat() -> Vec<TcpListenInfo> {
                 .unwrap()
                 .flat_map(|prc| prc.unwrap().tcp6().unwrap()),
         )
-        .filter(|tcp| match tcp.state {
-            procfs::net::TcpState::Listen => true,
-            _ => false,
-        })
+        .filter(|tcp| matches!(tcp.state, procfs::net::TcpState::Listen))
         .map(|tcp| (tcp.inode, (tcp.local_address, tcp.remote_address)))
         .collect();
 

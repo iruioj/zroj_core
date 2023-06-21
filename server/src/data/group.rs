@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 pub struct GroupUsers(Vec<UserID>);
 impl GroupUsers {
     pub fn new(id: UserID) -> Self {
-        Self { 0: vec![id] }
+        Self(vec![id])
     }
     pub fn to_string(&self) -> String {
         serde_json::to_string(self).expect("Group users not maintained properly")
@@ -19,10 +19,7 @@ impl GroupUsers {
         serde_json::from_str(s).expect("Group users not maintained properly")
     }
     pub fn contains(&self, uid: UserID) -> bool {
-        match self.0.binary_search(&uid) {
-            Ok(_) => true,
-            _ => false,
-        }
+        matches!(self.0.binary_search(&uid), Ok(_))
     }
     pub fn insert(&mut self, uid: UserID) -> bool {
         let index = match self.0.binary_search(&uid) {
@@ -101,8 +98,9 @@ mod hashmap {
         fn save(&self) {
             let guard = self.data.read().expect("Fail to fetch guard when saving");
             let s = serde_json::to_string::<Data>(&guard).expect("Fail to parse user data as json");
-            std::fs::write(&self.path, s).unwrap_or_else(|_| panic!("Fail to write user data to path: {}",
-                self.path.display()));
+            std::fs::write(&self.path, s).unwrap_or_else(|_| {
+                panic!("Fail to write user data to path: {}", self.path.display())
+            });
         }
     }
     #[async_trait]
@@ -187,7 +185,7 @@ mod hashmap {
         }
         async fn get_group_info(&self, id: GroupID) -> Result<Option<Group>> {
             let guard = self.data.read()?;
-            if id < 0 || id as usize > guard.1.len() {
+            if id as usize > guard.1.len() {
                 return Ok(None);
             }
             Ok(Some(guard.1[id as usize].clone()))
