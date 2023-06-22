@@ -1,29 +1,20 @@
 use crate::auth::{AuthInfo, SessionManager};
-use crate::data::user::AManager;
+use crate::data::{
+    types::{EmailAddress, Username},
+    user::AManager,
+};
 use crate::{SessionID, UserID};
 use actix_session::Session;
 use actix_web::cookie::Cookie;
 use actix_web::{error, get, post, web, HttpResponse};
-use server_derive::scope_service;
 use serde::{Deserialize, Serialize};
-
-fn validate_username(username: &String) -> actix_web::Result<()> {
-    if username.chars().any(|c| !(c.is_alphanumeric() || c == '_')) {
-        return Err(error::ErrorBadRequest(
-            "username contains invalid character",
-        ));
-    }
-    if username.len() > 20  || username.len() > 6 {
-        return Err(error::ErrorBadRequest("length of username should between [6, 20]"));
-    }
-    Ok(())
-}
+use server_derive::scope_service;
 
 /// format of login payload
 #[derive(Debug, Deserialize)]
 pub struct LoginPayload {
     /// 用户名
-    pub username: String,
+    pub username: Username,
     /// 密码的哈希值（不要明文传递）
     #[serde(rename = "passwordHash")]
     pub password_hash: String,
@@ -36,7 +27,6 @@ async fn login(
     user_data_manager: web::Data<AManager>,
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
-    validate_username(&payload.username)?;
     eprintln!("login request: {:?}", payload);
     // eprintln!("session_id: {}", session_id.as_simple());
     let user = match user_data_manager
@@ -63,9 +53,9 @@ async fn login(
 #[derive(Debug, Deserialize)]
 pub struct RegisterPayload {
     /// 邮箱
-    pub email: String,
+    pub email: EmailAddress,
     /// 用户名
-    pub username: String,
+    pub username: Username,
     /// 密码的哈希值（不要明文传递）
     #[serde(rename = "passwordHash")]
     pub password_hash: String,
@@ -77,14 +67,11 @@ async fn register(
     user_data_manager: web::Data<AManager>,
 ) -> actix_web::Result<String> {
     eprintln!("handle register");
-    validate_username(&payload.username)?;
     eprintln!("register req: {:?}", &payload);
-    if !email_address::EmailAddress::is_valid(&payload.email) {
-        return Err(error::ErrorBadRequest("Invalid email address"));
-    }
     if user_data_manager
         .query_by_username(&payload.username)
-        .await?.is_some()
+        .await?
+        .is_some()
     {
         return Err(error::ErrorBadRequest("User already exists"));
     }
@@ -97,8 +84,8 @@ async fn register(
 
 #[derive(Serialize)]
 struct AuthInfoRes {
-    username: String,
-    email: String,
+    username: Username,
+    email: EmailAddress,
 }
 /// 查看当前的鉴权信息，用于菜单栏显示
 #[get("/info")]

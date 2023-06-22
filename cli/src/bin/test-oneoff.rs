@@ -7,6 +7,7 @@ use actix_web::{web, App, HttpServer};
 use server::app;
 use server::auth::middleware::SessionAuth;
 use server::auth::SessionManager;
+use server::data::types::{EmailAddress, Username};
 use server::data::user::{self, Manager};
 use server::manager::custom_test::CustomTestManager;
 use server::manager::judge_queue::JudgeQueue;
@@ -17,7 +18,14 @@ async fn main() -> std::io::Result<()> {
     let session_container = SessionManager::default();
     let user_db = web::Data::from(user::FsManager::new(dir.path().join("user_data")).to_amanager());
     // 预先插入一个用户方便测试
-    user_db.new_user("testtest", &passwd::register_hash("testtest"), "test@test.com").await.unwrap();
+    user_db
+        .new_user(
+            &Username::new("testtest").unwrap(),
+            &passwd::register_hash("testtest"),
+            &EmailAddress::new("test@test.com").unwrap(),
+        )
+        .await
+        .unwrap();
 
     let custom_test = web::Data::new(CustomTestManager::new(dir.path().to_path_buf()));
     let que = web::Data::new(JudgeQueue::new(8));

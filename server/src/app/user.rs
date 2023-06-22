@@ -1,27 +1,27 @@
 use crate::{
     data::{
-        schema::{Gender, User},
-        user::AManager,
+        types::*,
+        user::{AManager, User},
     },
-    GroupID, UserID,
+    UserID,
 };
 use actix_web::{
     error::{self, Result},
     get, post, web,
 };
-use server_derive::scope_service;
 use serde::{Deserialize, Serialize};
+use server_derive::scope_service;
 
 #[derive(Serialize)]
 struct UserDisplayInfo {
     pub id: u32,
-    pub username: String,
-    pub email: String,
+    pub username: Username,
+    pub email: EmailAddress,
     pub motto: String,
     pub name: String,
     pub register_time: String,
     pub gender: Gender,
-    pub groups: Vec<GroupID>,
+    // pub groups: Vec<GroupID>,
 }
 impl From<User> for UserDisplayInfo {
     fn from(value: User) -> Self {
@@ -31,10 +31,10 @@ impl From<User> for UserDisplayInfo {
             email: value.email,
             motto: value.motto,
             name: value.name,
-            register_time: value.register_time,
-            gender: Gender::from_u32(value.gender),
-            groups: serde_json::from_str(&value.groups)
-                .expect("Group info is not maintained properly"),
+            register_time: value.register_time.to_string(),
+            gender: value.gender,
+            // groups: serde_json::from_str(&value.groups)
+            //     .expect("Group info is not maintained properly"),
         }
     }
 }
@@ -42,7 +42,7 @@ impl From<User> for UserDisplayInfo {
 #[derive(Deserialize)]
 pub struct UserQueryPayload {
     userid: Option<UserID>,
-    username: Option<String>,
+    username: Option<Username>,
 }
 
 #[get("/")]
@@ -79,13 +79,13 @@ impl From<User> for UserEditInfo {
     fn from(value: User) -> Self {
         Self {
             id: value.id,
-            username: value.username,
+            username: value.username.to_string(),
             password_hash: value.password_hash,
-            email: value.email,
+            email: value.email.to_string(),
             motto: value.motto,
             name: value.name,
-            register_time: value.register_time,
-            gender: Gender::from_u32(value.gender),
+            register_time: value.register_time.to_string(),
+            gender: value.gender,
         }
     }
 }
@@ -105,7 +105,7 @@ async fn edit_get(
 #[derive(Deserialize)]
 pub struct UserUpdateInfo {
     pub password_hash: Option<String>,
-    pub email: Option<String>,
+    pub email: Option<EmailAddress>,
     pub motto: Option<String>,
     pub name: Option<String>,
     pub gender: Option<Gender>,
@@ -126,7 +126,7 @@ impl crate::Override<User> for UserUpdateInfo {
             origin.name = n;
         }
         if let Some(g) = self.gender {
-            origin.gender = g as u32;
+            origin.gender = g;
         }
     }
 }

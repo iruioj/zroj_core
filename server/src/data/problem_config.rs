@@ -2,13 +2,15 @@
 //! for example, problem access and create date
 
 pub type AManager = dyn Manager + Sync + Send;
-use super::error::{Error, Result};
+use super::error::Error;
 use super::schema::ProblemAccess;
 use crate::data::group::AManager as GroupAManager;
 use crate::{data::schema::ProblemConfig, ProblemID, UserID};
 use async_trait::async_trait;
 pub use hashmap::FsManager;
 use std::sync::Arc;
+
+type Result<T> = std::result::Result<T, Error>;
 
 #[async_trait]
 pub trait Manager {
@@ -60,8 +62,9 @@ mod hashmap {
         fn save(&self) {
             let guard = self.data.read().expect("Fail to fetch guard when saving");
             let s = serde_json::to_string::<Data>(&guard).expect("Fail to parse user data as json");
-            std::fs::write(&self.path, s).unwrap_or_else(|_| panic!("Fail to write user data to path: {}",
-                self.path.display()));
+            std::fs::write(&self.path, s).unwrap_or_else(|_| {
+                panic!("Fail to write user data to path: {}", self.path.display())
+            });
         }
         fn _get(&self, pid: ProblemID) -> Result<ProblemConfig> {
             let guard = self.data.read()?;
@@ -92,7 +95,10 @@ mod hashmap {
         async fn insert(&mut self, pid: ProblemID, value: ProblemConfig) -> Result<()> {
             let mut guard = self.data.write()?;
             if guard.0.get(&pid).is_some() {
-                Err(Error::InvalidArgument(format!("Problem {} already exists", pid)))
+                Err(Error::InvalidArgument(format!(
+                    "Problem {} already exists",
+                    pid
+                )))
             } else {
                 if guard.0.insert(pid, value).is_some() {
                     panic!("impossible")
@@ -112,7 +118,9 @@ mod hashmap {
             let mut guard = self.data.write()?;
             if let Some(v) = guard.0.get_mut(&pid) {
                 if v.owner != uid {
-                    Err(Error::Forbidden("only owner can access the config".to_string()))
+                    Err(Error::Forbidden(
+                        "only owner can access the config".to_string(),
+                    ))
                 } else {
                     *v = value;
                     self.save();

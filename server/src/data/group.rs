@@ -1,10 +1,12 @@
-use super::super::data::error::{Error, Result};
+use super::super::data::error::Error;
 use super::schema::Group;
 use crate::{GroupID, UserID};
 use async_trait::async_trait;
 use std::sync::Arc;
 pub type AManager = dyn Manager + Sync + Send;
 use serde::{Deserialize, Serialize};
+
+type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GroupUsers(Vec<UserID>);

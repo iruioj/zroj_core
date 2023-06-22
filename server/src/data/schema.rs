@@ -1,78 +1,7 @@
 use super::group::GroupUsers;
 use crate::{GroupID, UserID};
-use diesel::{table, AsChangeset, Insertable, Queryable};
+use diesel::Queryable;
 use serde::{Deserialize, Serialize};
-
-table! {
-    users (id) {
-        /// id should be auto increment
-        id -> Unsigned<Integer>,
-        username -> Varchar,
-        password_hash -> Varchar,
-        email -> Varchar,
-        motto -> Varchar,
-        name -> Varchar,
-        register_time -> Varchar,
-        gender -> Unsigned<Integer>,
-        groups -> Varchar,
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum Gender {
-    Male = 0,
-    Female = 1,
-    Others = 2,
-    Private = 3,
-}
-impl Gender {
-    pub fn from_u32(value: u32) -> Self {
-        match value {
-            0 => Self::Male,
-            1 => Self::Female,
-            2 => Self::Others,
-            3 => Self::Private,
-            _ => panic!("Invalid gender [from i32]"),
-        }
-    }
-}
-
-/// struct for database query
-#[derive(Queryable, Debug, Serialize, Deserialize, Clone, AsChangeset)]
-pub struct User {
-    pub id: UserID,
-    pub username: String,
-    pub password_hash: String,
-    pub email: String,
-    pub motto: String,
-    pub name: String,
-    pub register_time: String,
-    pub gender: u32,
-    pub groups: String,
-}
-/// struct for database insertion
-#[derive(Debug, Insertable)]
-#[diesel(table_name = users)]
-pub struct NewUser<'a> {
-    pub username: &'a str,
-    pub password_hash: &'a str,
-    pub email: &'a str,
-    pub register_time: String,
-    pub groups: String,
-    pub gender: u32,
-}
-
-/*
-#[derive(Deserialize, AsChangeset)]
-#[diesel(table_name = users)]
-pub struct UserUpdate {
-    pub password_hash: Option<String>,
-    pub email: Option<String>,
-    pub motto: Option<String>,
-    pub name: Option<String>,
-    pub gender: Option<i32>,
-}
-*/
 
 #[derive(Queryable, Debug, Serialize, Deserialize, Clone)]
 pub struct Group {
