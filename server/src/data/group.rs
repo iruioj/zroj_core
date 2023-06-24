@@ -1,59 +1,31 @@
 use super::super::data::error::Error;
-use super::schema::Group;
 use crate::{GroupID, UserID};
 use async_trait::async_trait;
-use std::sync::Arc;
-pub type AManager = dyn Manager + Sync + Send;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
+pub type AManager = dyn Manager + Sync + Send;
 type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GroupUsers(Vec<UserID>);
-impl GroupUsers {
-    pub fn new(id: UserID) -> Self {
-        Self(vec![id])
-    }
-    pub fn to_string(&self) -> String {
-        serde_json::to_string(self).expect("Group users not maintained properly")
-    }
-    pub fn from_str(s: &String) -> Self {
-        serde_json::from_str(s).expect("Group users not maintained properly")
-    }
-    pub fn contains(&self, uid: UserID) -> bool {
-        matches!(self.0.binary_search(&uid), Ok(_))
-    }
-    pub fn insert(&mut self, uid: UserID) -> bool {
-        let index = match self.0.binary_search(&uid) {
-            Ok(_) => return false,
-            Err(index) => index,
-        };
-        self.0.insert(index, uid);
-        true
-    }
-    pub fn delete(&mut self, uid: UserID) -> bool {
-        let index = match self.0.binary_search(&uid) {
-            Ok(index) => index,
-            Err(_) => return false,
-        };
-        self.0.remove(index);
-        true
-    }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Group {
+    /// 用户组 ID
+    pub id: GroupID,
+    /// 用户组名称
+    pub name: String,
+    /// 用户
+    pub users: Vec<UserID>,
 }
 
 #[async_trait]
 pub trait Manager {
-    /// insert a group with a name which only contains the owner
-    /// returns None if this group name is already taken
-    /// otherwise returns group id
-    async fn new_group(&self, owner: UserID, name: String) -> Result<Option<GroupID>>;
-    async fn group_contains(&self, gid: GroupID, uid: UserID) -> Result<bool>;
-    /// returns false if uid already exists
-    async fn group_insert(&self, uid: UserID, gid: GroupID, users: &Vec<UserID>) -> Result<usize>;
-    /// return false if uid does not exist
-    async fn group_delete(&self, uid: UserID, gid: GroupID, delete_uid: UserID) -> Result<bool>;
-    async fn get_groupid(&self, name: &String) -> Result<Option<GroupID>>;
-    async fn get_group_info(&self, id: GroupID) -> Result<Option<Group>>;
+    async fn new_group(&self, name: String) -> Result<GroupID>;
+    async fn contains(&self, gid: GroupID, uid: UserID) -> Result<bool>;
+    /// 返回添加的用户数
+    async fn insert(&self, gid: GroupID, users: &[UserID]) -> Result<usize>;
+    /// return false if delete_uid does not exist
+    async fn delete(&self, gid: GroupID, delete_uid: UserID) -> Result<bool>;
+    async fn get_info(&self, gid: GroupID) -> Result<Option<Group>>;
     fn to_amanager(self) -> Arc<AManager>;
 }
 
@@ -74,17 +46,7 @@ mod hashmap {
 
     impl FsManager {
         pub fn new(path: PathBuf) -> Self {
-            let mut r = Self::load(&path).unwrap_or(Data(HashMap::new(), Vec::new()));
-            if r.1.is_empty() {
-                let g = Group {
-                    name: "public".to_string(),
-                    id: 0,
-                    owner: 0,
-                    users: GroupUsers::new(0),
-                };
-                r.0.insert(g.name.clone(), g.id);
-                r.1.push(g);
-            }
+            let r = Self::load(&path).unwrap_or(Data(HashMap::new(), Vec::new()));
             Self {
                 data: RwLock::new(r),
                 path,
@@ -98,8 +60,8 @@ mod hashmap {
         }
         /// save data to json file, must be saved or panic!!!
         fn save(&self) {
-            let guard = self.data.read().expect("Fail to fetch guard when saving");
-            let s = serde_json::to_string::<Data>(&guard).expect("Fail to parse user data as json");
+            let data = self.data.read().expect("Fail to fetch data when saving");
+            let s = serde_json::to_string::<Data>(&data).expect("Fail to parse user data as json");
             std::fs::write(&self.path, s).unwrap_or_else(|_| {
                 panic!("Fail to write user data to path: {}", self.path.display())
             });
@@ -107,90 +69,64 @@ mod hashmap {
     }
     #[async_trait]
     impl super::Manager for FsManager {
-        async fn new_group(&self, owner: UserID, name: String) -> Result<Option<GroupID>> {
-            let mut guard = self.data.write()?;
-            let id = guard.1.len() as GroupID;
+        async fn new_group(&self, name: String) -> Result<GroupID> {
+            let mut data = self.data.write()?;
+            let id = data.1.len() as GroupID;
             let g = Group {
-                name,
+                name: name.clone(),
                 id,
-                owner,
-                users: GroupUsers::new(owner),
+                users: Vec::new(),
             };
-            if guard.0.insert(g.name.clone(), g.id).is_some() {
-                return Ok(None);
+            if data.0.contains_key(&name) {
+                return Err(Error::DuplicatedGroupName(name));
             }
-            guard.1[id as usize] = g;
-            drop(guard);
+            data.0.insert(name, g.id);
+            data.1.push(g);
+            drop(data);
             self.save();
-            Ok(Some(id))
+            Ok(id)
         }
-        async fn group_contains(&self, gid: GroupID, uid: UserID) -> Result<bool> {
-            if gid == 0 {
-                return Ok(true);
-            }
-            let guard = self.data.read()?;
-            Ok(guard.1[gid as usize].users.contains(uid))
+        async fn contains(&self, gid: GroupID, uid: UserID) -> Result<bool> {
+            let data = self.data.read()?;
+            Ok(data.1[gid as usize].users.contains(&uid))
         }
-        async fn group_insert(
-            &self,
-            uid: UserID,
-            gid: GroupID,
-            users: &Vec<UserID>,
-        ) -> Result<usize> {
-            if gid == 0 {
-                return Err(Error::Forbidden("Group 0 is not modifyable".to_string()));
-            }
-            let mut guard = self.data.write()?;
-            let v = &mut guard.1[gid as usize];
-            if v.owner != uid {
-                return Err(Error::Forbidden(
-                    "Only group owner can perform insert operation".to_string(),
-                ));
-            }
-            let v = &mut v.users;
-            let mut count: usize = 0;
-            for i in users {
-                if v.insert(*i) {
-                    count += 1;
-                }
-            }
+        async fn insert(&self, gid: GroupID, users: &[UserID]) -> Result<usize> {
+            let mut data = self.data.write()?;
+            let v = &mut data.1[gid as usize].users;
+            let count = users
+                .iter()
+                .filter(|u| {
+                    if !v.contains(u) {
+                        v.push(**u);
+                        true
+                    } else {
+                        false
+                    }
+                })
+                .count();
             if count > 0 {
+                drop(data);
                 self.save();
             }
             Ok(count)
         }
-        async fn group_delete(
-            &self,
-            uid: UserID,
-            gid: GroupID,
-            delete_uid: UserID,
-        ) -> Result<bool> {
-            if gid == 0 {
-                return Err(Error::Forbidden("Group 0 is not modifyable".to_string()));
-            }
-            let mut guard = self.data.write()?;
-            let v = &mut guard.1[gid as usize];
-            if v.owner != uid {
-                return Err(Error::Forbidden(
-                    "Only group owner can perform delete operation".to_string(),
-                ));
-            }
-            let result = v.users.delete(delete_uid);
-            if result {
+        async fn delete(&self, gid: GroupID, delete_uid: UserID) -> Result<bool> {
+            let mut data = self.data.write()?;
+            let v = &mut data.1[gid as usize];
+            if let Some(index) = v.users.iter().position(|c| c == &delete_uid) {
+                v.users.remove(index);
                 self.save();
+                Ok(true)
+            } else {
+                Ok(false)
             }
-            Ok(true)
         }
-        async fn get_groupid(&self, name: &String) -> Result<Option<GroupID>> {
-            let guard = self.data.read()?;
-            Ok(guard.0.get(name).copied())
-        }
-        async fn get_group_info(&self, id: GroupID) -> Result<Option<Group>> {
-            let guard = self.data.read()?;
-            if id as usize > guard.1.len() {
+        async fn get_info(&self, id: GroupID) -> Result<Option<Group>> {
+            let data = self.data.read()?;
+            if id as usize > data.1.len() {
                 return Ok(None);
             }
-            Ok(Some(guard.1[id as usize].clone()))
+            Ok(Some(data.1[id as usize].clone()))
         }
         /// consume self and return its Arc.
         fn to_amanager(self) -> Arc<AManager> {

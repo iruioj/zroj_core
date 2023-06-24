@@ -18,6 +18,7 @@ pub struct FsManager {
 }
 
 impl FsManager {
+    /// 将数据用 serde 暴力存储在 path 对应的文件中
     pub fn new(path: impl AsRef<std::path::Path>) -> Self {
         let r = Self::load(path.as_ref()).unwrap_or(Data::default());
         Self {

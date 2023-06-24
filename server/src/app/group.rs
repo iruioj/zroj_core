@@ -1,9 +1,9 @@
 use crate::{
-    data::{group::AManager, schema::Group},
+    data::group::{AManager, Group},
     GroupID, UserID,
 };
 use actix_web::{
-    error::{self, Result},
+    error::{ErrorBadRequest, ErrorForbidden, Result},
     get, post, web,
 };
 use server_derive::scope_service;
@@ -15,9 +15,9 @@ async fn group_info(
 ) -> Result<web::Json<Group>> {
     Ok(web::Json(
         manager
-            .get_group_info(*gid)
+            .get_info(*gid)
             .await?
-            .ok_or(error::ErrorBadRequest("No such group"))?,
+            .ok_or(ErrorBadRequest("No such group"))?,
     ))
 }
 
@@ -28,7 +28,10 @@ async fn add_users(
     users: web::Json<Vec<UserID>>,
     manager: web::Data<AManager>,
 ) -> Result<String> {
-    let count = manager.group_insert(*uid, *gid, &users).await?;
+    if *uid != 0 {
+        return Err(ErrorForbidden("only root can manage groups"));
+    }
+    let count = manager.insert(*gid, &users).await?;
     Ok(format!("Ok, inserted {} users", count))
 }
 
@@ -39,7 +42,10 @@ async fn delete_user(
     delete_user: web::Json<UserID>,
     manager: web::Data<AManager>,
 ) -> Result<String> {
-    let count = manager.group_delete(*uid, *gid, *delete_user).await?;
+    if *uid != 0 {
+        return Err(ErrorForbidden("only root can manage groups"));
+    }
+    let count = manager.delete(*gid, *delete_user).await?;
     Ok(format!("Ok, inserted {} users", count))
 }
 
@@ -50,19 +56,3 @@ pub fn service(group_db: web::Data<AManager>) {
     service(delete_user);
     service(add_users);
 }
-
-/*-> actix_web::Scope<
-    impl actix_web::dev::ServiceFactory<
-        actix_web::dev::ServiceRequest,
-        Config = (),
-        Response = actix_web::dev::ServiceResponse,
-        Error = actix_web::Error,
-        InitError = (),
-    >,
-> {
-    web::scope("/group")
-        .app_data(group_db)
-        .service(group_info)
-        .service(delete_user)
-        .service(add_users)
-}*/

@@ -9,6 +9,7 @@ pub enum Error {
     LockError,
     InvalidArgument(String),
     Forbidden(String),
+    DuplicatedGroupName(String)
 }
 
 impl From<Error> for actix_web::Error {
@@ -54,6 +55,7 @@ impl Display for Error {
 
             Self::InvalidArgument(s) => write!(f, "Invalid argument: {}", s),
             Self::Forbidden(s) => write!(f, "Forbidden operation: {}", s),
+            Self::DuplicatedGroupName(s) => write!(f, "duplicated group name {s}"),
         }
     }
 }

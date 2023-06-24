@@ -1,15 +1,14 @@
 //! manages data of a problem that are related to website but not problem itself
 //! for example, problem access and create date
 
-pub type AManager = dyn Manager + Sync + Send;
 use super::error::Error;
 use super::schema::ProblemAccess;
 use crate::data::group::AManager as GroupAManager;
 use crate::{data::schema::ProblemConfig, ProblemID, UserID};
 use async_trait::async_trait;
-pub use hashmap::FsManager;
 use std::sync::Arc;
 
+pub type AManager = dyn Manager + Sync + Send;
 type Result<T> = std::result::Result<T, Error>;
 
 #[async_trait]
@@ -25,6 +24,7 @@ pub trait Manager {
     fn to_amanager(self) -> Arc<AManager>;
 }
 
+pub use hashmap::FsManager;
 mod hashmap {
 
     use crate::data::schema::UserGroup;
@@ -136,7 +136,7 @@ mod hashmap {
             for (ug, a) in value.access {
                 let flag = match ug {
                     UserGroup::User(id) => id == uid,
-                    UserGroup::Group(gid) => self.groups.group_contains(gid, uid).await?,
+                    UserGroup::Group(gid) => self.groups.contains(gid, uid).await?,
                 };
                 if flag && a > t {
                     t = a

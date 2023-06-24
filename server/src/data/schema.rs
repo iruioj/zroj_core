@@ -1,15 +1,6 @@
-use super::group::GroupUsers;
 use crate::{GroupID, UserID};
-use diesel::Queryable;
 use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Debug, Serialize, Deserialize, Clone)]
-pub struct Group {
-    pub id: GroupID,
-    pub name: String,
-    pub owner: UserID,
-    pub users: GroupUsers,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
 pub enum ProblemAccess {
