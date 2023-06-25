@@ -12,7 +12,9 @@ members = [
     "server_derive",
     "store",
     "store_derive",
-    "tools"
+    "tools",
+    "serde_ts_typing",
+    "serde_ts_typing_derive"
 ]
 
 [workspace.package]

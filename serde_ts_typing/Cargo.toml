@@ -1,0 +1,9 @@
+[package]
+name = "serde_ts_typing"
+version.workspace = true
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde_ts_typing_derive = { path = "../serde_ts_typing_derive" }
