@@ -15,6 +15,7 @@ const onLogout = async () => {
   }
   error(await res.text());
 };
+
 </script>
 
 <template>
@@ -22,6 +23,7 @@ const onLogout = async () => {
     <div class="mt-8 mb-4 text-2xl text-brand font-medium">
       {{ authinfo?.username }}
     </div>
+    <UserProfile v-if="authinfo" :username="authinfo.username" />
     <div class="my-2">
       <UBtn @click="onLogout">Logout</UBtn>
     </div>

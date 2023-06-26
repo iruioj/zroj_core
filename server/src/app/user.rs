@@ -39,28 +39,15 @@ impl From<User> for UserDisplayInfo {
     }
 }
 
-#[derive(Deserialize)]
-pub struct UserQueryPayload {
-    userid: Option<UserID>,
-    username: Option<Username>,
-}
-
-#[get("/")]
+#[get("/{username}")]
 async fn profile(
-    payload: web::Json<UserQueryPayload>,
+    username: web::Path<Username>,
     manager: web::Data<AManager>,
 ) -> Result<web::Json<UserDisplayInfo>> {
-    let result;
-    if let Some(uid) = payload.userid {
-        result = manager.query_by_userid(uid).await?;
-    } else if let Some(username) = &payload.username {
-        result = manager.query_by_username(username).await?;
-    } else {
-        return Err(error::ErrorBadRequest("Please provide query info"));
-    }
+    let result = manager.query_by_username(&username).await?;
     match result {
         Some(info) => Ok(web::Json(UserDisplayInfo::from(info))),
-        None => Err(error::ErrorBadRequest("User does not exist")),
+        None => Err(error::ErrorNotFound("user not exist")),
     }
 }
 
@@ -148,19 +135,3 @@ pub fn service(user_database: web::Data<AManager>) {
     service(edit_get);
     service(edit_post);
 }
-
-/*-> actix_web::Scope<
-    impl actix_web::dev::ServiceFactory<
-        actix_web::dev::ServiceRequest,
-        Config = (),
-        Response = actix_web::dev::ServiceResponse,
-        Error = actix_web::Error,
-        InitError = (),
-    >,
-> {
-    web::scope("/user")
-        .app_data(user_database)
-        .service(profile)
-        .service(edit_get)
-        .service(edit_post)
-}*/

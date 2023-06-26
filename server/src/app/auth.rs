@@ -8,10 +8,11 @@ use actix_session::Session;
 use actix_web::cookie::Cookie;
 use actix_web::{error, get, post, web, HttpResponse};
 use serde::{Deserialize, Serialize};
+use serde_ts_typing::SerdeJsonWithType;
 use server_derive::scope_service;
 
 /// format of login payload
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, SerdeJsonWithType)]
 pub struct LoginPayload {
     /// 用户名
     pub username: Username,
@@ -50,7 +51,7 @@ async fn login(
 }
 
 /// format of register payload
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, SerdeJsonWithType)]
 pub struct RegisterPayload {
     /// 邮箱
     pub email: EmailAddress,
@@ -82,7 +83,7 @@ async fn register(
     Ok("Registration success".to_string())
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, SerdeJsonWithType)]
 struct AuthInfoRes {
     username: Username,
     email: EmailAddress,
