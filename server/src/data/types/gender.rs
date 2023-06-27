@@ -1,9 +1,10 @@
 use super::*;
+use serde_ts_typing::SerdeJsonWithType;
 
 /// 性别类型
 ///
 /// TODO: 更多的性别
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, SerdeJsonWithType)]
 #[cfg_attr(feature = "mysql", derive(SqlType, FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "mysql", diesel(sql_type = Unsigned<Integer>))]
 pub enum Gender {
@@ -13,17 +14,16 @@ pub enum Gender {
     Private = 3,
 }
 
-
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum Error {
-    InvalidGender(u32)
+    InvalidGender(u32),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
-            Error::InvalidGender(i) => write!(f, "invalid gender id {i}")
+            Error::InvalidGender(i) => write!(f, "invalid gender id {i}"),
         }
     }
 }
@@ -60,7 +60,7 @@ mod mysql {
                 1 => Ok(Gender::Female),
                 2 => Ok(Gender::Others),
                 3 => Ok(Gender::Private),
-                _ => Err(Error::InvalidGender(v))?
+                _ => Err(Error::InvalidGender(v))?,
             }
         }
     }

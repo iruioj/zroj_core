@@ -8,12 +8,12 @@ use crate::{
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{
     error::{self, ErrorBadRequest},
-    get, post, web, Result,
+    web, Result,
 };
 use judger::TaskReport;
-use server_derive::scope_service;
 use serde::Serialize;
 use serde_json::json;
+use server_derive::{api, scope_service};
 use std::fmt::Debug;
 
 /// warning: this funtion contains probable leak
@@ -44,7 +44,7 @@ pub struct CustomTestPayload {
     pub input: TempFile,
 }
 
-#[post("")]
+#[api(method = post, path = "")]
 async fn custom_test_post(
     payload: MultipartForm<CustomTestPayload>,
     manager: web::Data<CustomTestManager>,
@@ -76,7 +76,7 @@ pub struct CustomTestResult {
     pub result: Option<TaskReport>,
 }
 
-#[get("")]
+#[api(method = get, path = "")]
 async fn custom_test_get(
     manager: web::Data<CustomTestManager>,
     uid: web::ReqData<UserID>,

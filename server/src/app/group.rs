@@ -4,11 +4,11 @@ use crate::{
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorForbidden, Result},
-    get, post, web,
+    web,
 };
-use server_derive::scope_service;
+use server_derive::{api, scope_service};
 
-#[get("/{gid}")]
+#[api(method = get, path = "/{gid}")]
 async fn group_info(
     gid: web::Path<GroupID>,
     manager: web::Data<AManager>,
@@ -21,7 +21,7 @@ async fn group_info(
     ))
 }
 
-#[post("/{gid}/add")]
+#[api(method = post, path = "/{gid}/add")]
 async fn add_users(
     gid: web::Path<GroupID>,
     uid: web::ReqData<UserID>,
@@ -35,7 +35,7 @@ async fn add_users(
     Ok(format!("Ok, inserted {} users", count))
 }
 
-#[post("/{gid}/delete")]
+#[api(method = post, path = "/{gid}/delete")]
 async fn delete_user(
     gid: web::Path<GroupID>,
     uid: web::ReqData<UserID>,

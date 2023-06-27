@@ -2,11 +2,12 @@
 
 use std::fmt::Display;
 use serde::{Deserialize, Serialize};
+use serde_ts_typing::SerdeJsonWithType;
 #[cfg(feature = "mysql")]
 use super::*;
 
 /// 用户名类型，在创建时会进行内容检查，确保没有不合法字符
-#[derive(Debug, Serialize, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Serialize, Clone, Hash, PartialEq, Eq, SerdeJsonWithType)]
 #[cfg_attr(feature = "mysql", derive(SqlType, FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "mysql", diesel(sql_type = Text))]
 pub struct Username(String);

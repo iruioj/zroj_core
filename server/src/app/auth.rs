@@ -3,13 +3,13 @@ use crate::data::{
     types::{EmailAddress, Username},
     user::AManager,
 };
+use crate::marker::*;
 use crate::{SessionID, UserID};
 use actix_session::Session;
-use actix_web::cookie::Cookie;
-use actix_web::{error, get, post, web, HttpResponse};
+use actix_web::{error, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::SerdeJsonWithType;
-use server_derive::scope_service;
+use server_derive::{api, scope_service};
 
 /// format of login payload
 #[derive(Debug, Deserialize, SerdeJsonWithType)]
@@ -21,22 +21,22 @@ pub struct LoginPayload {
     pub password_hash: String,
 }
 
-#[post("/login")]
+/// 用户登陆
+#[api(method = post, path = "/login")]
 async fn login(
-    payload: web::Json<LoginPayload>,
-    session_container: web::Data<SessionManager>,
-    user_data_manager: web::Data<AManager>,
+    payload: JsonBody<LoginPayload>,
+    session_container: ServerData<SessionManager>,
+    user_data_manager: ServerData<AManager>,
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
+    use actix_web::cookie::Cookie;
     eprintln!("login request: {:?}", payload);
     // eprintln!("session_id: {}", session_id.as_simple());
-    let user = match user_data_manager
+    let user = user_data_manager
         .query_by_username(&payload.username)
         .await?
-    {
-        Some(r) => r,
-        None => return Err(error::ErrorBadRequest("user does not exist")),
-    };
+        .ok_or(error::ErrorBadRequest("user does not exist"))?;
+
     if !passwd::verify(&user.password_hash, &payload.password_hash) {
         Err(error::ErrorBadRequest("password not correct"))
     } else {
@@ -62,10 +62,10 @@ pub struct RegisterPayload {
     pub password_hash: String,
 }
 
-#[post("/register")]
+#[api(method = post, path = "/register")]
 async fn register(
-    payload: web::Json<RegisterPayload>,
-    user_data_manager: web::Data<AManager>,
+    payload: JsonBody<RegisterPayload>,
+    user_data_manager: ServerData<AManager>,
 ) -> actix_web::Result<String> {
     eprintln!("handle register");
     eprintln!("register req: {:?}", &payload);
@@ -89,11 +89,11 @@ struct AuthInfoRes {
     email: EmailAddress,
 }
 /// 查看当前的鉴权信息，用于菜单栏显示
-#[get("/info")]
+#[api(method = get, path = "/info")]
 async fn inspect(
-    user_db: web::Data<AManager>,
+    user_db: ServerData<AManager>,
     user_id: Option<web::ReqData<UserID>>,
-) -> actix_web::Result<web::Json<AuthInfoRes>> {
+) -> JsonResult<AuthInfoRes> {
     if let Some(id) = user_id {
         let user = user_db.query_by_userid(*id).await?;
         if let Some(user) = user {
@@ -106,16 +106,16 @@ async fn inspect(
     Err(error::ErrorBadRequest("user not found"))
 }
 
-#[post("/logout")]
+#[api(method = post, path = "/logout")]
 async fn logout(
-    session_container: web::Data<SessionManager>,
+    session_container: ServerData<SessionManager>,
     session: Session,
-) -> actix_web::Result<HttpResponse> {
+) -> actix_web::Result<String> {
     let id = session.get::<SessionID>(crate::auth::SESSION_ID_KEY)?;
     if let Some(id) = id {
         session_container.remove(id)?;
         session.remove(crate::auth::SESSION_ID_KEY);
-        return Ok(HttpResponse::Ok().body("logout success"));
+        return Ok("logout success".into());
     }
     Err(error::ErrorBadRequest("invalid session id"))
 }

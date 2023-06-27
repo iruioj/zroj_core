@@ -3,16 +3,18 @@ use crate::{
         types::*,
         user::{AManager, User},
     },
+    marker::*,
     UserID,
 };
 use actix_web::{
     error::{self, Result},
-    get, post, web,
+    web,
 };
 use serde::{Deserialize, Serialize};
-use server_derive::scope_service;
+use serde_ts_typing::SerdeJsonWithType;
+use server_derive::{api, scope_service};
 
-#[derive(Serialize)]
+#[derive(Serialize, SerdeJsonWithType)]
 struct UserDisplayInfo {
     pub id: u32,
     pub username: Username,
@@ -21,7 +23,6 @@ struct UserDisplayInfo {
     pub name: String,
     pub register_time: String,
     pub gender: Gender,
-    // pub groups: Vec<GroupID>,
 }
 impl From<User> for UserDisplayInfo {
     fn from(value: User) -> Self {
@@ -33,25 +34,27 @@ impl From<User> for UserDisplayInfo {
             name: value.name,
             register_time: value.register_time.to_string(),
             gender: value.gender,
-            // groups: serde_json::from_str(&value.groups)
-            //     .expect("Group info is not maintained properly"),
         }
     }
 }
 
-#[get("/{username}")]
+#[derive(Deserialize, SerdeJsonWithType)]
+struct ProfileQuery {
+    username: Username,
+}
+#[api(method = get, path = "")]
 async fn profile(
-    username: web::Path<Username>,
-    manager: web::Data<AManager>,
-) -> Result<web::Json<UserDisplayInfo>> {
-    let result = manager.query_by_username(&username).await?;
+    query: QueryParam<ProfileQuery>,
+    manager: ServerData<AManager>,
+) -> JsonResult<UserDisplayInfo> {
+    let result = manager.query_by_username(&query.username).await?;
     match result {
         Some(info) => Ok(web::Json(UserDisplayInfo::from(info))),
         None => Err(error::ErrorNotFound("user not exist")),
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, SerdeJsonWithType)]
 struct UserEditInfo {
     pub id: u32,
     pub username: String,
@@ -77,19 +80,19 @@ impl From<User> for UserEditInfo {
     }
 }
 
-#[get("/edit")]
+#[api(method = get, path = "/edit")]
 async fn edit_get(
     uid: web::ReqData<UserID>,
-    manager: web::Data<AManager>,
-) -> Result<web::Json<UserEditInfo>> {
+    manager: ServerData<AManager>,
+) -> JsonResult<UserEditInfo> {
     let result = manager.query_by_userid(*uid).await?;
     match result {
         Some(info) => Ok(web::Json(UserEditInfo::from(info))),
-        None => Err(error::ErrorBadRequest("User does not exist")),
+        None => Err(error::ErrorNotFound("user not exist")),
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, SerdeJsonWithType)]
 pub struct UserUpdateInfo {
     pub password_hash: Option<String>,
     pub email: Option<EmailAddress>,
@@ -118,11 +121,11 @@ impl crate::Override<User> for UserUpdateInfo {
     }
 }
 
-#[post("/edit")]
+#[api(method = post, path = "/edit")]
 async fn edit_post(
     uid: web::ReqData<UserID>,
-    info: web::Json<UserUpdateInfo>,
-    manager: web::Data<AManager>,
+    info: JsonBody<UserUpdateInfo>,
+    manager: ServerData<AManager>,
 ) -> Result<String> {
     manager.update(*uid, info.into_inner()).await?;
     Ok("ok".to_string())
