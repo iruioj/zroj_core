@@ -1,8 +1,8 @@
 //! ZROJ 用户信息
-use actix_web::http::header::{self, HeaderValue};
-use actix_web::http::StatusCode;
+use actix_cors::Cors;
+use actix_web::http::header;
 use actix_web::middleware::Logger;
-use actix_web::{self};
+use actix_web;
 use actix_web::{web, App, HttpServer};
 use server::app;
 use server::auth::middleware::SessionAuth;
@@ -30,32 +30,18 @@ async fn main() -> std::io::Result<()> {
 
     // SSL config, for https testing
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin("http://zroj.tst")
+            .allowed_origin_fn(|origin, _req_head| origin.as_bytes().ends_with(b"zroj.tst"))
+            .allowed_methods(vec!["GET", "POST", "OPTIONS"])
+            .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT, header::ORIGIN])
+            .allowed_header(header::CONTENT_TYPE)
+            .supports_credentials()
+            .max_age(3600);
+
         App::new()
+            .wrap(cors)
             .wrap(Logger::new(r#"%a "%r" %s "%{Referer}i" %T"#))
-            .wrap_fn(|req, srv| {
-                use actix_web::dev::Service;
-                let m = req.method().to_owned();
-                let fut = srv.call(req);
-                async move {
-                    let mut res: actix_web::dev::ServiceResponse<_> = fut.await?;
-                    res.headers_mut().insert(
-                        header::ACCESS_CONTROL_ALLOW_ORIGIN,
-                        HeaderValue::from_static("http://localhost:3000"),
-                    );
-                    res.headers_mut().insert(
-                        header::ACCESS_CONTROL_ALLOW_HEADERS,
-                        HeaderValue::from_static("Origin, X-Requested-With, Content-Type, Accept"),
-                    );
-                    res.headers_mut().insert(
-                        header::ACCESS_CONTROL_ALLOW_CREDENTIALS,
-                        HeaderValue::from_static("true"),
-                    );
-                    if m == actix_web::http::Method::OPTIONS {
-                        *res.response_mut().status_mut() = StatusCode::ACCEPTED;
-                    }
-                    Ok(res)
-                }
-            })
             .wrap(
                 server::actix_session::SessionMiddleware::builder(
                     server::actix_session::storage::CookieSessionStore::default(),
@@ -63,7 +49,7 @@ async fn main() -> std::io::Result<()> {
                 )
                 .cookie_secure(false)
                 // .cookie_same_site(actix_web::cookie::SameSite::None)
-                // .cookie_domain(Some("localhost".into()))
+                // .cookie_domain(Some("zroj.tst".into()))
                 .cookie_path("/".into())
                 // .cookie_http_only(false)
                 .build(),
@@ -76,6 +62,7 @@ async fn main() -> std::io::Result<()> {
                 app::user::service(user_db.clone())
                     .wrap(SessionAuth::require_auth(session_container.clone())),
             )
+            .default_service(web::route().to(app::default_route))
     })
     .bind("localhost:8080")?
     .run()

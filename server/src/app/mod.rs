@@ -20,7 +20,7 @@ use actix_web::{
 };
 
 /// 默认 404
-async fn default_route(req: HttpRequest) -> HttpResponse {
+pub async fn default_route(req: HttpRequest) -> HttpResponse {
     let mut r = String::new();
 
     r.push_str("Not found\n\n");

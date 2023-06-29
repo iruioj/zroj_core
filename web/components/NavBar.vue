@@ -1,13 +1,7 @@
 <!-- 使用 aleph 指示 hydration -->
 <script setup lang="ts">
-import NavButton from "./NavButton.vue";
-
-const { data: authinfo, refresh } = useAuth();
+const { data: authinfo } = await useAuth();
 const { list } = useMsgStore();
-
-if (process.client) {
-  refresh();
-}
 </script>
 
 <template>
@@ -42,17 +36,8 @@ if (process.client) {
       <NavButton to="/oneoff">Customtest</NavButton>
     </div>
     <TransitionGroup name="msg-list" tag="div">
-      <div
-        v-for="msg in list"
-        :key="msg.id"
-        class="p-1 text-center"
-        :class="'msg-' + msg.kind"
-      >
-        <NuxtIcon
-          v-if="msg.kind == 'error'"
-          class="inline-block align-middle"
-          name="error"
-        />
+      <div v-for="msg in list" :key="msg.id" class="p-1 text-center" :class="'msg-' + msg.kind">
+        <NuxtIcon v-if="msg.kind == 'error'" class="inline-block align-middle" name="error" />
         {{ msg.msg }}
       </div>
     </TransitionGroup>
@@ -64,10 +49,12 @@ if (process.client) {
 .msg-list-leave-active {
   transition: all 0.5s ease;
 }
+
 .msg-list-enter-from,
 .msg-list-leave-to {
   opacity: 0;
 }
+
 /* ensure leaving items are taken out of layout flow so that moving
    animations can be calculated correctly. */
 .msg-list-leave-active {

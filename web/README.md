@@ -35,3 +35,11 @@ yarn
 ```
 
 更新依赖。
+
+# 后端 API 类型标注
+
+在项目根目录下执行
+
+```bash
+cargo run --bin gen_docs -- nocapture > web/composables/api.ts
+```

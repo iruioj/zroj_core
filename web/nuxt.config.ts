@@ -12,14 +12,10 @@ export default defineNuxtConfig({
     // Keys within public are also exposed client-side
     public: {
       // in the same origin, thus omit host.
-      apiBase: "/api",
+      apiBase: "http://api.zroj.tst",
     },
   },
   devServer: {
-    // https: {
-    //   key: '../cli/src/bin/localhost-key.pem',
-    //   cert: '../cli/src/bin/localhost.pem',
-    // },
   },
   vite: {
     plugins: [wasm(), topLevelAwait()],

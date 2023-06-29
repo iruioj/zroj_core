@@ -21,7 +21,9 @@ pub struct LoginPayload {
     pub password_hash: String,
 }
 
-/// 用户登陆
+/// 用户登陆，需要提供用户名和密码的哈希值
+/// 
+/// 如果登陆成功，http 请求头中会返回 cookie
 #[api(method = post, path = "/login")]
 async fn login(
     payload: JsonBody<LoginPayload>,

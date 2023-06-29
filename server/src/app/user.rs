@@ -58,7 +58,6 @@ async fn profile(
 struct UserEditInfo {
     pub id: u32,
     pub username: String,
-    pub password_hash: String,
     pub email: String,
     pub motto: String,
     pub name: String,
@@ -70,7 +69,6 @@ impl From<User> for UserEditInfo {
         Self {
             id: value.id,
             username: value.username.to_string(),
-            password_hash: value.password_hash,
             email: value.email.to_string(),
             motto: value.motto,
             name: value.name,

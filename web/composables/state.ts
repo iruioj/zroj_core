@@ -1,16 +1,7 @@
 import { defineStore } from "pinia";
 
-export const useAuth = () =>
-  useLazyAsyncData("authinfo", async () => {
-    if (process.server) {
-      return;
-    }
-    const res = await fetch(useRuntimeConfig().public.apiBase + "/auth/info");
-    if (res.ok) {
-      return await res.json();
-    }
-    // console.log(res.status, res);
-  });
+// todo: https://github.com/damien-hl/nuxt3-auth-example/blob/main/composables/auth/useAuth.ts
+export const useAuth = () => useAPI("get:/auth/info")
 
 type Message = {
   id: number;

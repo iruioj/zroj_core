@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { data: authinfo, refresh } = useAuth();
+const { data: authinfo, refresh } = await useAuth();
 const { info, error } = useMsgStore();
 
 const onLogout = async () => {
@@ -26,6 +26,7 @@ const onLogout = async () => {
     <UserProfile v-if="authinfo" :username="authinfo.username" />
     <div class="my-2">
       <UBtn @click="onLogout">Logout</UBtn>
+      <NuxtLink to="/user/me/edit"><UBtn class="mx-1">Edit</UBtn></NuxtLink>
     </div>
   </PageContainer>
 </template>

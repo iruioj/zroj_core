@@ -82,7 +82,7 @@ impl<S> SessionAuthMiddleware<S> {
     pub fn work(&self, req: &ServiceRequest) -> Result<()> {
         let session = req.get_session();
         if let Some(id) = session.get::<SessionID>(super::SESSION_ID_KEY)? {
-            eprintln!("session id = {}", id);
+            eprintln!("[auth middleware] session id = {}", id);
             if let Some(info) = self.inner.store.get(id)? {
                 req.extensions_mut().insert(id);
                 req.extensions_mut().insert(info.uid);

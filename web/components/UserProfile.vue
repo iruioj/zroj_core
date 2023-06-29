@@ -4,21 +4,12 @@ const props = defineProps<{
   username: string
 }>();
 
-const { data: profile, pending } = await useLazyAsyncData("user_profile", async () => {
-  if (process.server) return;
-
-  const res = await fetch(useRuntimeConfig().public.apiBase + "/user/" + props.username)
-  // console.log(res)
-
-  if (res.ok) {
-    return await res.json();
-  }
-})
+const { data: profile } = await useAPI("get:/user", { username: props.username })
 
 </script>
 
 <template>
-  <div v-if="!pending">
+  <div>
     <pre>{{ profile }}</pre>
   </div>
 </template>
