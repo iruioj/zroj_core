@@ -4,23 +4,15 @@
 import type { AsyncData } from "nuxt/app";
 import type { FetchError } from "ofetch";
 
-export function useAPI(path: "post:/auth/login", payload: {username: string;passwordHash: string;}): Promise<AsyncData<void, FetchError>>;
-export function useAPI(path: "post:/auth/logout"): Promise<AsyncData<void, FetchError>>;
-export function useAPI(path: "post:/auth/register", payload: {email: string;username: string;passwordHash: string;}): Promise<AsyncData<void, FetchError>>;
-export function useAPI(path: "get:/auth/info"): Promise<AsyncData<{username: string;email: string;}, FetchError>>;
-export function useAPI(path: "get:/user", query: {username: string;}): Promise<AsyncData<{id: number;username: string;email: string;motto: string;name: string;register_time: string;gender: "Male" | "Female" | "Others" | "Private";}, FetchError>>;
-export function useAPI(path: "get:/user/edit"): Promise<AsyncData<{id: number;username: string;email: string;motto: string;name: string;register_time: string;gender: "Male" | "Female" | "Others" | "Private";}, FetchError>>;
-export function useAPI(path: "post:/user/edit", payload: {password_hash: string | undefined;email: string | undefined;motto: string | undefined;name: string | undefined;gender: "Male" | "Female" | "Others" | "Private" | undefined;}): Promise<AsyncData<void, FetchError>>;
-export function useAPI(name: string, args?: any): Promise<any> {
+function callAPI(method: string, path: string, args?: any): Promise<any> {
     if (process.client) {
-        console.log('client call api', name, args)
+        console.log('client call api', method, path, args)
     }
-    const [method, slug] = name.split(':');
-    const path = useRuntimeConfig().public.apiBase + slug;
+    path = useRuntimeConfig().public.apiBase + path;
 
     const options = {
         server: false, // 这只会降低首次加载的体验
-        key: name,
+        key: method + ":" + path,
         method: method as any,
         credentials: 'include' as any,
         headers: useRequestHeaders(['cookie'])
@@ -33,4 +25,18 @@ export function useAPI(name: string, args?: any): Promise<any> {
         return useFetch(path, { ...options, body: args });
     }
 }
-
+export function useAPI () { return { auth: { login: { post: (payload: {username: string;passwordHash: string;}) => callAPI("post", "/auth/login", payload) as Promise<AsyncData<void, FetchError>>,
+ },
+logout: { post: () => callAPI("post", "/auth/logout") as Promise<AsyncData<void, FetchError>>,
+ },
+register: { post: (payload: {email: string;username: string;passwordHash: string;}) => callAPI("post", "/auth/register", payload) as Promise<AsyncData<void, FetchError>>,
+ },
+info: { get: () => callAPI("get", "/auth/info") as Promise<AsyncData<{username: string;email: string;}, FetchError>>,
+ },
+ },
+user: { get: (payload: {username: string;}) => callAPI("get", "/user", payload) as Promise<AsyncData<{id: number;username: string;email: string;motto: string;name: string;register_time: string;gender: "Male" | "Female" | "Others" | "Private";}, FetchError>>,
+edit: { get: () => callAPI("get", "/user/edit") as Promise<AsyncData<{id: number;username: string;email: string;motto: string;name: string;register_time: string;gender: "Male" | "Female" | "Others" | "Private";}, FetchError>>,
+post: (payload: {password_hash?: string;email?: string;motto?: string;name?: string;gender?: "Male" | "Female" | "Others" | "Private";}) => callAPI("post", "/user/edit", payload) as Promise<AsyncData<void, FetchError>>,
+ },
+ },
+ }; }

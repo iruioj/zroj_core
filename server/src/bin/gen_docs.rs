@@ -1,13 +1,117 @@
 use server::app;
 
-/// 添加 overload function declaration
-fn gen_nuxt_wrapper(service: server::ServiceDoc) -> String {
-    let mut r = String::new();
+#[derive(Clone, Debug)]
+enum EntryNode {
+    Endpoint {
+        method: String,
+        payload: Option<String>,
+        returns: Option<String>,
+    },
+    Path {
+        slug: String,
+        children: Vec<Box<EntryNode>>,
+    },
+}
 
-    service.apis.into_iter().for_each(|api| {
-        let path = api.method.clone() + ":" + &service.path + &api.path;
-        let res_ty = api.res_type.unwrap_or("void".into());
-        let res_ty = format!("Promise<AsyncData<{res_ty}, FetchError>>");
+#[derive(Clone, Debug)]
+struct EntryRoot(Vec<EntryNode>);
+
+impl EntryRoot {
+    fn gen_code(&self) -> String {
+        let code = self
+            .0
+            .iter()
+            .map(|s| s.gen_code(String::new()))
+            .reduce(|acc, cur| acc + &cur)
+            .unwrap();
+
+        format!("export function useAPI () {{ return {{ {code} }}; }}")
+    }
+}
+
+impl EntryNode {
+    fn replace_children(
+        mut children: Vec<Box<EntryNode>>,
+        slugs: &[String],
+        endpoint: EntryNode,
+    ) -> Vec<Box<EntryNode>> {
+        if slugs.is_empty() {
+            children.push(Box::new(endpoint));
+            return children;
+        }
+        let mut flag = false;
+        let mut children: Vec<Box<EntryNode>> = children
+            .into_iter()
+            .map(|c| {
+                if let EntryNode::Path { slug, children } = *c {
+                    if slug == slugs[0] {
+                        flag = true;
+                        Box::new(EntryNode::Path {
+                            slug,
+                            children: EntryNode::replace_children(
+                                children,
+                                &slugs[1..],
+                                endpoint.clone(),
+                            ),
+                        })
+                    } else {
+                        Box::new(EntryNode::Path { slug, children })
+                    }
+                } else {
+                    c
+                }
+            })
+            .collect();
+        if !flag {
+            children.push(Box::new(EntryNode::Path {
+                slug: slugs[0].clone(),
+                children: EntryNode::replace_children(Vec::new(), &slugs[1..], endpoint),
+            }));
+        }
+        children
+    }
+    fn gen_code(&self, path: String) -> String {
+        match self {
+            EntryNode::Endpoint {
+                method,
+                payload,
+                returns,
+            } => {
+                if let Some(payload) = payload {
+                    format!(
+                        "{}: (payload: {}) => callAPI({:?}, {:?}, payload) as Promise<AsyncData<{}, FetchError>>,\n",
+                        method,
+                        payload,
+                        method,
+                        path,
+                        returns.clone().unwrap_or("void".into()),
+                    )
+                } else {
+                    format!(
+                        "{}: () => callAPI({:?}, {:?}) as Promise<AsyncData<{}, FetchError>>,\n",
+                        method,
+                        method,
+                        path,
+                        returns.clone().unwrap_or("void".into()),
+                    )
+                }
+            }
+            EntryNode::Path { slug, children } => {
+                let inner = children
+                    .iter()
+                    .map(|c| c.gen_code(path.clone() + "/" + slug))
+                    .reduce(|acc, cur| acc + &cur)
+                    .unwrap();
+                format!("{}: {{ {} }},\n", slug, inner)
+            }
+        }
+    }
+}
+
+/// 添加 overload function declaration
+fn gen_entry(service: server::ServiceDoc) -> EntryNode {
+    let mut children = Vec::new();
+    for api in service.apis {
         // some invalid case
         if api.query_type.is_some() && api.body_type.is_some() {
             panic!("query conflict with body payload")
@@ -19,33 +123,36 @@ fn gen_nuxt_wrapper(service: server::ServiceDoc) -> String {
             panic!("body should not by used for get api")
         }
 
-        if let Some(ty) = api.body_type {
-            r += &format!(
-                "export function useAPI(path: {path:?}, payload: {ty}): {res_ty};\n"
-            );
-        } else if let Some(ty) = api.query_type {
-            r += &format!(
-                "export function useAPI(path: {path:?}, query: {ty}): {res_ty};\n"
-            );
-        } else {
-            r += &format!("export function useAPI(path: {path:?}): {res_ty};\n");
-        }
-    });
-
-    r
+        let path = service.path.clone() + &api.path;
+        let slugs: Vec<String> = path
+            .split('/')
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_string())
+            .collect();
+        children = EntryNode::replace_children(
+            children,
+            &slugs,
+            EntryNode::Endpoint {
+                method: api.method.clone(),
+                payload: api.body_type.or(api.query_type),
+                returns: api.res_type,
+            },
+        );
+    }
+    assert!(children.len() == 1);
+    *children.remove(0)
 }
 
 fn gen_nuxt_basic() -> String {
-    r#"export function useAPI(name: string, args?: any): Promise<any> {
+    r#"function callAPI(method: string, path: string, args?: any): Promise<any> {
     if (process.client) {
-        console.log('client call api', name, args)
+        console.log('client call api', method, path, args)
     }
-    const [method, slug] = name.split(':');
-    const path = useRuntimeConfig().public.apiBase + slug;
+    path = useRuntimeConfig().public.apiBase + path;
 
     const options = {
         server: false, // 这只会降低首次加载的体验
-        key: name,
+        key: method + ":" + path,
         method: method as any,
         credentials: 'include' as any,
         headers: useRequestHeaders(['cookie'])
@@ -63,15 +170,20 @@ fn gen_nuxt_basic() -> String {
 }
 
 fn main() {
-    let mut code = String::from(r#"// generated by server/src/bin/gen_docs.rs
+    let entry = EntryRoot(vec![
+        gen_entry(app::auth::service_doc()),
+        gen_entry(app::user::service_doc()),
+    ]);
+
+    let code = String::from(
+        r#"// generated by server/src/bin/gen_docs.rs
 // DO NOT EDIT.
 
 import type { AsyncData } from "nuxt/app";
 import type { FetchError } from "ofetch";
 
-"#);
-    code += &gen_nuxt_wrapper(app::auth::service_doc());
-    code += &gen_nuxt_wrapper(app::user::service_doc());
-    code += &gen_nuxt_basic();
+"#,
+    ) + &gen_nuxt_basic()
+        + &entry.gen_code();
     println!("{code}");
 }

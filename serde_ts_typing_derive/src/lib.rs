@@ -41,7 +41,7 @@ fn gen_fields_type(fields: Fields) -> proc_macro2::TokenStream {
             );
             fields.named.iter().for_each(|f| {
                 let mut name_str = f.ident.clone().unwrap().to_string();
-                let ty = &f.ty;
+                let mut ty = &f.ty;
                 f.attrs
                     .iter()
                     .filter_map(|a| {
@@ -67,9 +67,31 @@ fn gen_fields_type(fields: Fields) -> proc_macro2::TokenStream {
                             }
                         }
                     });
-                tks.extend(quote!(
-                    r = r + #name_str + ": " + &<#ty as serde_ts_typing::TypeDef>::type_def() + ";";
-                ))
+                // Option<T>
+                let mut is_option = false;
+                if let syn::Type::Path(p) = ty {
+                    if p.path.segments.len() == 1 {
+                        let last = p.path.segments.last().unwrap();
+                        if last.ident.to_string() == "Option" {
+                            if let syn::PathArguments::AngleBracketed(target) = &last.arguments {
+                                assert!(target.args.len() == 1);
+                                if let syn::GenericArgument::Type(target) = &target.args[0] {
+                                    ty = target;
+                                    is_option = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                if is_option {
+                    tks.extend(quote!(
+                        r = r + #name_str + "?: " + &<#ty as serde_ts_typing::TypeDef>::type_def() + ";";
+                    ))
+                } else {
+                    tks.extend(quote!(
+                        r = r + #name_str + ": " + &<#ty as serde_ts_typing::TypeDef>::type_def() + ";";
+                    ))
+                }
             });
             tks.extend(quote!(
                 r = r + "}";

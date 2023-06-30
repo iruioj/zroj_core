@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 
 // todo: https://github.com/damien-hl/nuxt3-auth-example/blob/main/composables/auth/useAuth.ts
-export const useAuth = () => useAPI("get:/auth/info")
+export const useAuth = () => useAPI().auth.info.get(); //useAPI("get:/auth/info")
 
 type Message = {
   id: number;
