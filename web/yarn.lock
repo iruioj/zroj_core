@@ -7477,8 +7477,8 @@ __metadata:
 
 "passwd@file:../passwd/pkg::locator=root-workspace-0b6124%40workspace%3A.":
   version: 0.1.0
-  resolution: "passwd@file:../passwd/pkg#../passwd/pkg::hash=d2a649&locator=root-workspace-0b6124%40workspace%3A."
-  checksum: 57678a7cc01fca70d4809eb9dbb73a88e5a6e9d7735aae1cd3dbd8c6ae4dbd85deafbcd7fce88e7ff06533ab99864cd5c795342930240861ad684b984a3e9a45
+  resolution: "passwd@file:../passwd/pkg#../passwd/pkg::hash=5d1c52&locator=root-workspace-0b6124%40workspace%3A."
+  checksum: dd6a4c36fc035abba420fe655ff62d912dfd4f5c0296313d939926d1ed40aab0bf4ff28fdc94693489c5f50567b5d59032b0122fd92792101670b28680dd2800
   languageName: node
   linkType: hard
 
@@ -8587,20 +8587,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rollup@npm:^3.20.2":
-  version: 3.20.7
-  resolution: "rollup@npm:3.20.7"
-  dependencies:
-    fsevents: ~2.3.2
-  dependenciesMeta:
-    fsevents:
-      optional: true
-  bin:
-    rollup: dist/bin/rollup
-  checksum: 443f26aa6e42b94b4b137fbc3a07c78254cafc4ae53e0547bf5a94337b0658ca100d4e1c7e24870e399e5c7068a419cc0d367bfd35f4b1552d0b5e6d3482c517
-  languageName: node
-  linkType: hard
-
 "rollup@npm:^3.21.0":
   version: 3.23.0
   resolution: "rollup@npm:3.23.0"
@@ -9648,11 +9634,11 @@ __metadata:
 
 "typescript@patch:typescript@^5.0#~builtin<compat/typescript>":
   version: 5.0.4
-  resolution: "typescript@patch:typescript@npm%3A5.0.4#~builtin<compat/typescript>::version=5.0.4&hash=1f5320"
+  resolution: "typescript@patch:typescript@npm%3A5.0.4#~builtin<compat/typescript>::version=5.0.4&hash=85af82"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 6a1fe9a77bb9c5176ead919cc4a1499ee63e46b4e05bf667079f11bf3a8f7887f135aa72460a4c3b016e6e6bb65a822cb8689a6d86cbfe92d22cc9f501f09213
+  checksum: bb309d320c59a26565fb3793dba550576ab861018ff3fd1b7fccabbe46ae4a35546bc45f342c0a0b6f265c801ccdf64ffd68f548f117ceb7f0eac4b805cd52a9
   languageName: node
   linkType: hard
 
@@ -10092,44 +10078,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^3.0.0 || ^4.0.0":
-  version: 4.3.1
-  resolution: "vite@npm:4.3.1"
-  dependencies:
-    esbuild: ^0.17.5
-    fsevents: ~2.3.2
-    postcss: ^8.4.21
-    rollup: ^3.20.2
-  peerDependencies:
-    "@types/node": ">= 14"
-    less: "*"
-    sass: "*"
-    stylus: "*"
-    sugarss: "*"
-    terser: ^5.4.0
-  dependenciesMeta:
-    fsevents:
-      optional: true
-  peerDependenciesMeta:
-    "@types/node":
-      optional: true
-    less:
-      optional: true
-    sass:
-      optional: true
-    stylus:
-      optional: true
-    sugarss:
-      optional: true
-    terser:
-      optional: true
-  bin:
-    vite: bin/vite.js
-  checksum: e58ba33ec10af6167686c1c43c61f31fcbc6b3b6a1f16ed03fb6cc8278700c6edaf4ff394ef454291ee35924054c7772feac159f1acf3af1a33d289fe8494d9c
-  languageName: node
-  linkType: hard
-
-"vite@npm:~4.3.9":
+"vite@npm:^3.0.0 || ^4.0.0, vite@npm:~4.3.9":
   version: 4.3.9
   resolution: "vite@npm:4.3.9"
   dependencies:
