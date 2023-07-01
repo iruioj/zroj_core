@@ -15,7 +15,7 @@ function callAPI(method: string, path: string, args?: any): Promise<any> {
         key: method + ":" + path,
         method: method as any,
         credentials: 'include' as any,
-        headers: useRequestHeaders(['cookie'])
+        headers: useRequestHeaders()
     };
     if (args === undefined) {
         return useFetch(path, options);

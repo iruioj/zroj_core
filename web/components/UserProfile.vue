@@ -1,10 +1,9 @@
 <script setup lang="ts">
 const props = defineProps<{
-  username: string
+  username: string;
 }>();
 
 const { data: profile } = await useAPI().user.get({ username: props.username });
-
 </script>
 
 <template>

@@ -1,16 +1,22 @@
 <script setup lang="ts">
-
-
 const { error } = useMsgStore();
 const props = defineProps<{
-  initdata: { id: number; username: string; email: string; motto: string; name: string; register_time: string; gender: "Male" | "Female" | "Others" | "Private"; }
+  initdata: {
+    id: number;
+    username: string;
+    email: string;
+    motto: string;
+    name: string;
+    register_time: string;
+    gender: "Male" | "Female" | "Others" | "Private";
+  };
 }>();
 
 const data = reactive(props.initdata);
 
 const onSubmit = async (e: Event) => {
   e.preventDefault();
-  console.log('submit')
+  console.log("submit");
   try {
     await useAPI().user.edit.post({
       // password_hash: undefined,
@@ -18,13 +24,12 @@ const onSubmit = async (e: Event) => {
       // email: undefined,
       motto: data.motto,
       name: data.name,
-    })
-    navigateTo("/user/me")
+    });
+    navigateTo("/user/me");
   } catch (e) {
-    error((e as any).message)
+    error((e as any).message);
   }
-
-}
+};
 </script>
 <template>
   <form @submit="onSubmit">

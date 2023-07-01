@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { data: authinfo, refresh } = await useAuth();
+const auth = useAuth();
 const { info, error } = useMsgStore();
 
 const onLogout = async () => {
@@ -8,22 +8,21 @@ const onLogout = async () => {
     credentials: "include",
   });
   if (res.ok) {
-    await refresh();
+    await auth.refresh();
     info("已退出登录");
     navigateTo("/");
     return;
   }
   error(await res.text());
 };
-
 </script>
 
 <template>
   <PageContainer>
     <div class="mt-8 mb-4 text-2xl text-brand font-medium">
-      {{ authinfo?.username }}
+      {{ auth.username }}
     </div>
-    <UserProfile v-if="authinfo" :username="authinfo.username" />
+    <UserProfile v-if="auth.username" :username="auth.username" />
     <div class="my-2">
       <UBtn @click="onLogout">Logout</UBtn>
       <NuxtLink to="/user/me/edit"><UBtn class="mx-1">Edit</UBtn></NuxtLink>

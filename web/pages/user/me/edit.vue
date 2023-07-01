@@ -1,6 +1,5 @@
 <script setup lang="ts">
-const { data }  = await useAPI().user.edit.get(); // useAPI("get:/user/edit")
-console.log(data)
+const { data } = await useAPI().user.edit.get(); // useAPI("get:/user/edit")
 </script>
 
 <template>

@@ -1,6 +1,6 @@
 <!-- 使用 aleph 指示 hydration -->
 <script setup lang="ts">
-const { data: authinfo } = await useAuth();
+const auth = useAuth();
 const { list } = useMsgStore();
 </script>
 
@@ -23,8 +23,8 @@ const { list } = useMsgStore();
       </div>
       <div class="grow"></div>
       <div class="py-2 px-4 print:hidden">
-        <TextLink v-if="authinfo" to="/user/me">{{
-          authinfo.username
+        <TextLink v-if="auth.username" to="/user/me">{{
+          auth.username
         }}</TextLink>
         <TextLink v-else to="/auth/signin">Sign In/Up</TextLink>
       </div>
@@ -36,8 +36,17 @@ const { list } = useMsgStore();
       <NavButton to="/oneoff">Customtest</NavButton>
     </div>
     <TransitionGroup name="msg-list" tag="div">
-      <div v-for="msg in list" :key="msg.id" class="p-1 text-center" :class="'msg-' + msg.kind">
-        <NuxtIcon v-if="msg.kind == 'error'" class="inline-block align-middle" name="error" />
+      <div
+        v-for="msg in list"
+        :key="msg.id"
+        class="p-1 text-center"
+        :class="'msg-' + msg.kind"
+      >
+        <NuxtIcon
+          v-if="msg.kind == 'error'"
+          class="inline-block align-middle"
+          name="error"
+        />
         {{ msg.msg }}
       </div>
     </TransitionGroup>

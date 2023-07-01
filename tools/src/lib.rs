@@ -15,7 +15,7 @@ impl std::fmt::Display for TcpListenInfo {
 
 #[cfg(target_os = "linux")]
 pub fn netstat() -> Vec<TcpListenInfo> {
-    let tcp_inodes: HashMap<u64, (SocketAddr, SocketAddr)> = procfs::process::all_processes()
+    let tcp_inodes: std::collections::HashMap<u64, (SocketAddr, SocketAddr)> = procfs::process::all_processes()
         .unwrap()
         .flat_map(|prc| prc.unwrap().tcp().unwrap())
         .chain(

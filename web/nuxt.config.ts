@@ -12,11 +12,11 @@ export default defineNuxtConfig({
     // Keys within public are also exposed client-side
     public: {
       // in the same origin, thus omit host.
-      apiBase: "http://api.zroj.tst",
+      apiBase: "/api",
+      // apiBase: "http://api.zroj.tst",
     },
   },
-  devServer: {
-  },
+  devServer: {},
   vite: {
     plugins: [wasm(), topLevelAwait()],
   },
