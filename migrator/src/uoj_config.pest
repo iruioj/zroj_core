@@ -1,0 +1,19 @@
+WHITESPACE = _{ " " }
+
+line = {
+    WHITESPACE+
+    | "use_builtin_judger" ~ ASCII_ALPHANUMERIC+
+    | "use_builtin_checker" ~ ASCII_ALPHANUMERIC+
+    | "n_tests" ~ ASCII_ALPHANUMERIC+
+    | "n_ex_tests" ~ ASCII_ALPHANUMERIC+
+    | "n_sample_tests" ~ ASCII_ALPHANUMERIC+
+    | "input_pre" ~ ASCII_ALPHANUMERIC+
+    | "input_suf" ~ ASCII_ALPHANUMERIC+
+    | "output_pre" ~ ASCII_ALPHANUMERIC+
+    | "output_suf" ~ ASCII_ALPHANUMERIC+
+    | "time_limit" ~ ASCII_ALPHANUMERIC+
+    | "memory_limit" ~ ASCII_ALPHANUMERIC+
+    | "output_limit" ~ ASCII_ALPHANUMERIC+
+} 
+
+file = { SOI ~ line ~ (NEWLINE+ ~ line)* ~ NEWLINE* ~ EOI }

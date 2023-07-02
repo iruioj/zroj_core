@@ -14,7 +14,8 @@ members = [
     "store_derive",
     "tools",
     "serde_ts_typing",
-    "serde_ts_typing_derive"
+    "serde_ts_typing_derive",
+    "migrator"
 ]
 
 [workspace.package]

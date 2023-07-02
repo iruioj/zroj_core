@@ -58,10 +58,11 @@ mod tests {
     use crate::env::which;
 
     #[test]
-    #[cfg(target_os = "linux")]
+    #[cfg(all(unix))]
     fn test_linux() {
         assert_eq!(os_family(), "unix");
         eprintln!("gcc = {:?}", which("gcc"));
         eprintln!("python = {:?}", which("python"));
+        eprintln!("python3 = {:?}", which("python3"));
     }
 }
