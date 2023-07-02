@@ -10,7 +10,7 @@ use judger::{
 };
 use store::FsStore;
 
-#[derive(FsStore)]
+#[derive(FsStore, Debug)]
 pub struct Meta {
     pub checker: Checker,
     // pub validator: String,
@@ -22,13 +22,13 @@ pub struct Meta {
     pub memory_limit: Memory,
 }
 
-#[derive(FsStore)]
+#[derive(FsStore, Debug)]
 pub struct Task {
     pub input: StoreFile,
     pub output: StoreFile,
 }
 
-#[derive(FsStore)]
+#[derive(FsStore, Debug)]
 pub struct Subm {
     source: StoreFile,
 }

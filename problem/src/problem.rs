@@ -93,3 +93,4 @@ fn copy_in_wd(
 }
 
 pub mod traditional;
+pub type TraditionalData = Data<traditional::Task, traditional::Meta, ()>;

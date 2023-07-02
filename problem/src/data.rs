@@ -1,7 +1,7 @@
 //! 题目数据存储
 
 use std::io::{self, Seek, Write};
-
+pub use judger::FileType;
 use serde::{Deserialize, Serialize};
 use store::FsStore;
 use tempfile::TempDir;
@@ -24,7 +24,7 @@ use crate::{DataError, Override};
 ///
 /// - 子任务/测试点的评分模式是可以固定的（分数的计算可以自定义）
 /// - 子任务具有与整个评测任务相似的结构，除了不能有子任务
-#[derive(FsStore)]
+#[derive(FsStore, Debug)]
 pub struct Data<T, M, S>
 where
     T: FsStore,
@@ -42,14 +42,14 @@ where
 }
 
 /// 任务集合
-#[derive(FsStore)]
+#[derive(FsStore, Debug)]
 pub enum Taskset<Task, SubtaskMeta>
 where
     Task: FsStore,
     SubtaskMeta: FsStore,
 {
     Subtasks {
-        tasks: Vec<(Task, SubtaskMeta)>,
+        tasks: Vec<(Vec<Task>, SubtaskMeta)>,
         /// (a, b) 表示  b 依赖 a
         #[meta]
         deps: DepOption,
@@ -71,7 +71,7 @@ struct TasksetMeta {
 }
 
 /// 子任务记分规则
-#[derive(Serialize, Deserialize, FsStore)]
+#[derive(Serialize, Deserialize, FsStore, Debug)]
 pub enum Rule {
     /// 各测试点得分和
     Sum,
@@ -88,11 +88,11 @@ pub fn tempdir_unzip(reader: impl io::Read + io::Seek) -> Result<TempDir, DataEr
 }
 
 /// 一个带类型的文件
-#[derive(FsStore)]
+#[derive(FsStore,  Debug)]
 pub struct StoreFile {
     pub file: std::fs::File,
     #[meta]
-    pub file_type: judger::FileType,
+    pub file_type: FileType,
 }
 
 impl StoreFile {

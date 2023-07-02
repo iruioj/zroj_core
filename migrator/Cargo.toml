@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 pest = "2"
 pest_derive = "2"
+problem = { path = "../problem" }
+store = { path = "../store" }

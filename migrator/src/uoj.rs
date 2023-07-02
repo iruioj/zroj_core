@@ -1,7 +1,12 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use pest::Parser;
 use pest_derive::Parser;
+use problem::{
+    data::{FileType, StoreFile, Taskset},
+    problem::{traditional::Task, TraditionalData},
+    Checker,
+};
 
 #[derive(Parser)]
 #[grammar = "uoj_config.pest"] // relative to src
@@ -21,20 +26,29 @@ impl std::fmt::Display for ParseError {
     }
 }
 impl std::error::Error for ParseError {}
+
+#[derive(Debug)]
+pub struct SubtaskConfig {
+    start: u64,
+    end: u64,
+    score: u64,
+}
+
 #[derive(Debug)]
 pub struct Config {
-    pub use_builtin_judger: bool,
-    pub use_builtin_checker: Option<String>,
-    pub n_tests: u32,
-    pub n_ex_tests: u32,
-    pub n_sample_tests: u32,
-    pub input_pre: String,
-    pub input_suf: String,
-    pub output_pre: String,
-    pub output_suf: String,
-    pub time_limit: u32,
-    pub memory_limit: u32,
-    pub output_limit: u32,
+    use_builtin_judger: bool,
+    use_builtin_checker: Option<String>,
+    n_tests: Option<u64>,
+    n_ex_tests: Option<u64>,
+    n_sample_tests: Option<u64>,
+    input_pre: String,
+    input_suf: String,
+    output_pre: String,
+    output_suf: String,
+    time_limit: Option<u64>,
+    memory_limit: Option<u64>,
+    output_limit: Option<u64>,
+    subtasks: Option<(BTreeMap<u64, SubtaskConfig>, Vec<(u64, u64)>)>,
 }
 pub fn parse_config(content: &str) -> Result<Config, ParseError> {
     let mut r = ConfigParser::parse(Rule::file, content)
@@ -42,32 +56,30 @@ pub fn parse_config(content: &str) -> Result<Config, ParseError> {
     let mut map = HashMap::new();
     let file = r.find(|i| Rule::file == i.as_rule()).unwrap();
     for item in file.into_inner().filter(|i| i.as_rule() != Rule::EOI) {
-        if let Rule::line = item.as_rule() {
-            dbg!(&item);
-            let mut it = item
-                .as_span()
-                .as_str()
-                .split_whitespace()
-                .map(|s| s.to_string());
-            // not empty line
-            if let Some(key) = it.next() {
-                dbg!(&key);
-                let value: Vec<String> = it.collect();
-                map.insert(key, value);
-            }
-        } else {
+        if Rule::line != item.as_rule() {
             panic!("invalid item (rule: {:?})", item.as_rule())
         }
+        let mut it = item
+            .as_span()
+            .as_str()
+            .split_whitespace()
+            .map(|s| s.to_string());
+        // not empty line
+        if let Some(key) = it.next() {
+            let value: Vec<String> = it.collect();
+            map.insert(key, value);
+        }
     }
-    dbg!(&map);
 
     let get_str = |key: &str| map.get(key).map(|s| s[0].clone());
-    let get_u32 = |key: &str, default: u32| {
+    let get_u64 = |key: &str| {
         get_str(key)
             .map(|s| s.parse())
-            .unwrap_or(Ok(default))
+            .map_or(Ok(None), |v| v.map(Some))
+            // .unwrap_or(Ok(default))
             .map_err(|e| ParseError::ParseStrError(Box::new(e)))
     };
+    let n_subtasks = get_u64("n_subtasks")?;
 
     Ok(Config {
         use_builtin_judger: map
@@ -75,15 +87,151 @@ pub fn parse_config(content: &str) -> Result<Config, ParseError> {
             .map(|s| s[0] == "on")
             .unwrap_or(false),
         use_builtin_checker: get_str("use_builtin_checker"),
-        n_tests: get_u32("n_tests", 0)?,
-        n_ex_tests: get_u32("n_ex_tests", 0)?,
-        n_sample_tests: get_u32("n_sample_tests", 0)?,
+        n_tests: get_u64("n_tests")?,
+        n_ex_tests: get_u64("n_ex_tests")?,
+        n_sample_tests: get_u64("n_sample_tests")?,
         input_pre: get_str("input_pre").unwrap(),
         input_suf: get_str("input_suf").unwrap(),
         output_pre: get_str("output_pre").unwrap(),
         output_suf: get_str("output_suf").unwrap(),
-        time_limit: get_u32("time_limit", 0)?,
-        memory_limit: get_u32("memory_limit", 0)?,
-        output_limit: get_u32("output_limit", 0)?,
+        time_limit: get_u64("time_limit")?,
+        memory_limit: get_u64("memory_limit")?,
+        output_limit: get_u64("output_limit")?,
+        subtasks: n_subtasks
+            .map(|n_subtasks| {
+                Ok((
+                    (1..=n_subtasks).try_fold(
+                        BTreeMap::<u64, SubtaskConfig>::new(),
+                        |mut v, i| {
+                            v.insert(
+                                i,
+                                SubtaskConfig {
+                                    start: v.get(&(i - 1)).map(|o| o.end).unwrap_or(0) + 1,
+                                    end: get_u64(&format!("subtask_end_{i}"))?.unwrap(),
+                                    score: get_u64(&format!("subtask_score_{i}"))?.unwrap(),
+                                },
+                            );
+                            Ok(v)
+                        },
+                    )?,
+                    map.iter()
+                        .filter_map(|(k, v)| {
+                            if k.contains("subtask_dependence_") {
+                                Some((
+                                    k["subtask_dependence_".len()..].parse::<u64>().unwrap(),
+                                    v[0].parse::<u64>().unwrap(),
+                                ))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect(),
+                ))
+            })
+            .map_or(Ok(None), |v| v.map(Some))?,
+    })
+}
+
+#[derive(Debug)]
+pub enum LoadError {
+    StoreError(store::Error),
+}
+
+impl std::fmt::Display for LoadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LoadError::StoreError(e) => write!(f, "error opening store: {e}"),
+        }
+    }
+}
+impl std::error::Error for LoadError {}
+
+pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, LoadError> {
+    // TODO: sample and extra tests
+    Ok(TraditionalData {
+        tasks: if let Some((subtasks, deps)) = &conf.subtasks {
+            Taskset::Subtasks {
+                // TODO: score!
+                tasks: subtasks
+                    .into_iter()
+                    .map(|(k, v)| {
+                        Ok((
+                            (v.start..=v.end)
+                                .map(|cur| {
+                                    Ok(Task {
+                                        input: StoreFile {
+                                            file: dir
+                                                .join(format!(
+                                                    "{}{cur}.{}",
+                                                    conf.input_pre, conf.input_suf
+                                                ))
+                                                .open_file()
+                                                .map_err(|e| LoadError::StoreError(e))?,
+                                            file_type: FileType::Plain,
+                                        },
+                                        output: StoreFile {
+                                            file: dir
+                                                .join(format!(
+                                                    "{}{cur}.{}",
+                                                    conf.output_pre, conf.output_suf
+                                                ))
+                                                .open_file()
+                                                .map_err(|e| LoadError::StoreError(e))?,
+                                            file_type: FileType::Plain,
+                                        },
+                                    })
+                                })
+                                .collect::<Result<_, LoadError>>()?,
+                            (),
+                        ))
+                    })
+                    .collect::<Result<_, LoadError>>()?,
+                deps: deps
+                    .into_iter()
+                    .map(|(a, b)| (*a as usize - 1, *b as usize - 1))
+                    .collect(),
+            }
+        } else {
+            Taskset::Tests {
+                tasks: (1..=conf.n_tests.unwrap()).try_fold(Vec::new(), |mut tasks, cur| {
+                    tasks.push(Task {
+                        input: StoreFile {
+                            file: dir
+                                .join(format!("{}{cur}.{}", conf.input_pre, conf.input_suf))
+                                .open_file()
+                                .map_err(|e| LoadError::StoreError(e))?,
+                            file_type: FileType::Plain,
+                        },
+                        output: StoreFile {
+                            file: dir
+                                .join(format!("{}{cur}.{}", conf.output_pre, conf.output_suf))
+                                .open_file()
+                                .map_err(|e| LoadError::StoreError(e))?,
+                            file_type: FileType::Plain,
+                        },
+                    });
+                    Ok(tasks)
+                })?,
+            }
+        },
+        meta: problem::problem::traditional::Meta {
+            checker: if let Some(checker) = &conf.use_builtin_checker {
+                if checker == "ncmp" {
+                    Checker::AutoCmp {
+                        float_relative_eps: 0.0,
+                        float_absoulte_eps: 0.0,
+                    }
+                }
+                // default checker
+                else {
+                    Checker::FileCmp
+                }
+            } else {
+                unimplemented!()
+            },
+            time_limit: conf.time_limit.unwrap_or(5000).into(),
+            memory_limit: conf.memory_limit.unwrap_or(256 << 20).into(),
+        },
+        rule: problem::data::Rule::Sum,
     })
 }
