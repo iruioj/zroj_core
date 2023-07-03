@@ -9,7 +9,7 @@ enum EntryNode {
     },
     Path {
         slug: String,
-        children: Vec<Box<EntryNode>>,
+        children: Vec<EntryNode>,
     },
 }
 
@@ -31,39 +31,39 @@ impl EntryRoot {
 
 impl EntryNode {
     fn replace_children(
-        mut children: Vec<Box<EntryNode>>,
+        mut children: Vec<EntryNode>,
         slugs: &[String],
         endpoint: EntryNode,
-    ) -> Vec<Box<EntryNode>> {
+    ) -> Vec<EntryNode> {
         if slugs.is_empty() {
-            children.push(Box::new(endpoint));
+            children.push(endpoint);
             return children;
         }
         let mut flag = false;
-        let mut children: Vec<Box<EntryNode>> = children
+        let mut children: Vec<EntryNode> = children
             .into_iter()
             .map(|c| {
-                let EntryNode::Path { slug, children } = *c else { return c };
+                let EntryNode::Path { slug, children } = c else { return c };
                 if slug == slugs[0] {
                     flag = true;
-                    Box::new(EntryNode::Path {
+                    EntryNode::Path {
                         slug,
                         children: EntryNode::replace_children(
                             children,
                             &slugs[1..],
                             endpoint.clone(),
                         ),
-                    })
+                    }
                 } else {
-                    Box::new(EntryNode::Path { slug, children })
+                    EntryNode::Path { slug, children }
                 }
             })
             .collect();
         if !flag {
-            children.push(Box::new(EntryNode::Path {
+            children.push(EntryNode::Path {
                 slug: slugs[0].clone(),
                 children: EntryNode::replace_children(Vec::new(), &slugs[1..], endpoint),
-            }));
+            });
         }
         children
     }
@@ -137,7 +137,7 @@ fn gen_entry(service: server::ServiceDoc) -> EntryNode {
         );
     }
     assert!(children.len() == 1);
-    *children.remove(0)
+    children.remove(0)
 }
 
 fn gen_nuxt_basic() -> String {

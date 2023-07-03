@@ -40,7 +40,7 @@ impl Username {
         } else if value.len() > 20 {
             Err(Error::TooLong)
         } else {
-            match value.chars().skip_while(|c| c.is_alphanumeric() || *c == '_').next() {
+            match value.chars().find(|c| !(c.is_alphanumeric() || *c == '_')) {
                 Some(c) => Err(Error::InvalidChar(c)),
                 None => Ok(Self(value)),
             }

@@ -37,7 +37,7 @@ fn gen_fields_type(fields: Fields) -> proc_macro2::TokenStream {
     match fields {
         syn::Fields::Named(fields) => {
             let mut tks = quote!(
-                let mut r = String::from("{");
+                String::from("{")
             );
             fields.named.iter().for_each(|f| {
                 let mut name_str = f.ident.clone().unwrap().to_string();
@@ -85,17 +85,16 @@ fn gen_fields_type(fields: Fields) -> proc_macro2::TokenStream {
                 }
                 if is_option {
                     tks.extend(quote!(
-                        r = r + #name_str + "?: " + &<#ty as serde_ts_typing::TypeDef>::type_def() + ";";
+                        + #name_str + "?: " + &<#ty as serde_ts_typing::TypeDef>::type_def() + ";"
                     ))
                 } else {
                     tks.extend(quote!(
-                        r = r + #name_str + ": " + &<#ty as serde_ts_typing::TypeDef>::type_def() + ";";
+                        + #name_str + ": " + &<#ty as serde_ts_typing::TypeDef>::type_def() + ";"
                     ))
                 }
             });
             tks.extend(quote!(
-                r = r + "}";
-                r
+                + "}"
             ));
             tks
         }
@@ -146,7 +145,7 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
     let gparam = generics.params;
 
     let mut type_def_stmt = quote!(
-        let mut rs = String::new();
+        String::new()
     );
     let mut is_first = true;
     input
@@ -158,9 +157,9 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
                 let varient_name = String::from("\"") + &varient_name + "\"";
                 return if is_first {
                     is_first = false;
-                    quote!(rs = rs + #varient_name;)
+                    quote!(+ #varient_name)
                 } else {
-                    quote!(rs = rs + " | " + #varient_name;)
+                    quote!(+ " | " + #varient_name)
                 };
             }
 
@@ -169,20 +168,17 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
             if is_first {
                 is_first = false;
                 quote!(
-                    rs = rs + "{" + #varient_name + ": " + &{
-                        #fields_ty
-                    } + "}";
+                    + "{" + #varient_name + ": " + &{ #fields_ty } + "}"
                 )
             } else {
                 quote!(
-                    rs = rs + " | " + "{" + #varient_name + ": " + &{
+                    + " | " + "{" + #varient_name + ": " + &{
                         #fields_ty
-                    } + "}";
+                    } + "}"
                 )
             }
         })
         .for_each(|tks| type_def_stmt.extend(tks));
-    type_def_stmt.extend(quote!(rs));
 
     quote! {
         impl<#gparam> serde_ts_typing::TypeDef for #enum_name<#gparam> #where_clause {

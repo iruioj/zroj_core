@@ -172,10 +172,8 @@ fn parse_marker_type(marker: impl AsRef<str>, ty: syn::Type) -> Option<syn::Type
         if last.ident == marker.as_ref() {
             if let syn::PathArguments::AngleBracketed(g) = &last.arguments {
                 let target = g.args.first().unwrap();
-                if let syn::GenericArgument::Type(target) = target {
-                    if let syn::Type::Path(target) = target {
-                        return Some(target.clone());
-                    }
+                if let syn::GenericArgument::Type(syn::Type::Path(target)) = target {
+                    return Some(target.clone());
                 }
             }
         }
