@@ -15,7 +15,7 @@ use nix::{
         time::TimeValLike,
         wait::WaitStatus,
     },
-    unistd::{execve, fork, setpgid, ForkResult, Pid},
+    unistd,
 };
 use std::{
     ffi::CString,
@@ -38,9 +38,21 @@ pub struct Singleton {
     stderr: Option<PathBuf>,
 }
 
+// for async-signal-safty
+fn c_write(s: &[u8]) {
+    unsafe {
+        libc::write(
+            libc::STDERR_FILENO,
+            s.as_ptr() as *const std::ffi::c_void,
+            s.len(),
+        );
+    }
+}
 impl Singleton {
     fn exec_child(&self) -> Result<(), SandboxError> {
-        setpgid(Pid::from_raw(0), Pid::from_raw(0))?;
+        c_write(b"start exec child\n");
+        unistd::setpgid(unistd::Pid::from_raw(0), unistd::Pid::from_raw(0))?;
+        c_write(b"pgid set\n");
         // 提前计算好需要的东西
         let (path, args, env) = (
             CString::new(self.exec_path.as_os_str().as_bytes())?,
@@ -55,6 +67,7 @@ impl Singleton {
                 nix::sys::stat::Mode::S_IRUSR,
             )?;
             nix::unistd::dup2(fd, libc::STDIN_FILENO).unwrap();
+            c_write(b"stdin redirected\n");
         }
         if let Some(stdout) = &self.stdout {
             let fd: std::os::fd::RawFd = fcntl::open(
@@ -63,6 +76,7 @@ impl Singleton {
                 Mode::S_IRUSR | Mode::S_IWUSR,
             )?;
             nix::unistd::dup2(fd, libc::STDOUT_FILENO).unwrap();
+            c_write(b"stdout redirected\n");
         }
         if let Some(stderr) = &self.stderr {
             let fd: std::os::fd::RawFd = fcntl::open(
@@ -71,6 +85,8 @@ impl Singleton {
                 Mode::S_IRUSR | Mode::S_IWUSR,
             )?;
             nix::unistd::dup2(fd, libc::STDERR_FILENO).unwrap();
+        } else {
+            c_write(b"stderr not redirected\n");
         }
         // set resource limit
         macro_rules! setlim {
@@ -87,15 +103,22 @@ impl Singleton {
             };
         }
         setlim!(cpu_time, RLIMIT_CPU, sec);
+        // macos 对于内存的控制有自己的见解，如果在这里限制的话会 RE
+        // 这意味着 macos 上的安全性会低一些
+        #[cfg(not(target_os = "macos"))]
         setlim!(virtual_memory, RLIMIT_AS, byte);
+        #[cfg(not(target_os = "macos"))]
         setlim!(stack_memory, RLIMIT_STACK, byte);
         setlim!(output_memory, RLIMIT_FSIZE, byte);
         setlim!(fileno, RLIMIT_NOFILE, into);
+        if self.stderr.is_none() {
+            c_write(b"resource limited\n");
+        }
         // todo: set syscall limit
-        execve(&path, &args, &env)?;
+        unistd::execve(&path, &args, &env)?;
         Ok(())
     }
-    fn exec_parent(&self, child: Pid, start: Instant) -> Result<Termination, SandboxError> {
+    fn exec_parent(&self, child: unistd::Pid, start: Instant) -> Result<Termination, SandboxError> {
         use std::sync::mpsc;
         let (tx, rx) = mpsc::channel();
         // 如果有实际运行时间限制，就开一个计时线程
@@ -140,6 +163,10 @@ impl Singleton {
         let cpu_time = Elapse::from(
             (u.user_time().num_milliseconds() + u.system_time().num_milliseconds()) as u64,
         );
+        // on macos, the maximum resident set size is measured in bytes (see man getrusage)
+        #[cfg(target_os = "macos")]
+        let memory = Memory::from((u.max_rss()) as u64);
+        #[cfg(not(target_os = "macos"))]
         let memory = Memory::from((u.max_rss() * 1024) as u64);
 
         macro_rules! real_tle {
@@ -156,7 +183,7 @@ impl Singleton {
             WaitStatus::Exited(_, exit_code) => {
                 println!("子进程正常退出");
                 if real_mle!() {
-                    Status::MemoryLimitExceeded(MemoryLimitExceededKind::Real)
+                    Status::MemoryLimitExceeded(MemoryLimitExceededKind::Real(memory))
                 } else if real_tle!() {
                     Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
                 } else if exit_code != 0 {
@@ -201,10 +228,10 @@ impl Singleton {
 impl crate::ExecSandBox for Singleton {
     fn exec_sandbox(&self) -> Result<crate::Termination, SandboxError> {
         let start = Instant::now();
-        match unsafe { fork() } {
+        match unsafe { unistd::fork() } {
             Err(_) => msg_err("fork failed"),
-            Ok(ForkResult::Parent { child }) => self.exec_parent(child, start),
-            Ok(ForkResult::Child) => match self.exec_child() {
+            Ok(unistd::ForkResult::Parent { child }) => self.exec_parent(child, start),
+            Ok(unistd::ForkResult::Child) => match self.exec_child() {
                 Ok(_) => unsafe { libc::_exit(0) },
                 Err(_) => unsafe { libc::_exit(1) },
             },
@@ -364,6 +391,8 @@ impl Builder for SingletonBuilder {
     type Target = Singleton;
 
     fn build(self) -> Result<Self::Target, SandboxError> {
+        dbg!(&self.exec_path);
+        dbg!(&self.arguments);
         Ok(Singleton {
             limits: self.limits,
             exec_path: self.exec_path.unwrap(),
@@ -461,8 +490,8 @@ mod tests {
 
         let singleton = SingletonBuilder::new(ls_path)
             .push_arg("ls")
-            .push_arg(".")
             .push_arg("-l")
+            .push_arg(".")
             .build()?;
 
         let term = singleton.exec_fork()?;
@@ -503,11 +532,7 @@ mod tests {
     #[test]
     #[cfg_attr(not(unix), ignore = "not unix os")]
     fn singleton_env() -> Result<(), super::SandboxError> {
-        let env_path = if cfg!(target_os = "linux") {
-            "/usr/bin/env"
-        } else {
-            "/bin/env"
-        };
+        let env_path = "/usr/bin/env";
 
         let singleton = SingletonBuilder::new(env_path)
             .push_arg("env")

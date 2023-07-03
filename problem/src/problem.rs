@@ -33,7 +33,7 @@ where
         let ctx = store::Handle::new(dir.path());
         Ok(Self {
             dir,
-            data: FsStore::open(ctx)?,
+            data: FsStore::open(&ctx)?,
         })
     }
     /// get read only data

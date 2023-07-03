@@ -1,6 +1,6 @@
 use crate::UserID;
 use actix_web::{error, web, Result};
-use judger::{OneOff, TaskReport};
+use judger::{OneOff, StoreFile, TaskReport};
 use std::{
     collections::HashMap,
     path::PathBuf,
@@ -8,26 +8,6 @@ use std::{
 };
 
 use super::judge_queue::JudgeQueue;
-
-// #[derive(Serialize, Debug, Clone, Deserialize)]
-// pub enum CodeLang {
-//     #[serde(rename = "gnu_cpp20_o2")]
-//     GnuCpp20O2,
-//     #[serde(rename = "gnu_cpp17_o2")]
-//     GnuCpp17O2,
-//     #[serde(rename = "gnu_cpp14_o2")]
-//     GnuCpp14O2,
-// }
-
-// impl Compile for CodeLang {
-//     fn build_sigton(&self, source: &PathBuf, dest: &PathBuf) -> sandbox::unix::Singleton {
-//         match *self {
-//             Self::GnuCpp14O2 => judger::lang::gnu_cpp14_o2().build_sigton(source, dest),
-//             Self::GnuCpp17O2 => judger::lang::gnu_cpp17_o2().build_sigton(source, dest),
-//             Self::GnuCpp20O2 => judger::lang::gnu_cpp20_o2().build_sigton(source, dest),
-//         }
-//     }
-// }
 
 #[derive(Debug)]
 pub struct CustomTestManager {
@@ -80,8 +60,17 @@ pub fn start_custom_test(
         if let Ok(mut guard) = state.write() {
             guard.insert(uid, None);
         }
-        let mut one = OneOff::new(source, Some(input), lang);
-        one.set_wd(base);
+        let mut one = OneOff::new(
+            StoreFile {
+                file: std::fs::File::open(source).unwrap(),
+                file_type: lang,
+            },
+            Some(StoreFile {
+                file: std::fs::File::open(input).unwrap(),
+                file_type: judger::FileType::Plain,
+            }),
+        );
+        one.set_wd(judger::Handle::new(base));
         let result = one.exec().unwrap();
         dbg!(&result);
         if let Ok(mut guard) = state.write() {

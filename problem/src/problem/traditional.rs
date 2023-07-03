@@ -5,7 +5,7 @@ use crate::{
     Checker, RuntimeError,
 };
 use judger::{
-    sandbox::{unix::SingletonBuilder, Builder, ExecSandBox, Elapse, Memory, mem},
+    sandbox::{mem, unix::SingletonBuilder, Builder, Elapse, ExecSandBox, Memory},
     truncstr::{TruncStr, TRUNCATE_LEN},
 };
 use store::FsStore;
@@ -122,24 +122,15 @@ impl JudgeProblem for Traditional {
 
 #[cfg(test)]
 mod tests {
-    use judger::{DefaultJudger, sandbox::{time, mem, Elapse, Memory}};
+    use judger::{
+        sandbox::{mem, time, Elapse, Memory},
+        DefaultJudger,
+    };
     use store::Handle;
 
     use crate::{data::StoreFile, problem::JudgeProblem, Checker};
 
     use super::{Meta, Subm, Task, Traditional};
-
-    impl StoreFile {
-        /// use for testing
-        pub(crate) fn create_tmp(content: impl AsRef<str>) -> Self {
-            let mut file = tempfile::tempfile().unwrap();
-            std::io::Write::write(&mut file, content.as_ref().as_bytes()).unwrap();
-            Self {
-                file,
-                file_type: judger::FileType::Plain,
-            }
-        }
-    }
 
     #[test]
     fn test_a_plus_b() {

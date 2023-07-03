@@ -40,8 +40,8 @@ fn test_derive_fs_store() {
     let dir = tempfile::tempdir().unwrap();
     // let handle = Handle::new(".");
     let handle = Handle::new(dir.path());
-    store.save(handle.join("test_store")).unwrap();
-    let mut store2 = TestStore::open(handle.join("test_store")).unwrap();
+    store.save(&handle.join("test_store")).unwrap();
+    let mut store2 = TestStore::open(&handle.join("test_store")).unwrap();
     store2.file.seek(std::io::SeekFrom::Start(0)).unwrap();
     let content = std::io::read_to_string(&mut store2.file).unwrap();
     eprintln!("{:?}", handle);

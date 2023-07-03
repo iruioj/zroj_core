@@ -7,6 +7,7 @@ mod error;
 mod lang;
 mod one_off;
 mod report;
+mod store_file;
 pub mod truncstr;
 
 // pub use basic::Submission;
@@ -16,6 +17,8 @@ pub use lang::Compile;
 pub use lang::FileType;
 pub use one_off::OneOff;
 pub use report::{JudgeReport, Status, TaskReport};
+pub use store_file::StoreFile;
+pub use store::Handle;
 
 /// Judger 是一个评测服务的上下文，可以提供评测环境的信息，访问相关缓存等等
 ///
@@ -35,7 +38,7 @@ impl DefaultJudger {
         Self { wd }
     }
 }
-impl Judger for DefaultJudger{
+impl Judger for DefaultJudger {
     fn working_dir(&self) -> store::Handle {
         self.wd.clone()
     }

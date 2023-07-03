@@ -123,18 +123,18 @@ impl AsRef<Path> for Handle {
 /// 文件夹数据结构化存储
 pub trait FsStore: Sized {
     /// 读取文件（夹）下的数据信息
-    fn open(ctx: Handle) -> Result<Self, Error>;
+    fn open(ctx: &Handle) -> Result<Self, Error>;
 
     /// 将该结构体中的信息保存到一个文件（夹）中
-    fn save(&mut self, ctx: Handle) -> Result<(), Error>;
+    fn save(&mut self, ctx: &Handle) -> Result<(), Error>;
 }
 
 impl FsStore for () {
-    fn open(_: Handle) -> Result<Self, Error> {
+    fn open(_: &Handle) -> Result<Self, Error> {
         Ok(())
     }
 
-    fn save(&mut self, _: Handle) -> Result<(), Error> {
+    fn save(&mut self, _: &Handle) -> Result<(), Error> {
         Ok(())
     }
 }
@@ -143,16 +143,16 @@ macro_rules! impl_tuple {
     ( $( $type:ident ),*  ) => {
 
 impl< $( $type : FsStore, )* > FsStore for ( $( $type, )* ) {
-    fn open(ctx: Handle) -> Result<Self, Error> {
+    fn open(ctx: &Handle) -> Result<Self, Error> {
         Ok((
-            $( FsStore::open(ctx.join(stringify!($type)))?, )*
+            $( FsStore::open(&ctx.join(stringify!($type)))?, )*
         ))
     }
 
-    fn save(&mut self, ctx: Handle) -> Result<(), Error> {
+    fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
         #[allow(non_snake_case)]
         let ( $( $type, )* ) = self;
-        $( FsStore::save($type, ctx.join(stringify!($type)))?; )*
+        $( FsStore::save($type, &ctx.join(stringify!($type)))?; )*
         Ok(())
     }
 }
@@ -171,31 +171,31 @@ impl_tuple!(A, B, C, D, E, F);
 const VEC_FS_STORE_LIMIT: usize = 512;
 
 impl<T: FsStore> FsStore for Vec<T> {
-    fn open(ctx: Handle) -> Result<Self, Error> {
+    fn open(ctx: &Handle) -> Result<Self, Error> {
         let len = ctx.join("_vec_len").deserialize::<usize>()?;
         (0..len)
-            .map(|i| T::open(ctx.join(format!("item_{i}"))))
+            .map(|i| T::open(&ctx.join(format!("item_{i}"))))
             .collect()
     }
 
-    fn save(&mut self, ctx: Handle) -> Result<(), Error> {
+    fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
         if self.len() > VEC_FS_STORE_LIMIT {
             return Err(Error::VecTooLong);
         }
         ctx.join("_vec_len").serialize_new_file(&self.len())?;
         for (i, item) in self.iter_mut().enumerate() {
-            item.save(ctx.join(format!("item_{i}")))?;
+            item.save(&ctx.join(format!("item_{i}")))?;
         }
         Ok(())
     }
 }
 
 impl FsStore for std::fs::File {
-    fn open(ctx: Handle) -> Result<Self, Error> {
+    fn open(ctx: &Handle) -> Result<Self, Error> {
         ctx.open_file()
     }
 
-    fn save(&mut self, ctx: Handle) -> Result<(), Error> {
+    fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
         let mut dest = ctx.create_new_file()?;
         self.seek(std::io::SeekFrom::Start(0)).unwrap();
         std::io::copy(self, &mut dest).unwrap();

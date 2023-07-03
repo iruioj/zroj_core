@@ -37,7 +37,7 @@ impl Parse for ScopeServiceAttr {
 /// - 函数内调用 `service`，`app_data`，`wrap`，`wrap_fn`，`route`，`default_service`，`guard`，`configure`
 ///   函数（末尾需要带分号）将会自动转换为 scope 上的方法，使用 `r#` 可以取消转换
 /// - 将返回值强制设置为
-///   ```rust
+///   ```ignore
 ///   actix_web::Scope<
 ///       impl actix_web::dev::ServiceFactory<
 ///           actix_web::dev::ServiceRequest,

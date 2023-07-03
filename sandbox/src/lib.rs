@@ -26,7 +26,7 @@ pub mod windows;
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum TimeLimitExceededKind {
     /// 内核时间与用户时间之和
-    Cpu,
+    Cpu(Elapse),
     /// 进程的实际执行时间
     Real,
 }
@@ -37,7 +37,7 @@ pub enum MemoryLimitExceededKind {
     /// 虚拟内存
     Virtual,
     /// 实际使用内存（默认）
-    Real,
+    Real(Memory),
     /// 栈空间
     Stack,
 }
@@ -212,7 +212,6 @@ impl Memory {
     pub fn byte(self) -> u64 {
         self.0
     }
-    
 }
 
 #[allow(unused_imports)]

@@ -24,7 +24,7 @@ mod test_cache {
             dir.clone(),
             "ok.cpp",
             r#"
-#include <bits/stdc++.h>
+#include <iostream>
 using namespace std;
 
 int main() {
@@ -40,7 +40,7 @@ int main() {
             dir.clone(),
             "ce.cpp",
             r#"
-#include <bits/stdc++.h>
+#include <iostream>
 
 int main() {
 	int a, b;
@@ -54,7 +54,7 @@ int main() {
         let mut cache = Cache::new(3u64, dir);
 
         let regex =
-            Regex::new("^*1996820efb4549152815543dc8641cdf2a21623de1d9871683d65c233e97a30e$")
+            Regex::new("^*67333e3cb9085dbb0fd301fd4809a98cc8af31966b515e9340720367dd4380bf$")
                 .unwrap();
 
         let now = Instant::now();

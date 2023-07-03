@@ -47,8 +47,8 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
                         into_meta_fields.extend(quote!( #name : self.#name.clone(), ));
                     } else {
                         let name_str = name.to_string();
-                        ret_fields.extend(quote!( #name : FsStore::open(path.join(#name_str))?, ));
-                        save_block.extend(quote!( self.#name.save(path.join(#name_str))?; ));
+                        ret_fields.extend(quote!( #name : FsStore::open(&path.join(#name_str))?, ));
+                        save_block.extend(quote!( self.#name.save(&path.join(#name_str))?; ));
                     }
                 }
             }
@@ -68,7 +68,7 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
         let stmt = quote! {
             #[automatically_derived]
             impl<#params> FsStore for #ident<#params> #where_clause {
-                fn open(path: store::Handle) -> Result<Self, store::Error> {
+                fn open(path: &store::Handle) -> Result<Self, store::Error> {
                     use std::fs::File;
                     let __meta__: #meta_struct_ident =
                         path.join("__meta__").deserialize::<#meta_struct_ident>()?;
@@ -77,7 +77,7 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
                         #ret_fields
                     })
                 }
-                fn save(&mut self, path: store::Handle) -> Result<(), store::Error> {
+                fn save(&mut self, path: &store::Handle) -> Result<(), store::Error> {
                     path.join("__meta__").serialize_new_file(& #meta_struct_ident {
                         #into_meta_fields
                     })?;
@@ -137,9 +137,9 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
                         } else {
                             let name_str = name.to_string();
                             ret_fields
-                                .extend(quote!( #name : FsStore::open(path.join(#name_str))?, ));
+                                .extend(quote!( #name : FsStore::open(&path.join(#name_str))?, ));
 
-                            save_block.extend(quote!( #name.save(path.join(#name_str))?; ));
+                            save_block.extend(quote!( #name.save(&path.join(#name_str))?; ));
                         }
                     }
                     meta_branches.extend(quote!(#varname{#fields},));
@@ -173,7 +173,7 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
         let stmt = quote! {
             #[automatically_derived]
             impl<#params> FsStore for #ident<#params> #where_clause {
-                fn open(path: store::Handle) -> Result<Self, store::Error> {
+                fn open(path: &store::Handle) -> Result<Self, store::Error> {
                     use std::fs::File;
                     let __meta__: #meta_enum_ident =
                         path.join("__meta__").deserialize::<#meta_enum_ident>()?;
@@ -182,7 +182,7 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
                         #ret_branches
                     })
                 }
-                fn save(&mut self, path: store::Handle) -> Result<(), store::Error> {
+                fn save(&mut self, path: &store::Handle) -> Result<(), store::Error> {
                     path.join("__meta__").serialize_new_file(& match self {
                         #save_branches
                     })?;

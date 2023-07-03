@@ -1,8 +1,8 @@
 //! 题目数据存储
 
-use std::io::{self, Seek, Write};
 pub use judger::FileType;
 use serde::{Deserialize, Serialize};
+use std::io;
 use store::FsStore;
 use tempfile::TempDir;
 
@@ -87,22 +87,4 @@ pub fn tempdir_unzip(reader: impl io::Read + io::Seek) -> Result<TempDir, DataEr
     Ok(dir)
 }
 
-/// 一个带类型的文件
-#[derive(FsStore,  Debug)]
-pub struct StoreFile {
-    pub file: std::fs::File,
-    #[meta]
-    pub file_type: FileType,
-}
-
-impl StoreFile {
-    pub fn reset_cursor(&mut self) -> Result<(), std::io::Error> {
-        self.file.seek(io::SeekFrom::Start(0))?;
-        Ok(())
-    }
-    pub fn copy_all(&mut self, dest: &mut impl Write) -> Result<(), std::io::Error> {
-        self.reset_cursor()?;
-        std::io::copy(&mut self.file, dest)?;
-        Ok(())
-    }
-}
+pub use judger::StoreFile;

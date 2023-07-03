@@ -31,6 +31,7 @@ impl GnuCpp {
     /// 默认编译器为 g++
     pub fn new(gpp_path: Option<PathBuf>, args: Vec<&'static str>) -> Self {
         let gpp_path = gpp_path.unwrap_or(crate::env::which("g++").unwrap());
+        dbg!(&gpp_path);
         let extra_args: Vec<String> = args.into_iter().map(|s| s.to_string()).collect();
         GnuCpp {
             gpp_path,
@@ -71,10 +72,10 @@ impl Compile for GnuCpp {
                 .set_limits(|_| Limitation {
                     real_time: time!(10s).into(),
                     cpu_time: time!(10s).into(),
-                    virtual_memory: mem!(1gb).into(),
-                    real_memory: mem!(1gb).into(),
-                    stack_memory: mem!(1gb).into(),
-                    output_memory: mem!(64mb).into(),
+                    virtual_memory: mem!(4gb).into(),
+                    real_memory: mem!(4gb).into(),
+                    stack_memory: mem!(4gb).into(),
+                    output_memory: mem!(1gb).into(),
                     fileno: 50.into(),
                 })
                 .stderr(log)
