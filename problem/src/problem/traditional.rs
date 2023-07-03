@@ -110,12 +110,19 @@ impl JudgeProblem for Traditional {
             .checker
             .check(wd.join("input"), wd.join("output"), wd.join("answer"));
 
-        report
-            .payload
-            .push(("checker log".into(), TruncStr::new(r.1, TRUNCATE_LEN)));
-        if !r.0 {
+        if r.is_err() {
             report.status = judger::Status::WrongAnswer;
         }
+        report.payload.push((
+            "checker log".into(),
+            TruncStr::new(
+                match r {
+                    Ok(s) => s,
+                    Err(s) => s,
+                },
+                TRUNCATE_LEN,
+            ),
+        ));
         Ok(report)
     }
 }

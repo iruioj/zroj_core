@@ -43,22 +43,19 @@ impl EntryNode {
         let mut children: Vec<Box<EntryNode>> = children
             .into_iter()
             .map(|c| {
-                if let EntryNode::Path { slug, children } = *c {
-                    if slug == slugs[0] {
-                        flag = true;
-                        Box::new(EntryNode::Path {
-                            slug,
-                            children: EntryNode::replace_children(
-                                children,
-                                &slugs[1..],
-                                endpoint.clone(),
-                            ),
-                        })
-                    } else {
-                        Box::new(EntryNode::Path { slug, children })
-                    }
+                let EntryNode::Path { slug, children } = *c else { return c };
+                if slug == slugs[0] {
+                    flag = true;
+                    Box::new(EntryNode::Path {
+                        slug,
+                        children: EntryNode::replace_children(
+                            children,
+                            &slugs[1..],
+                            endpoint.clone(),
+                        ),
+                    })
                 } else {
-                    c
+                    Box::new(EntryNode::Path { slug, children })
                 }
             })
             .collect();
