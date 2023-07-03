@@ -24,7 +24,7 @@ impl SerdeJsonWithType for EmailAddress {}
 impl EmailAddress {
     /// 检查字符串内容并新建一个用户名
     pub fn new(value: impl AsRef<str>) -> Result<Self, email_address::Error> {
-        email_address::EmailAddress::from_str(value.as_ref()).map(|s| Self(s))
+        email_address::EmailAddress::from_str(value.as_ref()).map(Self)
     }
 }
 impl Borrow<email_address::EmailAddress> for EmailAddress {

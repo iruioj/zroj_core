@@ -169,7 +169,7 @@ fn parse_marker_type(marker: impl AsRef<str>, ty: syn::Type) -> Option<syn::Type
     if let syn::Type::Path(ty) = ty {
         // 粗暴，只看最后一个是不是和 marker 一样
         let last = ty.path.segments.last().unwrap();
-        if last.ident.to_string() == marker.as_ref() {
+        if last.ident == marker.as_ref() {
             if let syn::PathArguments::AngleBracketed(g) = &last.arguments {
                 let target = g.args.first().unwrap();
                 if let syn::GenericArgument::Type(target) = target {

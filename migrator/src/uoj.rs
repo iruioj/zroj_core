@@ -153,8 +153,8 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, L
             Taskset::Subtasks {
                 // TODO: score!
                 tasks: subtasks
-                    .into_iter()
-                    .map(|(k, v)| {
+                    .iter()
+                    .map(|(_k, v)| {
                         Ok((
                             (v.start..=v.end)
                                 .map(|cur| {
@@ -166,7 +166,7 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, L
                                                     conf.input_pre, conf.input_suf
                                                 ))
                                                 .open_file()
-                                                .map_err(|e| LoadError::StoreError(e))?,
+                                                .map_err(LoadError::StoreError)?,
                                             file_type: FileType::Plain,
                                         },
                                         output: StoreFile {
@@ -176,7 +176,7 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, L
                                                     conf.output_pre, conf.output_suf
                                                 ))
                                                 .open_file()
-                                                .map_err(|e| LoadError::StoreError(e))?,
+                                                .map_err(LoadError::StoreError)?,
                                             file_type: FileType::Plain,
                                         },
                                     })
@@ -187,7 +187,7 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, L
                     })
                     .collect::<Result<_, LoadError>>()?,
                 deps: deps
-                    .into_iter()
+                    .iter()
                     .map(|(a, b)| (*a as usize - 1, *b as usize - 1))
                     .collect(),
             }
@@ -199,14 +199,14 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, L
                             file: dir
                                 .join(format!("{}{cur}.{}", conf.input_pre, conf.input_suf))
                                 .open_file()
-                                .map_err(|e| LoadError::StoreError(e))?,
+                                .map_err(LoadError::StoreError)?,
                             file_type: FileType::Plain,
                         },
                         output: StoreFile {
                             file: dir
                                 .join(format!("{}{cur}.{}", conf.output_pre, conf.output_suf))
                                 .open_file()
-                                .map_err(|e| LoadError::StoreError(e))?,
+                                .map_err(LoadError::StoreError)?,
                             file_type: FileType::Plain,
                         },
                     });

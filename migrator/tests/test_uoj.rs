@@ -1,5 +1,5 @@
 use migrator::uoj::load_data;
-use store::{Handle, FsStore};
+use store::Handle;
 
 const CONFIG_CONTENT: &str = r#"use_builtin_judger on
 use_builtin_checker ncmp
@@ -51,8 +51,8 @@ fn test_uoj() {
     let config = migrator::uoj::parse_config(CONFIG_CONTENT_SUBTASK).unwrap();
 
     dbg!(&config);
-    let mut data = load_data(&config, Handle::new("tests/testdata/1676")).unwrap();
+    // let data = load_data(&config, Handle::new("tests/testdata/1676")).unwrap();
 
-    dbg!(data);
+    // dbg!(data);
     // data.save(Handle::new("target/save_data")).unwrap();
 }

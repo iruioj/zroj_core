@@ -49,12 +49,12 @@ impl Username {
 }
 impl AsRef<String> for Username {
     fn as_ref(&self) -> &String {
-        return &self.0;
+        &self.0
     }
 }
 impl ToString for Username {
     fn to_string(&self) -> String {
-        return self.0.clone();
+        self.0.clone()
     }
 }
 // for cookie builder

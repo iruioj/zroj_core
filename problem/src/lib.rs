@@ -26,13 +26,11 @@ fn compare_byline(
     answer: BufReader<File>,
     f: impl Fn(usize, String, String) -> Result<(), String>,
 ) -> Result<(), String> {
-    let mut outs = output.lines().map_while(Result::ok).enumerate();
+    let outs = output.lines().map_while(Result::ok).enumerate();
     let mut anss = answer.lines().map_while(Result::ok);
-    while let Some((id, out)) = outs.next() {
+    for (id, out) in outs {
         if let Some(ans) = anss.next() {
-            if let Err(e) = f(id, out, ans) {
-                return Err(e);
-            }
+            f(id, out, ans)?
         } else {
             return Err("incorrect number of lines".into());
         }

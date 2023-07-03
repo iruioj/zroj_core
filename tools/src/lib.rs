@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::SocketAddr};
+use std::net::SocketAddr;
 
 pub struct TcpListenInfo {
     pid: i32,

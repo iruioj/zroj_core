@@ -72,7 +72,7 @@ fn gen_fields_type(fields: Fields) -> proc_macro2::TokenStream {
                 if let syn::Type::Path(p) = ty {
                     if p.path.segments.len() == 1 {
                         let last = p.path.segments.last().unwrap();
-                        if last.ident.to_string() == "Option" {
+                        if last.ident == "Option" {
                             if let syn::PathArguments::AngleBracketed(target) = &last.arguments {
                                 assert!(target.args.len() == 1);
                                 if let syn::GenericArgument::Type(target) = &target.args[0] {

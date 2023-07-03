@@ -2,7 +2,7 @@
 use actix_cors::Cors;
 use actix_web::http::header;
 use actix_web::middleware::Logger;
-use actix_web;
+
 use actix_web::{web, App, HttpServer};
 use server::app;
 use server::auth::middleware::SessionAuth;
