@@ -3,7 +3,7 @@
 
 pub mod cache;
 mod env;
-mod error;
+pub mod error;
 mod lang;
 mod one_off;
 mod report;
@@ -11,7 +11,7 @@ mod store_file;
 pub mod truncstr;
 
 // pub use basic::Submission;
-pub use cache::Cache;
+pub use cache::{Cache, CompileResult};
 pub use error::Error;
 pub use lang::Compile;
 pub use lang::FileType;
@@ -28,20 +28,34 @@ pub use store::Handle;
 pub trait Judger {
     /// 返回当前的工作目录
     fn working_dir(&self) -> store::Handle;
+	/// 编译源代码
+	fn compile(&mut self, src: &mut StoreFile) -> Option<cache::CompileResult>;
 }
 
 pub struct DefaultJudger {
     wd: store::Handle,
+	cache: Option<Cache>,
 }
 impl DefaultJudger {
-    pub fn new(wd: store::Handle) -> Self {
-        Self { wd }
+    pub fn new(wd: store::Handle, cache: Option<Cache>) -> Self {
+        Self { wd, cache }
     }
 }
 impl Judger for DefaultJudger {
     fn working_dir(&self) -> store::Handle {
         self.wd.clone()
     }
+	fn compile(&mut self, src: &mut StoreFile) -> Option<cache::CompileResult> {
+		if let Some(cache) = &mut self.cache {
+			// !!! TODO !!!
+			// 可能会有以下两种错误
+			// Error::Sandbox(sandbox::SandboxError),
+  			// Error::IOError(std::io::Error),
+			return Some(cache.compile(src).unwrap());
+		} else {
+			return None;
+		}
+	}
 }
 
 /// Judge 表示的评测过程.

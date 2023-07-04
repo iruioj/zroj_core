@@ -1,7 +1,8 @@
 #[derive(Debug)]
 pub enum Error {
-    OpenFile(std::io::Error),
     NotFile,
+    OpenFile(std::io::Error),
+	RemoveFile(std::io::Error),
     Serialize(serde_json::Error),
     Deserialize(serde_json::Error),
     CreateNewFile(std::io::Error),
@@ -13,8 +14,9 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
-            Error::OpenFile(e) => write!(f, "error opening file: {}", e),
             Error::NotFile => write!(f, "handle not a file"),
+            Error::OpenFile(e) => write!(f, "error opening file: {}", e),
+            Error::RemoveFile(e) => write!(f, "error removing file: {}", e),
             Error::Deserialize(e) => write!(f, "error deserializing: {}", e),
             Error::CreateNewFile(p) => write!(f, "error creating new file: {}", p),
             Error::Serialize(e) => write!(f, "error serializing: {}", e),

@@ -39,6 +39,14 @@ impl Handle {
             Err(Error::NotFile)
         }
     }
+	/// 删除该目录下的文件（要求其必须存在）
+	pub fn remove_file(&self) -> Result<(), Error> {
+		if self.dir.is_file() {
+			std::fs::remove_file(self).map_err(Error::RemoveFile)
+		} else {
+			Err(Error::NotFile)
+		}
+	}
     /// 在该路径下新建文件，会自动补齐父级目录，要求其不存在
     pub fn create_new_file(&self) -> Result<std::fs::File, Error> {
         if let Some(par) = self.dir.parent() {

@@ -10,7 +10,6 @@ pub enum Error {
     CmdSymLink,
     Sandbox(sandbox::SandboxError),
     IOError(std::io::Error),
-    CacheCE(sandbox::Status),
 }
 
 impl From<sandbox::SandboxError> for Error {
@@ -32,7 +31,6 @@ impl Display for Error {
             Error::CmdSymLink => write!(f, "Command found but is symlink"),
             Error::Sandbox(e) => write!(f, "sandbox error: {}", e),
             Error::IOError(e) => write!(f, "io error: {}", e),
-			Error::CacheCE(e) => write!(f, "compile error: {:?}", e),
         }
     }
 }

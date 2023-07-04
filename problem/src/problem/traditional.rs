@@ -1,3 +1,5 @@
+/// WARNING: Cache Part UNTESTED!!!
+
 use super::JudgeProblem;
 use crate::{
     data::StoreFile,
@@ -7,6 +9,7 @@ use crate::{
 use judger::{
     sandbox::{mem, unix::SingletonBuilder, Builder, Elapse, ExecSandBox, Memory},
     truncstr::{TruncStr, TRUNCATE_LEN},
+	cache::CompileResult,
 };
 use store::FsStore;
 
@@ -45,7 +48,7 @@ impl JudgeProblem for Traditional {
     // 先写了一个粗糙的，后面再来错误处理
     fn judge_task(
         &self,
-        judger: impl judger::Judger,
+        judger: &mut impl judger::Judger, // !!! TODO !!! 加 Mutex Lock
         meta: &mut Self::M,
         task: &mut Self::T,
         subm: &mut Self::Subm,
@@ -53,23 +56,54 @@ impl JudgeProblem for Traditional {
         let wd = judger.working_dir();
         let Subm { source } = subm;
 
-        eprintln!("编译源文件");
-        let term = compile_in_wd(source, &wd, "main")?;
+		eprintln!("编译源文件");
 
-        // Compile Error
-        if !term.status.ok() {
-            return Ok({
-                let mut r = judger::TaskReport {
-                    status: judger::Status::CompileError(term.status),
-                    time: term.cpu_time.ms(),
-                    memory: term.memory.byte(),
-                    // todo: add log
-                    payload: Vec::new(),
-                };
-                let _ = r.add_payload("compile log", wd.join("main.c.log"));
-                r
-            });
-        }
+		match judger.compile(source) {
+			None => {
+				let term = compile_in_wd(source, &wd, "main")?;
+
+				// Compile Error
+				if !term.status.ok() {
+					return Ok({
+						let mut r = judger::TaskReport {
+							status: judger::Status::CompileError(term.status),
+							time: term.cpu_time.ms(),
+							memory: term.memory.byte(),
+							// todo: add log
+							payload: Vec::new(),
+						};
+						let _ = r.add_payload("compile log", wd.join("main.c.log"));
+						r
+					});
+				}
+			},
+			Some(c_res) => {
+				match c_res.exec {
+					None => {
+						return Ok({
+							let mut r = judger::TaskReport {
+								status: judger::Status::CompileError(c_res.stat),
+								// todo: add time, memory
+								time: 0u64.into(),
+								memory: 0u64.into(),
+								// todo: add log
+								payload: Vec::new(),
+							};
+							let _ = r.add_payload("compile log", wd.join("main.c.log"));
+							r
+						});
+					},
+					Some(exec) => {
+						// !!! TODO !!! 处理文件错误
+						let clog = c_res.clog;
+						let mut m_exec = std::fs::File::create(wd.join("main")).unwrap();
+						let mut m_clog = std::fs::File::create(wd.join("main.c.log")).unwrap();
+						std::io::copy(&mut exec.open_file().unwrap(), &mut m_exec);
+						std::io::copy(&mut clog.open_file().unwrap(), &mut m_clog);
+					},
+				}
+			},
+		};
 
         eprintln!("复制 IO 文件");
         copy_in_wd(&mut task.input, &wd, "input")?;
@@ -144,7 +178,7 @@ mod tests {
         let a = Traditional;
         let dir = tempfile::tempdir().unwrap();
         let wd = Handle::new(dir);
-        let jd = DefaultJudger::new(wd);
+        let mut jd = DefaultJudger::new(wd, None);
         let mut meta = Meta {
             checker: Checker::FileCmp,
             time_limit: time!(5s),
@@ -171,7 +205,7 @@ mod tests {
             },
         };
 
-        let report = a.judge_task(jd, &mut meta, &mut task, &mut subm).unwrap();
+        let report = a.judge_task(&mut jd, &mut meta, &mut task, &mut subm).unwrap();
         if let judger::Status::Accepted = report.status {
         } else {
             panic!("not accepted")

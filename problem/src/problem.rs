@@ -55,7 +55,7 @@ pub trait JudgeProblem {
     /// 当然我们可以在实现的时候结合缓存系统来提高效率。
     fn judge_task(
         &self,
-        judger: impl judger::Judger,
+        judger: &mut impl judger::Judger, // !!! TODO !!! 加 Mutex Lock
         meta: &mut Self::M,
         task: &mut Self::T,
         subm: &mut Self::Subm,
