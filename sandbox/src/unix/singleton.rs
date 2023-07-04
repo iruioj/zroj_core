@@ -1,5 +1,5 @@
 use crate::{
-    error::{msg_err, SandboxError},
+    error::{ChildError, SandboxError},
     unix::Limitation,
     vec_str_to_vec_cstr, Builder, Elapse, Memory, MemoryLimitExceededKind, Status, Termination,
     TimeLimitExceededKind,
@@ -19,7 +19,7 @@ use nix::{
 };
 use std::{
     ffi::CString,
-    os::unix::prelude::OsStrExt,
+    os::{fd::RawFd, unix::prelude::OsStrExt},
     path::{Path, PathBuf},
     thread,
     time::Instant,
@@ -48,43 +48,45 @@ fn c_write(s: &[u8]) {
         );
     }
 }
+fn open_file(path: impl AsRef<std::path::Path>, flag: OFlag) -> Result<RawFd, ChildError> {
+    fcntl::open(
+        path.as_ref().as_os_str(),
+        flag,
+        // mode is for creating new file
+        Mode::S_IRUSR | Mode::S_IWUSR | Mode::S_IRGRP | Mode::S_IROTH,
+    )
+    .map_err(|errno| {
+        ChildError::OpenFile(errno.to_string(), path.as_ref().to_path_buf(), flag.bits())
+    })
+}
+fn dup(to: RawFd, from: RawFd) -> Result<RawFd, ChildError> {
+    nix::unistd::dup2(to, from).map_err(|errno| ChildError::Dup(errno.to_string(), to, from))
+}
 impl Singleton {
-    fn exec_child(&self) -> Result<(), SandboxError> {
+    fn exec_child(&self) -> Result<(), ChildError> {
         c_write(b"start exec child\n");
-        unistd::setpgid(unistd::Pid::from_raw(0), unistd::Pid::from_raw(0))?;
+        unistd::setpgid(unistd::Pid::from_raw(0), unistd::Pid::from_raw(0))
+            .map_err(|errno| ChildError::SetPGID(errno.to_string()))?;
         c_write(b"pgid set\n");
         // 提前计算好需要的东西
-        let (path, args, env) = (
-            CString::new(self.exec_path.as_os_str().as_bytes())?,
-            vec_str_to_vec_cstr(&self.arguments)?,
-            vec_str_to_vec_cstr(&self.envs)?,
-        );
+        let path = CString::new(self.exec_path.as_os_str().as_bytes())
+            .expect("exec_path contains null char");
+        let args = vec_str_to_vec_cstr(&self.arguments).expect("arguments contains null char");
+        let env = vec_str_to_vec_cstr(&self.envs).expect("enviroment arguments contains null char");
         // redirect standard IO
         if let Some(stdin) = &self.stdin {
-            let fd: std::os::fd::RawFd = fcntl::open(
-                stdin.as_os_str(),
-                OFlag::O_RDONLY,
-                nix::sys::stat::Mode::S_IRUSR,
-            )?;
-            nix::unistd::dup2(fd, libc::STDIN_FILENO).unwrap();
+            let fd = open_file(stdin, OFlag::O_RDONLY)?;
+            dup(fd, libc::STDIN_FILENO)?;
             c_write(b"stdin redirected\n");
         }
         if let Some(stdout) = &self.stdout {
-            let fd: std::os::fd::RawFd = fcntl::open(
-                stdout.as_os_str(),
-                OFlag::O_WRONLY | OFlag::O_TRUNC | OFlag::O_CREAT,
-                Mode::S_IRUSR | Mode::S_IWUSR,
-            )?;
-            nix::unistd::dup2(fd, libc::STDOUT_FILENO).unwrap();
+            let fd = open_file(stdout, OFlag::O_WRONLY | OFlag::O_TRUNC | OFlag::O_CREAT)?;
+            dup(fd, libc::STDOUT_FILENO)?;
             c_write(b"stdout redirected\n");
         }
         if let Some(stderr) = &self.stderr {
-            let fd: std::os::fd::RawFd = fcntl::open(
-                stderr.as_os_str(),
-                OFlag::O_WRONLY | OFlag::O_TRUNC | OFlag::O_CREAT,
-                Mode::S_IRUSR | Mode::S_IWUSR,
-            )?;
-            nix::unistd::dup2(fd, libc::STDERR_FILENO).unwrap();
+            let fd = open_file(stderr, OFlag::O_WRONLY | OFlag::O_TRUNC | OFlag::O_CREAT)?;
+            dup(fd, libc::STDERR_FILENO)?;
         } else {
             c_write(b"stderr not redirected\n");
         }
@@ -94,10 +96,24 @@ impl Singleton {
                 match self.limits.$i {
                     crate::unix::Lim::None => {}
                     crate::unix::Lim::Single(s) => {
-                        setrlimit(Resource::$r, s.$f(), s.$f())?;
+                        setrlimit(Resource::$r, s.$f(), s.$f()).map_err(|errno| {
+                            ChildError::SetRlimit(
+                                errno.to_string(),
+                                stringify!($r).into(),
+                                s.$f(),
+                                s.$f(),
+                            )
+                        })?;
                     }
                     crate::unix::Lim::Double(s, h) => {
-                        setrlimit(Resource::$r, s.$f(), h.$f())?;
+                        setrlimit(Resource::$r, s.$f(), h.$f()).map_err(|errno| {
+                            ChildError::SetRlimit(
+                                errno.to_string(),
+                                stringify!($r).into(),
+                                s.$f(),
+                                s.$f(),
+                            )
+                        })?;
                     }
                 }
             };
@@ -115,8 +131,15 @@ impl Singleton {
             c_write(b"resource limited\n");
         }
         // todo: set syscall limit
-        unistd::execve(&path, &args, &env)?;
-        Ok(())
+        unistd::execve(&path, &args, &env).map_err(|errno| {
+            ChildError::Execve(
+                errno.to_string(),
+                self.exec_path.clone(),
+                self.arguments.clone(),
+                self.envs.clone(),
+            )
+        })?;
+        unreachable!("execve returns infallible")
     }
     fn exec_parent(&self, child: unistd::Pid, start: Instant) -> Result<Termination, SandboxError> {
         use std::sync::mpsc;
@@ -156,9 +179,9 @@ impl Singleton {
                 };
             })
         });
-        let waitres = waitpid(child, None)?;
+        let waitres = waitpid(child, None).expect("wait child process error");
         let duration = start.elapsed();
-        let u = getrusage(UsageWho::RUSAGE_CHILDREN)?;
+        let u = getrusage(UsageWho::RUSAGE_CHILDREN).expect("getrusage error");
         let real_time: Elapse = duration.into();
         let cpu_time = Elapse::from(
             (u.user_time().num_milliseconds() + u.system_time().num_milliseconds()) as u64,
@@ -209,9 +232,13 @@ impl Singleton {
         };
         if let Some(h) = handle {
             if !h.is_finished() {
-                tx.send(())?; // 终止计时的线程
+                let _ = tx.send(()).map_err(|e| {
+                    println!("对计时线程发送终止信号出错：{e}, the corresponding receiver has already been deallocated");
+                }); // 终止计时的线程
                 println!("对计时线程发送终止信号");
-                h.join().map_err(|e| format!("{:?}", e))?; // 等待线程结束
+                let _ = h
+                    .join()
+                    .map_err(|e| format!("等待计时线程结束出错：{:?}", e)); // 等待线程结束
                 println!("计时线程正常结束");
             }
         }
@@ -229,7 +256,7 @@ impl crate::ExecSandBox for Singleton {
     fn exec_sandbox(&self) -> Result<crate::Termination, SandboxError> {
         let start = Instant::now();
         match unsafe { unistd::fork() } {
-            Err(_) => msg_err("fork failed"),
+            Err(e) => Err(SandboxError::Fork(e.to_string())),
             Ok(unistd::ForkResult::Parent { child }) => self.exec_parent(child, start),
             Ok(unistd::ForkResult::Child) => match self.exec_child() {
                 Ok(_) => unsafe { libc::_exit(0) },

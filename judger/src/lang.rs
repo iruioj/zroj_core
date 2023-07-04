@@ -1,5 +1,5 @@
 use sandbox::unix::{Limitation, SingletonBuilder};
-use sandbox::{Builder, ExecSandBox, time, mem, Elapse, Memory};
+use sandbox::{mem, time, Builder, Elapse, ExecSandBox, Memory, SandboxError};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::path::PathBuf;
@@ -113,10 +113,12 @@ struct PlainCompile {
 }
 
 impl ExecSandBox for PlainCompile {
-    fn exec_sandbox(&self) -> Result<sandbox::Termination, sandbox::SandboxError> {
-        let mut dest = std::fs::File::create(&self.dest)?;
-        let mut src = std::fs::File::open(&self.src)?;
-        std::io::copy(&mut src, &mut dest)?;
+    fn exec_sandbox(&self) -> Result<sandbox::Termination, SandboxError> {
+        let mut dest =
+            std::fs::File::create(&self.dest).map_err(|e| SandboxError::Custom(e.to_string()))?;
+        let mut src =
+            std::fs::File::open(&self.src).map_err(|e| SandboxError::Custom(e.to_string()))?;
+        std::io::copy(&mut src, &mut dest).map_err(|e| SandboxError::Custom(e.to_string()))?;
 
         Ok(sandbox::Termination {
             status: sandbox::Status::Ok,
@@ -149,7 +151,12 @@ impl ShaHash for FileType {
 }
 
 impl Compile for FileType {
-    fn compile_sandbox(&self, source: impl AsRef<Path>, dest: impl AsRef<Path>, log: impl AsRef<Path>) -> Box<dyn ExecSandBox> {
+    fn compile_sandbox(
+        &self,
+        source: impl AsRef<Path>,
+        dest: impl AsRef<Path>,
+        log: impl AsRef<Path>,
+    ) -> Box<dyn ExecSandBox> {
         match self {
             FileType::GnuCpp20O2 => {
                 GnuCpp::new(None, vec!["-std=c++2a", "-O2"]).compile_sandbox(source, dest, log)

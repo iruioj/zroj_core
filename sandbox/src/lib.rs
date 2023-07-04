@@ -116,14 +116,19 @@ pub trait ExecSandBox {
     fn exec_sandbox_fork(&self, result_file: &mut std::fs::File) -> Result<(), SandboxError> {
         use std::io::Write;
 
-        result_file.write_all(serde_json::to_string(&self.exec_sandbox()?)?.as_bytes())?;
+        result_file
+            .write_all(
+                serde_json::to_string(&self.exec_sandbox())
+                    .expect("error serializing execution result")
+                    .as_bytes(),
+            )
+            .expect("error writing result to file");
         Ok(())
     }
 
     /// Unix only: 先 fork 一个子进程再执行程序，避免主进程终止导致整个进程终止
     #[cfg(all(unix))]
     fn exec_fork(&self) -> Result<Termination, SandboxError> {
-        use crate::error::msg_err;
         use std::io::{Seek, SeekFrom};
         use tempfile::tempfile;
 
@@ -131,28 +136,28 @@ pub trait ExecSandBox {
         use nix::unistd::fork;
         use nix::unistd::ForkResult;
 
-        let mut tmp = tempfile()?;
+        let mut tmp = tempfile().unwrap();
 
         match unsafe { fork() } {
-            Err(_) => msg_err("fork failed"),
+            Err(e) => Err(SandboxError::Fork(e.to_string())),
             Ok(ForkResult::Parent { child, .. }) => {
-                match waitpid(child, None)? {
+                match waitpid(child, None).expect("wait pid failed") {
                     WaitStatus::Signaled(pid, signal, _) => {
-                        msg_err(format!("主进程被杀死，pid = {}, signal = {}", pid, signal))
+                        panic!("主进程被杀死，pid = {}, signal = {}", pid, signal)
                     }
                     WaitStatus::Stopped(pid, signal) => {
-                        msg_err(format!("主进程被停止，pid = {}, signal = {}", pid, signal))
+                        panic!("主进程被停止，pid = {}, signal = {}", pid, signal)
                     }
                     WaitStatus::Exited(pid, code) => {
                         if code != 0 {
-                            return msg_err(format!("主进程异常，code = {}，pid = {}", code, pid));
+                            panic!("主进程异常，code = {}，pid = {}", code, pid);
                         }
                         // 从开头读取
-                        tmp.seek(SeekFrom::Start(0))?;
-                        let termination = serde_json::from_reader(tmp)?;
-                        Ok(termination)
+                        tmp.seek(SeekFrom::Start(0))
+                            .expect("error seek start from tmp file");
+                        serde_json::from_reader(tmp).expect("error reading termination result")
                     }
-                    _ => msg_err("未知的等待结果"),
+                    _ => panic!("未知的等待结果"),
                 }
             }
             Ok(ForkResult::Child) => match self.exec_sandbox_fork(&mut tmp) {
@@ -217,5 +222,5 @@ impl Memory {
 #[allow(unused_imports)]
 #[macro_use]
 extern crate sandbox_macro;
-pub use sandbox_macro::time;
 pub use sandbox_macro::mem;
+pub use sandbox_macro::time;

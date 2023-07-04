@@ -9,13 +9,13 @@ fn test_cat_stdio() -> Result<(), sandbox::SandboxError> {
     };
     use tempfile::tempdir;
 
-    let dir = tempdir()?;
+    let dir = tempdir().unwrap();
     let filepath = &dir.path().join("input.txt");
     let outputpath = &dir.path().join("output.txt");
     let mut fin = std::fs::File::create(filepath).unwrap();
 
     let content = "hello\n world";
-    fin.write_all(content.as_bytes())?;
+    fin.write_all(content.as_bytes()).unwrap();
     drop(fin);
 
     let s = SingletonBuilder::new("/usr/bin/cat")
@@ -36,7 +36,7 @@ fn test_cat_stdio() -> Result<(), sandbox::SandboxError> {
 
     assert_eq!(term.status, sandbox::Status::Ok);
 
-    let out_str = std::fs::read_to_string(outputpath)?;
+    let out_str = std::fs::read_to_string(outputpath).unwrap();
 
     assert_eq!(out_str, content);
 

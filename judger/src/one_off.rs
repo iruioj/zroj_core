@@ -57,7 +57,7 @@ impl OneOff {
             .file
             .file_type
             .compile_sandbox(&src, &dest, &clog)
-            .exec_sandbox()?;
+            .exec_fork()?;
         let st = term.status.clone();
         if st != sandbox::Status::Ok {
             let mut r: TaskReport = term.into();
@@ -69,7 +69,7 @@ impl OneOff {
         }
         eprintln!("编译成功");
         // execution
-        let out = self.working_dir.join("main.output");
+        let out = self.working_dir.join("main.out");
         let log = self.working_dir.join("main.log");
         assert!(dest.as_ref().exists());
         let mut s = SingletonBuilder::new(dest)
@@ -93,9 +93,9 @@ impl OneOff {
         let term = s.exec_fork()?;
         let mut r: TaskReport = term.into();
         // ignore error
-        let _ = r.add_payload("compile log", clog);
-        let _ = r.add_payload("stdout", out);
-        let _ = r.add_payload("stderr", log);
+        let _ = r.add_payload("compile log", clog).map_err(|e| dbg!(e));
+        let _ = r.add_payload("stdout", out).map_err(|e| dbg!(e));
+        let _ = r.add_payload("stderr", log).map_err(|e| dbg!(e));
         Ok(r)
     }
     #[cfg(not(unix))]
