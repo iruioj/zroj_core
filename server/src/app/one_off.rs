@@ -6,31 +6,17 @@ use crate::{
     UserID,
 };
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
-use actix_web::{
-    error::{self, ErrorBadRequest},
-    web, Result,
-};
-use judger::TaskReport;
+use actix_web::{error::ErrorBadRequest, web, Result};
+use judger::{StoreFile, TaskReport};
 use serde::Serialize;
 use serde_json::json;
 use server_derive::{api, scope_service};
 use std::fmt::Debug;
 
 /// warning: this funtion contains probable leak
-fn parse_source_file_name(s: String) -> Result<(String, judger::FileType)> {
-    if s.contains('/') {
-        return Err(ErrorBadRequest(format!("invalid source file name {s:?}")));
-    }
-    let s = s.trim();
-    let split = s.split('.').collect::<Vec<&str>>();
-    if split.len() != 3 {
-        return Err(ErrorBadRequest(format!("invalid source file name {s:?}")));
-    }
-    let lang = split[1];
-    let lang: judger::FileType = serde_json::from_value(json!(lang))
-        .map_err(|_| ErrorBadRequest(format!("Unkown language {lang:?}")))?;
-    let suffix = split[2];
-    Ok(("source.".to_string() + suffix, lang))
+fn parse_source_name(s: String) -> Option<judger::FileType> {
+    let lang = s.trim().split('.').skip(1).next().unwrap();
+    serde_json::from_value(json!(lang)).ok()
 }
 
 /// format of custom test post payload
@@ -51,16 +37,17 @@ async fn custom_test_post(
     queue: web::Data<JudgeQueue>,
     uid: web::ReqData<UserID>,
 ) -> Result<String> {
-    let base = manager.get_user_folder(&uid)?;
-    let input = base.join("input");
     if let Some(file_name) = payload.source.file_name.clone() {
-        let (name, lang) = parse_source_file_name(file_name)?;
-        let source = base.join(name);
-        std::fs::rename(payload.source.file.path(), &source)
-            .map_err(|_| error::ErrorInternalServerError("Fail to move tempfile"))?;
-        std::fs::rename(payload.input.file.path(), &input)
-            .map_err(|_| error::ErrorInternalServerError("Fail to move tempfile"))?;
-        start_custom_test(manager, queue, *uid, base, source, input, lang)?;
+        let lang = parse_source_name(file_name).expect("invalid file name");
+        let source = StoreFile {
+            file: payload.source.file.reopen()?,
+            file_type: lang,
+        };
+        let input = StoreFile {
+            file: payload.input.file.reopen()?,
+            file_type: judger::FileType::Plain,
+        };
+        start_custom_test(manager, queue, *uid, source, input)?;
         Ok("Judge started".to_string())
     } else {
         Err(ErrorBadRequest(format!(
@@ -85,21 +72,6 @@ async fn custom_test_get(
         result: manager.fetch_result(&uid)?,
     }))
 }
-/*
-#[get("/{pid}/edit")]
-async fn edit(
-    pid: web::Path<u32>,
-    session: Session,
-    session_container: web::Data <SessionContainer>,
-    manager: web::Data <ProblemManager>
-) -> actix_web::Result <web::Json <ResponseJsonData> > {
-    if *pid >= manager.pid_maximum {
-        return response_json_data(false, "Problem does not exists", "");
-    }
-    let uid = fetch_login_state(&session, &session_container)?;
-    todo!()
-}
-*/
 
 /// 提供自定义测试服务
 #[scope_service(path = "/custom_test")]

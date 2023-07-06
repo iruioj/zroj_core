@@ -50,26 +50,16 @@ pub fn start_custom_test(
     manager: web::Data<CustomTestManager>,
     queue: web::Data<JudgeQueue>,
     uid: UserID,
-    base: PathBuf,
-    source: PathBuf,
-    input: PathBuf,
-    lang: judger::FileType,
+    source: StoreFile,
+    input: StoreFile,
 ) -> Result<()> {
+    let base = manager.get_user_folder(&uid)?;
     let state = manager.state.clone();
     queue.add(move || {
         if let Ok(mut guard) = state.write() {
             guard.insert(uid, None);
         }
-        let mut one = OneOff::new(
-            StoreFile {
-                file: std::fs::File::open(source).unwrap(),
-                file_type: lang,
-            },
-            Some(StoreFile {
-                file: std::fs::File::open(input).unwrap(),
-                file_type: judger::FileType::Plain,
-            }),
-        );
+        let mut one = OneOff::new(source, Some(input));
         one.set_wd(judger::Handle::new(base));
         let result = one.exec().unwrap();
         dbg!(&result);

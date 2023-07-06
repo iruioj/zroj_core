@@ -1,6 +1,6 @@
 //! app 模块可以创建 OJ 后端的应用路由配置.
 pub mod auth;
-pub mod custom_test;
+pub mod one_off;
 // pub mod problem;
 pub mod user;
 pub mod group;
@@ -49,7 +49,7 @@ pub fn new(
     move |app: &mut ServiceConfig| {
         let session_auth = SessionAuth::require_auth(session_mgr.clone());
         app.service(auth::service(session_mgr, user_db.clone()))
-            .service(custom_test::service(custom_test_mgr, judge_queue).wrap(session_auth.clone()))
+            .service(one_off::service(custom_test_mgr, judge_queue).wrap(session_auth.clone()))
             // .service(problem::service(problem_mgr, problem_config_mgr).wrap(session_auth.clone()))
             .service(user::service(user_db.clone()).wrap(session_auth.clone()))
             .service(group::service(group_db.clone()).wrap(session_auth))

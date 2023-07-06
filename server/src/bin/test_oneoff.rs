@@ -78,7 +78,7 @@ async fn main() -> std::io::Result<()> {
                 user_db.clone(),
             ))
             .service(
-                app::custom_test::service(custom_test.clone(), que.clone())
+                app::one_off::service(custom_test.clone(), que.clone())
                     .wrap(SessionAuth::require_auth(session_container.clone())),
             )
     })
