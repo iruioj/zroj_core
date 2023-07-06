@@ -2,6 +2,7 @@ mod checker;
 pub mod data;
 mod error;
 pub mod problem;
+mod render_data;
 // mod problem_set;
 
 pub use checker::Checker;
