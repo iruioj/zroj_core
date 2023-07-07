@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use pest::Parser;
 use pest_derive::Parser;
 use problem::{
-    data::{FileType, StoreFile, Taskset},
+    data::{DepRelation, FileType, StoreFile, Taskset},
     problem::{traditional::Task, TraditionalData},
     Checker,
 };
@@ -188,7 +188,7 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, L
                     .collect::<Result<_, LoadError>>()?,
                 deps: deps
                     .iter()
-                    .map(|(a, b)| (*a as usize - 1, *b as usize - 1))
+                    .map(|(a, b)| DepRelation::new(*a as usize - 1, *b as usize - 1))
                     .collect(),
             }
         } else {

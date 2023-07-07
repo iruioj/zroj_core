@@ -59,16 +59,18 @@ where
     },
 }
 
-type DepOption = Vec<(usize, usize)>;
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DepRelation(usize, usize); // (a, b) a > b, a depends on b
 
-#[derive(FsStore, Serialize, Deserialize)]
-struct TasksetMeta {
-    /// if not none, it is subtask
-    #[meta]
-    subtask: Option<DepOption>,
-    #[meta]
-    n_tests: usize,
+impl DepRelation {
+    /// depender depends on dependee
+    pub fn new(depender: usize, dependee: usize) -> Self {
+        assert!(depender > dependee);
+        Self(depender, dependee)
+    }
 }
+
+type DepOption = Vec<DepRelation>;
 
 /// 子任务记分规则
 #[derive(Serialize, Deserialize, FsStore, Debug)]
