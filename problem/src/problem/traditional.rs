@@ -151,31 +151,27 @@ mod tests {
             memory_limit: mem!(256mb),
         };
         let mut task = Task {
-            input: StoreFile::create_tmp("1 2"),
-            output: StoreFile::create_tmp("3\n"),
+            input: StoreFile::from_str("1 2", judger::FileType::Plain),
+            output: StoreFile::from_str("3\n", judger::FileType::Plain),
         };
         let mut subm = Subm {
-            source: {
-                let mut r = StoreFile::create_tmp(
-                    r#"#include<iostream>
-                    using namespace std;
-                    int main() {
-                        int a, b;
-                        cin >> a >> b;
-                        cout << a + b << endl;
-                    }
-                    "#,
-                );
-                r.file_type = judger::FileType::GnuCpp14O2;
-                r
-            },
+            source: StoreFile::from_str(
+                r#"#include<iostream>
+                        using namespace std;
+                        int main() {
+                            int a, b;
+                            cin >> a >> b;
+                            cout << a + b << endl;
+                        }
+                        "#,
+                judger::FileType::GnuCpp14O2,
+            ),
         };
 
         let report = a.judge_task(jd, &mut meta, &mut task, &mut subm).unwrap();
-        if let judger::Status::Accepted = report.status {
-        } else {
+        let judger::Status::Accepted = report.status else {
             panic!("not accepted")
-        }
+        };
         dbg!(report);
     }
 }

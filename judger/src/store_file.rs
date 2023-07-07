@@ -23,21 +23,18 @@ impl StoreFile {
         Ok(())
     }
     /// 将文件内容复制到对应路径的文件
-    /// 
+    ///
     /// create a file if it does not exist, and will truncate it if it does.
     pub fn copy_to(&mut self, path: impl AsRef<std::path::Path>) -> Result<(), std::io::Error> {
         dbg!(path.as_ref());
         let mut file = std::fs::File::create(path.as_ref())?;
         self.copy_all(&mut file)
     }
-    /// create a temporary plain file, oftern used for testing
-    pub fn create_tmp(content: impl AsRef<str>) -> Self {
+    /// create a temporary file with corresponding file_type
+    pub fn from_str(content: impl AsRef<str>, file_type: FileType) -> Self {
         let mut file = tempfile::tempfile().expect("cannot create temporary file");
         std::io::Write::write(&mut file, content.as_ref().as_bytes())
             .expect("cannot write content to file");
-        Self {
-            file,
-            file_type: FileType::Plain,
-        }
+        Self { file, file_type }
     }
 }

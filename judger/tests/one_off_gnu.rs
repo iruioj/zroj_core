@@ -21,10 +21,8 @@ int main() {
 
         let dir = tempfile::tempdir().unwrap();
 
-        let mut src = StoreFile::create_tmp(a_plus_b_raw);
-        src.file_type = FileType::GnuCpp17O2;
-
-        let inp = StoreFile::create_tmp(input_content);
+        let src = StoreFile::from_str(a_plus_b_raw, FileType::GnuCpp17O2);
+        let inp = StoreFile::from_str(input_content, FileType::Plain);
 
         let mut one = OneOff::new(src, Some(inp));
         one.set_wd(Handle::new(&dir));
