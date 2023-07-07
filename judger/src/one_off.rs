@@ -16,7 +16,7 @@ use crate::{lang::Compile, Error, Status, StoreFile, TaskReport};
 #[cfg(all(unix))]
 pub struct OneOff {
     file: StoreFile,
-    stdin: Option<StoreFile>,
+    stdin: StoreFile,
     /// 工作目录，默认值为 [`std::env::current_dir()`]
     working_dir: Handle,
     time_limit: Elapse,
@@ -27,7 +27,7 @@ pub struct OneOff {
 
 impl OneOff {
     /// 新建一个 OneOff 评测环境，工作目录默认为 cwd（生成可执行文件的路径），编译语言为 lang
-    pub fn new(file: StoreFile, stdin: Option<StoreFile>) -> Self {
+    pub fn new(file: StoreFile, stdin: StoreFile) -> Self {
         Self {
             file,
             stdin,
@@ -71,8 +71,10 @@ impl OneOff {
         // execution
         let out = self.working_dir.join("main.out");
         let log = self.working_dir.join("main.log");
+        let input = self.working_dir.join("main.in");
+        self.stdin.copy_to(&input).expect("cannot copy input file");
         assert!(dest.as_ref().exists());
-        let mut s = SingletonBuilder::new(dest)
+        let s = SingletonBuilder::new(dest)
             .set_limits(|_| Limitation {
                 real_time: self.time_limit.into(),
                 cpu_time: self.time_limit.into(),
@@ -83,13 +85,10 @@ impl OneOff {
                 fileno: self.fileno_limit.into(),
             })
             .stdout(&out)
-            .stderr(&log);
-        if let Some(stdin) = &mut self.stdin {
-            let input = self.working_dir.join("main.in");
-            stdin.copy_to(&input).expect("cannot copy input file");
-            s = s.stdin(input);
-        }
-        let s = s.build().unwrap();
+            .stderr(&log)
+            .stdin(input)
+            .build()
+            .unwrap();
         let term = s.exec_fork()?;
         let mut r: TaskReport = term.into();
         // ignore error

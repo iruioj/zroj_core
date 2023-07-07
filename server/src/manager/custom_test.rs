@@ -59,7 +59,7 @@ pub fn start_custom_test(
         if let Ok(mut guard) = state.write() {
             guard.insert(uid, None);
         }
-        let mut one = OneOff::new(source, Some(input));
+        let mut one = OneOff::new(source, input);
         one.set_wd(judger::Handle::new(base));
         let result = one.exec().unwrap();
         dbg!(&result);

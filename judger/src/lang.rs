@@ -1,5 +1,5 @@
 use sandbox::unix::{Limitation, SingletonBuilder};
-use sandbox::{mem, time, Builder, Elapse, ExecSandBox, Memory, SandboxError};
+use sandbox::{mem, time, Builder, Elapse, ExecSandBox, Memory};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::path::PathBuf;
@@ -106,28 +106,6 @@ pub enum FileType {
     Assembly,
 }
 
-/// 纯文本语言的 “编译器”：直接复制
-struct PlainCompile {
-    src: PathBuf,
-    dest: PathBuf,
-}
-
-impl ExecSandBox for PlainCompile {
-    fn exec_sandbox(&self) -> Result<sandbox::Termination, SandboxError> {
-        let mut dest =
-            std::fs::File::create(&self.dest).map_err(|e| SandboxError::Custom(e.to_string()))?;
-        let mut src =
-            std::fs::File::open(&self.src).map_err(|e| SandboxError::Custom(e.to_string()))?;
-        std::io::copy(&mut src, &mut dest).map_err(|e| SandboxError::Custom(e.to_string()))?;
-
-        Ok(sandbox::Termination {
-            status: sandbox::Status::Ok,
-            real_time: Default::default(),
-            cpu_time: Default::default(),
-            memory: Default::default(),
-        })
-    }
-}
 impl FileType {
     /// 获取文件类型对应的后缀名
     pub fn ext(&self) -> &'static str {
@@ -167,10 +145,7 @@ impl Compile for FileType {
             FileType::GnuCpp14O2 => {
                 GnuCpp::new(None, vec!["-std=c++14", "-O2"]).compile_sandbox(source, dest, log)
             }
-            FileType::Plain => Box::new(PlainCompile {
-                src: source.as_ref().to_path_buf(),
-                dest: dest.as_ref().to_path_buf(),
-            }),
+            FileType::Plain => panic!("a plain file should never be compiled"),
             _ => todo!(),
         }
     }
