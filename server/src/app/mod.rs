@@ -7,7 +7,7 @@ pub mod group;
 
 use crate::{
     auth::{middleware::SessionAuth, SessionManager},
-    data::user::AManager as UserAManager,
+    data::user::UserDB,
     data::group::AManager as GroupAManager,
     // data::problem_config::AManager as ProblemConfigAManager,
     manager::{self, custom_test::CustomTestManager, 
@@ -39,7 +39,7 @@ pub async fn default_route(req: HttpRequest) -> HttpResponse {
 /// 注意 clone() 的调用应当发生在 HttpServer::new 的闭包中，这里不需要
 pub fn new(
     session_mgr: SessionManager,
-    user_db: web::Data<UserAManager>,
+    user_db: web::Data<UserDB>,
     group_db: web::Data<GroupAManager>,
     // problem_config_mgr: web::Data<ProblemConfigAManager>,
     // problem_mgr: web::Data<ProblemManager>,

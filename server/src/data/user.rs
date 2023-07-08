@@ -10,7 +10,7 @@ use diesel::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-pub type AManager = dyn Manager + Sync + Send;
+pub type UserDB = dyn Manager + Sync + Send;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "mysql", derive(Queryable, AsChangeset))]
@@ -46,7 +46,7 @@ pub trait Manager {
         email: &EmailAddress,
     ) -> Result<User, Error>;
     async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), Error>;
-    fn to_amanager(self) -> Arc<AManager>;
+    fn to_amanager(self) -> Arc<UserDB>;
 }
 
 #[cfg(feature = "mysql")]

@@ -1,7 +1,7 @@
 use crate::{
     data::{
         types::*,
-        user::{AManager, User},
+        user::{UserDB, User},
     },
     marker::*,
     UserID,
@@ -45,7 +45,7 @@ struct ProfileQuery {
 #[api(method = get, path = "")]
 async fn profile(
     query: QueryParam<ProfileQuery>,
-    manager: ServerData<AManager>,
+    manager: ServerData<UserDB>,
 ) -> JsonResult<UserDisplayInfo> {
     let result = manager.query_by_username(&query.username).await?;
     match result {
@@ -81,7 +81,7 @@ impl From<User> for UserEditInfo {
 #[api(method = get, path = "/edit")]
 async fn edit_get(
     uid: web::ReqData<UserID>,
-    manager: ServerData<AManager>,
+    manager: ServerData<UserDB>,
 ) -> JsonResult<UserEditInfo> {
     let result = manager.query_by_userid(*uid).await?;
     match result {
@@ -123,14 +123,14 @@ impl crate::Override<User> for UserUpdateInfo {
 async fn edit_post(
     uid: web::ReqData<UserID>,
     info: JsonBody<UserUpdateInfo>,
-    manager: ServerData<AManager>,
+    manager: ServerData<UserDB>,
 ) -> Result<String> {
     manager.update(*uid, info.into_inner()).await?;
     Ok("ok".to_string())
 }
 
 #[scope_service(path = "/user")]
-pub fn service(user_database: web::Data<AManager>) {
+pub fn service(user_database: web::Data<UserDB>) {
     app_data(user_database);
     service(profile);
     service(edit_get);

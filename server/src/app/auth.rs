@@ -1,7 +1,7 @@
 use crate::auth::{AuthInfo, SessionManager};
 use crate::data::{
     types::{EmailAddress, Username},
-    user::AManager,
+    user::UserDB,
 };
 use crate::marker::*;
 use crate::{SessionID, UserID};
@@ -28,7 +28,7 @@ pub struct LoginPayload {
 async fn login(
     payload: JsonBody<LoginPayload>,
     session_container: ServerData<SessionManager>,
-    user_data_manager: ServerData<AManager>,
+    user_data_manager: ServerData<UserDB>,
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
     use actix_web::cookie::Cookie;
@@ -67,7 +67,7 @@ pub struct RegisterPayload {
 #[api(method = post, path = "/register")]
 async fn register(
     payload: JsonBody<RegisterPayload>,
-    user_data_manager: ServerData<AManager>,
+    user_data_manager: ServerData<UserDB>,
 ) -> actix_web::Result<String> {
     eprintln!("handle register");
     eprintln!("register req: {:?}", &payload);
@@ -93,7 +93,7 @@ struct AuthInfoRes {
 /// 查看当前的鉴权信息，用于菜单栏显示
 #[api(method = get, path = "/info")]
 async fn inspect(
-    user_db: ServerData<AManager>,
+    user_db: ServerData<UserDB>,
     user_id: Option<web::ReqData<UserID>>,
 ) -> JsonResult<AuthInfoRes> {
     if let Some(id) = user_id {
@@ -123,7 +123,7 @@ async fn logout(
 }
 
 #[scope_service(path = "/auth")]
-pub fn service(session_mgr: SessionManager, user_database: web::Data<AManager>) {
+pub fn service(session_mgr: SessionManager, user_database: web::Data<UserDB>) {
     wrap(crate::auth::middleware::SessionAuth::bypass(
         session_mgr.clone(),
     ));

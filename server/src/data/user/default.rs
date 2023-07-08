@@ -97,7 +97,7 @@ impl super::Manager for FsManager {
         Ok(())
     }
     /// consume self and return its Arc.
-    fn to_amanager(self) -> Arc<AManager> {
+    fn to_amanager(self) -> Arc<UserDB> {
         Arc::new(self)
     }
 }
