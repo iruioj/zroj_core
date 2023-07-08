@@ -41,6 +41,18 @@ where
     pub rule: Rule,
 }
 
+#[derive(FsStore, Debug)]
+pub struct Subtask<Task, SubtaskMeta>
+where
+    Task: FsStore,
+    SubtaskMeta: FsStore,
+{
+    pub tasks: Vec<Task>,
+    pub meta: SubtaskMeta,
+    #[meta]
+    pub score: f64,
+}
+
 /// 任务集合
 #[derive(FsStore, Debug)]
 pub enum Taskset<Task, SubtaskMeta>
@@ -49,7 +61,7 @@ where
     SubtaskMeta: FsStore,
 {
     Subtasks {
-        tasks: Vec<(Vec<Task>, SubtaskMeta)>,
+        tasks: Vec<Subtask<Task, SubtaskMeta>>,
         /// (a, b) 表示  b 依赖 a
         #[meta]
         deps: DepOption,

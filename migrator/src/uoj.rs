@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use pest::Parser;
 use pest_derive::Parser;
 use problem::{
-    data::{DepRelation, FileType, StoreFile, Taskset},
+    data::{DepRelation, FileType, StoreFile, Subtask, Taskset},
     problem::{traditional::Task, TraditionalData},
     Checker,
 };
@@ -147,16 +147,18 @@ impl std::fmt::Display for LoadError {
 impl std::error::Error for LoadError {}
 
 pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, LoadError> {
+    if !conf.use_builtin_judger {
+        panic!("this problem doesn't use builtin judger")
+    }
     // TODO: sample and extra tests
     Ok(TraditionalData {
         tasks: if let Some((subtasks, deps)) = &conf.subtasks {
             Taskset::Subtasks {
-                // TODO: score!
                 tasks: subtasks
                     .iter()
                     .map(|(_k, v)| {
-                        Ok((
-                            (v.start..=v.end)
+                        Ok(Subtask {
+                            tasks: (v.start..=v.end)
                                 .map(|cur| {
                                     Ok(Task {
                                         input: StoreFile {
@@ -182,8 +184,9 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, L
                                     })
                                 })
                                 .collect::<Result<_, LoadError>>()?,
-                            (),
-                        ))
+                            meta: (),
+                            score: v.score as f64 / 100.0,
+                        })
                     })
                     .collect::<Result<_, LoadError>>()?,
                 deps: deps

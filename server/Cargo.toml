@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 judger = { path = "../judger" }
 passwd = { path = "../passwd" }
+problem = { path = "../problem" }
 server_derive = { path = "../server_derive" }
 serde_ts_typing = { path = "../serde_ts_typing" }
 
