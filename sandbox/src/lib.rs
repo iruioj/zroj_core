@@ -6,6 +6,7 @@
 //! 为了避免繁琐的编译过程和开发环境搭建，本库将会基于 yaoj-judger 用 Rust 重写。
 
 use serde::{Deserialize, Serialize};
+use serde_ts_typing::SerdeJsonWithType;
 use std::{
     ffi::{CString, NulError},
     fmt::Debug,
@@ -177,7 +178,7 @@ pub trait Builder {
 }
 
 /// 时间表示，数值单位为 ms
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord, SerdeJsonWithType)]
 pub struct Elapse(u64);
 
 impl Elapse {
@@ -203,7 +204,7 @@ impl From<Duration> for Elapse {
 }
 
 /// 内存空间表示，数值单位为 byte
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord, SerdeJsonWithType)]
 pub struct Memory(u64);
 
 impl From<u64> for Memory {

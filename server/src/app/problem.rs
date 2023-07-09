@@ -1,29 +1,22 @@
 use crate::{
+    data::problem_statement::StmtDB,
+    marker::*,
     // manager::_problem::{Metadata, ProblemManager},
-    ProblemID, UserID,
-    data::{problem_config::AManager, schema::ProblemAccess},
+    ProblemID,
 };
-use actix_web::{error, get, web, Result};
-use server_derive::scope_service;
+use actix_web::web::Json;
+use problem::render_data::statement::Meta;
+use server_derive::{api, scope_service};
 
-#[get("/{pid}")]
-async fn handle_view_problem(
-    pid: web::Path<ProblemID>,
-    manager: web::Data<ProblemManager>,
-    cfg_mgr: web::Data<AManager>,
-    uid: web::ReqData<UserID>,
-) -> Result<web::Json<Metadata>> {
-    if cfg_mgr.get_access(*pid, *uid).await? >= ProblemAccess::View {
-        Ok(web::Json(manager.get_metadata(*pid)?))
-    } else {
-        Err(error::ErrorForbidden("You do not have access to this problem"))
-    }
+/// 所有的题目元信息，用于调试
+#[api(method = get, path = "/full_dbg")]
+async fn full_list(stmt_db: ServerData<StmtDB>) -> JsonResult<Vec<(ProblemID, Meta)>> {
+    Ok(Json(stmt_db.get_metas().await?))
 }
 
 /// 提供 problem 相关服务
 #[scope_service(path = "/problem")]
-pub fn service(problem_manager: web::Data<ProblemManager>, config_manager: web::Data<AManager>) {
-    app_data(problem_manager);
-    app_data(config_manager);
-    service(handle_view_problem);
+pub fn service(stmt_db: ServerData<StmtDB>) {
+    app_data(stmt_db);
+    service(full_list);
 }

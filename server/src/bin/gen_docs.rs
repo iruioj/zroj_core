@@ -170,6 +170,7 @@ fn main() {
     let entry = EntryRoot(vec![
         gen_entry(app::auth::service_doc()),
         gen_entry(app::user::service_doc()),
+        gen_entry(app::problem::service_doc()),
     ]);
 
     let code = String::from(

@@ -108,6 +108,15 @@ pub fn scope_service(
     let ScopeServiceAttr { path } = parse_macro_input!(attr);
 
     let ret = quote! {
+        /// documentation metadata
+        pub fn #doc_name() -> crate::ServiceDoc {
+            let path = String::from(#path);
+            let apis = {
+                #doc_stmt
+            };
+            crate::ServiceDoc { path, apis }
+        }
+
         #attrs
         #vis fn #name (#params) -> actix_web::Scope<
             impl actix_web::dev::ServiceFactory<
@@ -123,15 +132,6 @@ pub fn scope_service(
             #bodys
 
             scope
-        }
-
-        /// documentation metadata
-        pub fn #doc_name() -> crate::ServiceDoc {
-            let path = String::from(#path);
-            let apis = {
-                #doc_stmt
-            };
-            crate::ServiceDoc { path, apis }
         }
     };
     ret.into()
@@ -247,9 +247,6 @@ pub fn api(
         .for_each(|e| descrip_stmt.extend(quote!( description += #e; )));
 
     let ret = quote! {
-        #[actix_web:: #method_ident(#path)]
-        #func
-
         fn #doc_name() -> crate::ApiDocMeta {
             let path = String::from(#path);
             let method = String::from(#method_str);
@@ -266,6 +263,9 @@ pub fn api(
                 description
             }
         }
+
+        #[actix_web:: #method_ident(#path)]
+        #func
     };
 
     ret.into()

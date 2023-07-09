@@ -7,10 +7,11 @@
 //! 数据库里维护的是与搜索有关/已经渲染好的题面等等
 
 use serde::{Deserialize, Serialize};
+use serde_ts_typing::SerdeJsonWithType;
 use std::path::PathBuf;
 
 /// 描述一个文件
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SerdeJsonWithType)]
 pub enum FileDescriptor {
     Stdin,
     Stdout,
@@ -18,7 +19,7 @@ pub enum FileDescriptor {
 }
 
 /// for traditional problem
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SerdeJsonWithType)]
 pub enum IOKind {
     /// read from stdin, write to stdout
     StdIO,
@@ -29,7 +30,7 @@ pub enum IOKind {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SerdeJsonWithType)]
 pub enum ProblemKind {
     /// Traditional, also supports NOI style interactive problem
     Traditional(IOKind),
@@ -39,7 +40,7 @@ pub enum ProblemKind {
     SubmitAnswer,
 }
 
-mod statement {
+pub mod statement {
     use super::*;
     use judger::sandbox::{Elapse, Memory};
 
@@ -47,14 +48,14 @@ mod statement {
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Statement {
         /// 题面描述
-        statement: Inner,
+        pub statement: Inner,
         /// 题目元数据
-        meta: Meta,
+        pub meta: Meta,
     }
 
     /// problem statement, stored in self.statement_path
     #[derive(Debug, Serialize, Deserialize)]
-    enum Inner {
+    pub enum Inner {
         /// custom layout, only for import
         Legacy(String),
         /// standard form, consists of several pre-defined parts
@@ -74,6 +75,13 @@ mod statement {
         Pdf(PathBuf),
     }
 
+    impl Inner {
+        // re-design
+        pub fn render_html(&self) -> String {
+            todo!()
+        }
+    }
+
     /// 样例
     ///
     /// 一个程序与静态数据的交互总是通过文件指针进行的，因此对于样例的结构也可以抽象为此。
@@ -87,10 +95,10 @@ mod statement {
     }
 
     /// 题目显示时的元数据，在渲染 pdf 题面时也会需要
-    ///
-    /// need re-design
-    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize, SerdeJsonWithType)]
     pub struct Meta {
+        /// 标题
+        title: String,
         /// 时间限制
         time: Option<Elapse>,
         /// 空间限制
@@ -100,14 +108,14 @@ mod statement {
     }
 }
 
-mod tutorial {
+pub mod tutorial {
     use super::*;
 
     /// 题解
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Tutorial {
-        tutorial: Inner,
-        meta: Meta,
+        pub tutorial: Inner,
+        pub meta: Meta,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]

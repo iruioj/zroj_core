@@ -1,7 +1,7 @@
 //! app 模块可以创建 OJ 后端的应用路由配置.
 pub mod auth;
 pub mod one_off;
-// pub mod problem;
+pub mod problem;
 pub mod user;
 pub mod group;
 

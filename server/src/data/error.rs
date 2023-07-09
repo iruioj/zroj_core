@@ -9,7 +9,8 @@ pub enum Error {
     LockError,
     InvalidArgument(String),
     Forbidden(String),
-    DuplicatedGroupName(String)
+    DuplicatedGroupName(String),
+    SerdeJson(serde_json::Error),
 }
 
 impl From<Error> for actix_web::Error {
@@ -56,6 +57,7 @@ impl Display for Error {
             Self::InvalidArgument(s) => write!(f, "Invalid argument: {}", s),
             Self::Forbidden(s) => write!(f, "Forbidden operation: {}", s),
             Self::DuplicatedGroupName(s) => write!(f, "duplicated group name {s}"),
+            Self::SerdeJson(e) => write!(f, "serialize or deserializing data: {e}")
         }
     }
 }
