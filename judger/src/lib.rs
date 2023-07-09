@@ -16,7 +16,7 @@ pub use error::Error;
 pub use lang::Compile;
 pub use lang::FileType;
 pub use one_off::OneOff;
-pub use report::{JudgeReport, Status, TaskReport};
+pub use report::*;
 pub use store_file::StoreFile;
 pub use store::Handle;
 

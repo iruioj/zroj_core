@@ -61,7 +61,7 @@ where
     SubtaskMeta: FsStore,
 {
     Subtasks {
-        tasks: Vec<Subtask<Task, SubtaskMeta>>,
+        subtasks: Vec<Subtask<Task, SubtaskMeta>>,
         /// (a, b) 表示  b 依赖 a
         #[meta]
         deps: DepOption,

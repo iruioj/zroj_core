@@ -1,4 +1,4 @@
-use super::JudgeProblem;
+use super::JudgeTask;
 use crate::{
     data::StoreFile,
     problem::{compile_in_wd, copy_in_wd},
@@ -33,10 +33,10 @@ pub struct Subm {
     source: StoreFile,
 }
 
-/// 传统题（只是一个评测，数据直接用 ProblemStore 存）
+/// 传统题评测
 pub struct Traditional;
 
-impl JudgeProblem for Traditional {
+impl JudgeTask for Traditional {
     type T = Task;
     type M = Meta;
     type S = ();
@@ -44,8 +44,7 @@ impl JudgeProblem for Traditional {
 
     // 先写了一个粗糙的，后面再来错误处理
     fn judge_task(
-        &self,
-        judger: impl judger::Judger,
+        judger: &mut impl judger::Judger,
         meta: &mut Self::M,
         task: &mut Self::T,
         subm: &mut Self::Subm,
@@ -61,8 +60,8 @@ impl JudgeProblem for Traditional {
             return Ok({
                 let mut r = judger::TaskReport {
                     status: judger::Status::CompileError(term.status),
-                    time: term.cpu_time.ms(),
-                    memory: term.memory.byte(),
+                    time: term.cpu_time,
+                    memory: term.memory,
                     // todo: add log
                     payload: Vec::new(),
                 };
@@ -135,16 +134,15 @@ mod tests {
     };
     use store::Handle;
 
-    use crate::{data::StoreFile, problem::JudgeProblem, Checker};
+    use crate::{data::StoreFile, problem::JudgeTask, Checker};
 
     use super::{Meta, Subm, Task, Traditional};
 
     #[test]
     fn test_a_plus_b() {
-        let a = Traditional;
         let dir = tempfile::tempdir().unwrap();
         let wd = Handle::new(dir);
-        let jd = DefaultJudger::new(wd);
+        let mut jd = DefaultJudger::new(wd);
         let mut meta = Meta {
             checker: Checker::FileCmp,
             time_limit: time!(5s),
@@ -168,7 +166,7 @@ mod tests {
             ),
         };
 
-        let report = a.judge_task(jd, &mut meta, &mut task, &mut subm).unwrap();
+        let report = Traditional::judge_task(&mut jd, &mut meta, &mut task, &mut subm).unwrap();
         let judger::Status::Accepted = report.status else {
             panic!("not accepted")
         };

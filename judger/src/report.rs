@@ -2,6 +2,7 @@
 //! 打通从 judger 到前端传递数据的过程
 
 use crate::{truncstr::TruncStr, Error};
+use sandbox::{Elapse, Memory};
 use serde::{Deserialize, Serialize};
 
 /// 一个测试点提交的可能的返回状态
@@ -26,15 +27,51 @@ pub enum Status {
     WrongAnswer,
 }
 
+impl Status {
+    pub fn update(&mut self, s: Status) {
+        match s {
+            Status::Accepted => {} // do nothing
+            Status::Partial(s, t) => {
+                if let Status::Accepted = self {
+                    *self = Status::Partial(s, t);
+                } else if let Status::Partial(score, tot) = self {
+                    *score += s;
+                    *tot += t;
+                }
+                // otherwise do nothing
+            }
+            _ => {
+                // 默认直接赋值，不考虑 self 本身
+                *self = s;
+            }
+        }
+    }
+    /// 测试点的得分率
+    pub fn score_rate(&self) -> f64 {
+        match self {
+            Status::Accepted => 1.0,
+            Status::Partial(s, t) => s / t,
+            _ => 0.0,
+        }
+    }
+    /// 总分（如果有）
+    pub fn total_score(&self) -> Option<f64> {
+        match self {
+            Status::Partial(_, t) => Some(*t),
+            _ => None,
+        }
+    }
+}
+
 /// 一个测试点的测试结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskReport {
     /// 评测结果
     pub status: Status,
     /// 花费时间
-    pub time: u64,
+    pub time: Elapse,
     /// 占用内存
-    pub memory: u64,
+    pub memory: Memory,
     /// 相关载荷（stdin, stdout, answer ...)
     pub payload: Vec<(String, TruncStr)>,
 }
@@ -68,8 +105,8 @@ impl From<sandbox::Termination> for TaskReport {
                 sandbox::Status::OutputLimitExceeded => Status::OutputLimitExceeded,
                 sandbox::Status::DangerousSyscall => Status::DangerousSyscall,
             },
-            time: value.cpu_time.ms(),
-            memory: value.memory.byte(),
+            time: value.cpu_time,
+            memory: value.memory,
             payload: Vec::new(),
         }
     }
@@ -80,20 +117,23 @@ pub struct SubtaskReport {
     pub status: Status,
     pub time: u64,
     pub memory: u64,
-    pub tasks: Vec<TaskReport>,
+    pub tasks: Vec<Option<TaskReport>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum JudgeDetail {
-    Subtask(Vec<SubtaskReport>),
-    Tests(Vec<TaskReport>),
+    Subtask(Vec<Option<SubtaskReport>>),
+    Tests(Vec<Option<TaskReport>>),
 }
+
+pub const SCOER_EPS: f64 = 1e-5;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JudgeReport {
+    pub score: f64,
     pub status: Status,
-    pub time: u64,
-    pub memory: u64,
+    pub time: Elapse,
+    pub memory: Memory,
     pub detail: JudgeDetail,
 }
 
@@ -109,24 +149,25 @@ mod tests {
     #[test]
     fn test_judge_result_serde() {
         let r = JudgeReport {
+            score: 1.0,
             status: crate::Status::WrongAnswer,
-            time: 114,
-            memory: 514,
-            detail: super::JudgeDetail::Subtask(vec![SubtaskReport {
+            time: 114.into(),
+            memory: 514.into(),
+            detail: super::JudgeDetail::Subtask(vec![Some(SubtaskReport {
                 status: crate::Status::WrongAnswer,
                 time: 114,
                 memory: 514,
-                tasks: vec![TaskReport {
+                tasks: vec![Some(TaskReport {
                     status: crate::Status::Partial(1., 2.),
-                    time: 114,
-                    memory: 514,
+                    time: 114.into(),
+                    memory: 514.into(),
                     payload: vec![
                         ("stdin".to_string(), "1 2".into()),
                         ("stdout".to_string(), "2".into()),
                         ("answer".to_string(), "3".into()),
                     ],
-                }],
-            }]),
+                })],
+            })]),
         };
         eprintln!("{}", serde_json::to_string_pretty(&r).unwrap());
     }

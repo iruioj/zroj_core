@@ -154,7 +154,7 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, L
     Ok(TraditionalData {
         tasks: if let Some((subtasks, deps)) = &conf.subtasks {
             Taskset::Subtasks {
-                tasks: subtasks
+                subtasks: subtasks
                     .iter()
                     .map(|(_k, v)| {
                         Ok(Subtask {
