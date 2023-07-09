@@ -1,17 +1,16 @@
 //! ZROJ 后端服务器鉴权测试
 
-
 use actix_web::{cookie::Key, web, App, HttpServer};
 use server::actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use server::auth::SessionManager;
-use server::data::user;
-use server::data::user::Manager;
+use server::data::user::{self, UserDB};
+use server::mkdata;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let dir = tempfile::tempdir().unwrap();
     let session_container = SessionManager::default();
-    let user_db = web::Data::from(user::FsManager::new(dir.path().join("user_data")).to_amanager());
+    let user_db = mkdata!(UserDB, user::DefaultDB::new(dir.path().join("user_data")));
     let host = "127.0.0.1".to_string();
     let port = 8080;
 

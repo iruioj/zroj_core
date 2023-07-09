@@ -3,7 +3,7 @@ pub mod data;
 mod error;
 pub mod problem;
 pub mod database;
-mod render_data;
+pub mod render_data;
 
 pub use checker::Checker;
 pub use error::{DataError, RuntimeError};

@@ -1,6 +1,6 @@
 use crate::data::error::Error;
 use crate::data::types::*;
-use crate::data::user::{async_trait, UserDB, Arc, Manager, User, UserID, UserUpdateInfo};
+use crate::data::user::{async_trait, Manager, User, UserID, UserUpdateInfo};
 use crate::Override;
 use diesel::{
     self,
@@ -119,10 +119,6 @@ impl Manager for DbManager {
             users::table.order(users::id.desc()).first::<User>(conn)
         })
         .map_err(Error::DbError)
-    }
-    /// consume self and return its Arc.
-    fn to_amanager(self) -> Arc<UserDB> {
-        Arc::new(self)
     }
     async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), Error> {
         let mut conn = self.get_conn().await?;

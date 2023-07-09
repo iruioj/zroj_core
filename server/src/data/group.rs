@@ -2,7 +2,6 @@ use super::super::data::error::Error;
 use crate::{GroupID, UserID};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 pub type AManager = dyn Manager + Sync + Send;
 type Result<T> = std::result::Result<T, Error>;
@@ -26,7 +25,6 @@ pub trait Manager {
     /// return false if delete_uid does not exist
     async fn delete(&self, gid: GroupID, delete_uid: UserID) -> Result<bool>;
     async fn get_info(&self, gid: GroupID) -> Result<Option<Group>>;
-    fn to_amanager(self) -> Arc<AManager>;
 }
 
 pub use hashmap::FsManager;
@@ -127,10 +125,6 @@ mod hashmap {
                 return Ok(None);
             }
             Ok(Some(data.1[id as usize].clone()))
-        }
-        /// consume self and return its Arc.
-        fn to_amanager(self) -> Arc<AManager> {
-            Arc::new(self)
         }
     }
 }

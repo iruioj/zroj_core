@@ -1,24 +1,25 @@
 //! ZROJ 后端服务器
 use std::path::PathBuf;
 
-
 use actix_web::web::Data;
 use actix_web::{cookie::Key, App, HttpServer};
 use server::actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use server::auth::SessionManager;
-// use server::data::problem_config::{self, Manager};
-use server::data::{
-    group::{self, Manager as GroupManager},
-    user::{self, Manager as UserManager},
-};
+use server::data::user::UserDB;
+use server::data::{group, user};
+use server::mkdata;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let session_container = SessionManager::default();
-    let user_data_manager =
-        Data::from(user::FsManager::new(PathBuf::from("/var/users.json")).to_amanager());
-    let group_manager =
-        group::FsManager::new(PathBuf::from("/var/groups.json")).to_amanager();
+    let user_data_manager = mkdata!(
+        UserDB,
+        user::DefaultDB::new(PathBuf::from("/var/users.json"))
+    );
+    let group_manager = mkdata!(
+        group::AManager,
+        group::FsManager::new(PathBuf::from("/var/groups.json"))
+    );
     // let problem_config_manager =
     //     Data::from(problem_config::FsManager::new(PathBuf::from("/var/groups/problem_config.json"), group_manager.clone()).to_amanager());
     let group_manager = Data::from(group_manager);

@@ -12,12 +12,12 @@ struct Data {
 
 /// 文件系统存储信息
 #[derive(Serialize, Deserialize)]
-pub struct FsManager {
+pub struct DefaultDB {
     data: RwLock<Data>,
     path: PathBuf,
 }
 
-impl FsManager {
+impl DefaultDB {
     /// 将数据用 serde 暴力存储在 path 对应的文件中
     pub fn new(path: impl AsRef<std::path::Path>) -> Self {
         let r = Self::load(path.as_ref()).unwrap_or(Data::default());
@@ -46,7 +46,7 @@ impl FsManager {
 }
 
 #[async_trait]
-impl super::Manager for FsManager {
+impl super::Manager for DefaultDB {
     async fn query_by_username(&self, username: &Username) -> Result<Option<User>, Error> {
         let data = self.data.read()?;
         Ok(data
@@ -95,9 +95,5 @@ impl super::Manager for FsManager {
         drop(data);
         self.save();
         Ok(())
-    }
-    /// consume self and return its Arc.
-    fn to_amanager(self) -> Arc<UserDB> {
-        Arc::new(self)
     }
 }
