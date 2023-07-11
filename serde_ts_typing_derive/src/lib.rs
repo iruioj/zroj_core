@@ -1,7 +1,7 @@
 use quote::quote;
 use syn::{
-    AttrStyle, Expr, Fields, GenericParam, Generics, Item, ItemEnum, ItemStruct, Lit, Meta,
-    MetaNameValue,
+    AttrStyle, Attribute, Expr, Fields, GenericParam, Generics, Item, ItemEnum, ItemStruct, Lit,
+    Meta, MetaNameValue,
 };
 
 /// 对于带有泛型的类型，我们要求所有类型参数都实现 TypeDef
@@ -32,41 +32,66 @@ fn gen_where_clause(generics: Generics) -> Option<proc_macro2::TokenStream> {
         })
 }
 
+struct SerdeOption {
+    /// serde(rename = "...")
+    rename: Option<String>,
+    /// serde(tag = "...")
+    tag: Option<String>,
+}
+
+fn parse_serde_attr(attrs: &[Attribute]) -> SerdeOption {
+    let mut rename = None;
+    let mut tag = None;
+    attrs
+        .iter()
+        .filter_map(|a| {
+            if matches!(a.style, AttrStyle::Outer) {
+                if let Meta::List(list) = &a.meta {
+                    if list.path.is_ident("serde") {
+                        return Some(&list.tokens);
+                    }
+                }
+            }
+            None
+        })
+        .for_each(|tokens| {
+            let tokens = tokens.clone();
+            if let Ok(item) = syn::parse2::<MetaNameValue>(tokens) {
+                // rename = "..."
+                if item.path.is_ident("rename") {
+                    if let Expr::Lit(lit) = item.value {
+                        if let Lit::Str(s) = lit.lit {
+                            rename = Some(s.value())
+                        }
+                    }
+                } else if item.path.is_ident("tag") {
+                    if let Expr::Lit(lit) = item.value {
+                        if let Lit::Str(s) = lit.lit {
+                            tag = Some(s.value())
+                        }
+                    }
+                }
+            }
+        });
+    SerdeOption { rename, tag }
+}
+
 /// 对于 enum 或者 struct 的 fields 生成类型的方式是一样的
-fn gen_fields_type(fields: Fields) -> proc_macro2::TokenStream {
+fn gen_fields_type(fields: Fields, tag: Option<(String, String)>) -> proc_macro2::TokenStream {
     match fields {
         syn::Fields::Named(fields) => {
-            let mut tks = quote!(
-                String::from("{")
-            );
+            let mut tks = if let Some((key, val)) = tag {
+                quote!(String::from("{") + #key + ":" + #val + ";")
+            } else {
+                quote!(String::from("{"))
+            };
             fields.named.iter().for_each(|f| {
                 let mut name_str = f.ident.clone().unwrap().to_string();
                 let mut ty = &f.ty;
-                f.attrs
-                    .iter()
-                    .filter_map(|a| {
-                        if matches!(a.style, AttrStyle::Outer) {
-                            if let Meta::List(list) = &a.meta {
-                                if list.path.is_ident("serde") {
-                                    return Some(&list.tokens);
-                                }
-                            }
-                        }
-                        None
-                    })
-                    .for_each(|tokens| {
-                        let tokens = tokens.clone();
-                        if let Ok(item) = syn::parse2::<MetaNameValue>(tokens) {
-                            // rename = "..."
-                            if item.path.is_ident("rename") {
-                                if let Expr::Lit(lit) = item.value {
-                                    if let Lit::Str(s) = lit.lit {
-                                        name_str = s.value()
-                                    }
-                                }
-                            }
-                        }
-                    });
+                let serde_option = parse_serde_attr(&f.attrs);
+                if let Some(s) = serde_option.rename {
+                    name_str = s;
+                }
                 // Option<T>
                 let mut is_option = false;
                 if let syn::Type::Path(p) = ty {
@@ -99,6 +124,9 @@ fn gen_fields_type(fields: Fields) -> proc_macro2::TokenStream {
             tks
         }
         syn::Fields::Unnamed(fields) => {
+            if tag.is_some() {
+                panic!("don't know what to do")
+            }
             let mut tuple_type = proc_macro2::TokenStream::new();
             // newtype struct
             if fields.unnamed.len() == 1 {
@@ -115,7 +143,13 @@ fn gen_fields_type(fields: Fields) -> proc_macro2::TokenStream {
                 quote!(<( #tuple_type ) as serde_ts_typing::TypeDef>::type_def())
             }
         }
-        syn::Fields::Unit => panic!("unit struct dosen't have type"),
+        syn::Fields::Unit => {
+            if let Some((key, val)) = tag {
+                quote!(String::from("{") + #key + ":" + #val + "}")
+            } else {
+                panic!("unit struct dosen't have type")
+            }
+        }
     }
 }
 
@@ -125,7 +159,7 @@ fn derive_struct(input: ItemStruct) -> proc_macro2::TokenStream {
     let where_clause = gen_where_clause(generics.clone());
     let gparam = generics.params;
 
-    let type_def_stmt = gen_fields_type(input.fields);
+    let type_def_stmt = gen_fields_type(input.fields, None);
 
     quote! {
         impl<#gparam> serde_ts_typing::TypeDef for #struct_name<#gparam> #where_clause {
@@ -144,41 +178,40 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
     let where_clause = gen_where_clause(generics.clone());
     let gparam = generics.params;
 
-    let mut type_def_stmt = quote!(
-        String::new()
-    );
+    let global_serde_option = parse_serde_attr(&input.attrs);
     let mut is_first = true;
-    input
+    let type_def_stmt = input
         .variants
         .into_iter()
-        .map(|var| {
-            let varient_name = var.ident.to_string();
-            if matches!(var.fields, Fields::Unit) {
+        .fold(quote!(String::new()), |mut stmt, var| {
+            if !is_first {
+                stmt.extend(quote!(+ " | "));
+            }
+            is_first = false;
+
+            let serde_option = parse_serde_attr(&var.attrs);
+            let varient_name = serde_option.rename.unwrap_or(var.ident.to_string());
+            // serialize as string
+            if matches!(var.fields, Fields::Unit) && global_serde_option.tag.is_none() {
                 let varient_name = String::from("\"") + &varient_name + "\"";
-                return if is_first {
-                    is_first = false;
-                    quote!(+ #varient_name)
-                } else {
-                    quote!(+ " | " + #varient_name)
-                };
+                stmt.extend(quote!(+ #varient_name));
+                return stmt;
             }
-
-            let fields_ty = gen_fields_type(var.fields);
-
-            if is_first {
-                is_first = false;
-                quote!(
-                    + "{" + #varient_name + ": " + &{ #fields_ty } + "}"
-                )
+            let fields_ty = gen_fields_type(
+                var.fields,
+                global_serde_option
+                    .tag
+                    .as_ref()
+                    .map(|s| (s.clone(), varient_name.clone())),
+            );
+            if global_serde_option.tag.is_some() {
+                stmt.extend(quote!(+ &{ #fields_ty }));
             } else {
-                quote!(
-                    + " | " + "{" + #varient_name + ": " + &{
-                        #fields_ty
-                    } + "}"
-                )
+                stmt.extend(quote!(+ "{" + #varient_name + ": " + &{ #fields_ty } + "}"));
             }
-        })
-        .for_each(|tks| type_def_stmt.extend(tks));
+            stmt
+        });
+    // .for_each(|tks| type_def_stmt.extend(tks));
 
     quote! {
         impl<#gparam> serde_ts_typing::TypeDef for #enum_name<#gparam> #where_clause {

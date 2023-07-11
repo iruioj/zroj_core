@@ -33,33 +33,32 @@ enum Discriminate {
     A = 0,
 }
 
+#[derive(Serialize, SerdeJsonWithType)]
+enum EnumRenameTest {
+    #[serde(rename = "hello")]
+    Hello,
+    World(i32, Vec<String>),
+    #[serde(rename = "less")]
+    More {
+        #[serde(rename = "good")]
+        name: String,
+        id: usize,
+    },
+}
+
 #[test]
 fn test_serde() {
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&Test1 {
-            name: "hello".into(),
-            tags: vec![("world".into(), 5)]
-        })
-        .unwrap()
+    assert_eq!(Test1::type_def(), "{name: string;tags: [string,number][];}");
+    assert_eq!(TestGenerics::<u32>::type_def(), "{name: number;}");
+    assert_eq!(Unnamed::type_def(), "[string,boolean,number]");
+    assert_eq!(Single::type_def(), "boolean");
+    assert_eq!(
+        EnumTest::type_def(),
+        "\"Hello\" | {World: [number,string[]]} | {More: {name: string;id: number;}}"
     );
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&Unnamed("aa".into(), false, 10)).unwrap()
+    assert_eq!(Discriminate::type_def(), "\"A\"");
+    assert_eq!(
+        EnumRenameTest::type_def(),
+        "\"hello\" | {World: [number,string[]]} | {less: {good: string;id: number;}}"
     );
-    dbg!(Test1::type_def());
-    dbg!(TestGenerics::<u32>::type_def());
-    dbg!(Unnamed::type_def());
-    dbg!(serde_json::to_string_pretty(&Single(false)).unwrap());
-    dbg!(Single::type_def());
-    dbg!(serde_json::to_string(&EnumTest::Hello).unwrap());
-    dbg!(serde_json::to_string(&EnumTest::World(0, Vec::new())).unwrap());
-    dbg!(serde_json::to_string(&EnumTest::More {
-        name: "bbb".into(),
-        id: 12
-    }))
-    .unwrap();
-    dbg!(EnumTest::type_def());
-    dbg!(serde_json::to_string(&Discriminate::A).unwrap());
-    dbg!(Discriminate::type_def());
 }
