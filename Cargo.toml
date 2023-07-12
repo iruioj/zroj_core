@@ -15,7 +15,8 @@ members = [
     "tools",
     "serde_ts_typing",
     "serde_ts_typing_derive",
-    "migrator"
+    "migrator",
+    "md"
 ]
 
 [workspace.package]
