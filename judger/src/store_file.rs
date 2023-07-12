@@ -1,4 +1,4 @@
-use std::io::{self, Seek, Write};
+use std::io::{self, Seek, Write, Read};
 
 use store::FsStore;
 
@@ -22,12 +22,20 @@ impl StoreFile {
         std::io::copy(&mut self.file, dest)?;
         Ok(())
     }
+	/// 将文件内容读取到字符串
+    pub fn read_to_string(&mut self, s: &mut String) -> Result<(), std::io::Error> {
+        self.reset_cursor()?;
+        self.file.read_to_string(s)?;
+        Ok(())
+    }
     /// 将文件内容复制到对应路径的文件
     /// 
     /// create a file if it does not exist, and will truncate it if it does.
     pub fn copy_to(&mut self, path: impl AsRef<std::path::Path>) -> Result<(), std::io::Error> {
-        dbg!(path.as_ref());
+        // dbg!(path.as_ref());
+		eprintln!("test {:?}", path.as_ref());
         let mut file = std::fs::File::create(path.as_ref())?;
+		eprintln!("file create");
         self.copy_all(&mut file)
     }
     /// create a temporary plain file, oftern used for testing

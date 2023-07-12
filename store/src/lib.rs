@@ -15,7 +15,7 @@ use std::{
 /// 文件系统中的一个文件或文件夹的句柄，不保证其存在性
 #[derive(Clone)]
 pub struct Handle {
-    dir: PathBuf,
+    pub dir: PathBuf,
 }
 
 impl Handle {
@@ -25,6 +25,10 @@ impl Handle {
             dir: path.as_ref().to_path_buf(),
         }
     }
+	/// 判断路径是否为文件
+	pub fn is_file(&self) -> bool {
+		self.dir.is_file()
+	}
     /// 在末尾添加一个新的文件夹/路径
     pub fn join(&self, p: impl AsRef<Path>) -> Self {
         Self {
@@ -45,6 +49,14 @@ impl Handle {
 			std::fs::remove_file(self).map_err(Error::RemoveFile)
 		} else {
 			Err(Error::NotFile)
+		}
+	}
+	/// 尝试删除
+	pub fn try_remove_file(&self) -> Result<(), Error> {
+		if self.dir.is_file() {
+			std::fs::remove_file(self).map_err(Error::RemoveFile)
+		} else {
+			Ok(())
 		}
 	}
     /// 在该路径下新建文件，会自动补齐父级目录，要求其不存在

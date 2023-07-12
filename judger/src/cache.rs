@@ -1,6 +1,6 @@
 //! 可执行文件和编译日志的缓存系统
 
-use std::{ collections::{BTreeMap, HashMap}, io::Read };
+use std::{ collections::{BTreeMap, HashMap} };
 use core::cmp::Ordering;
 use store::Handle;
 use crate::{
@@ -9,6 +9,7 @@ use crate::{
     seq_hash,
 	store_file::StoreFile,
 };
+// use crate::FileType::GnuCpp14O2;
 
 /// 缓存条目
 #[derive(Clone, Debug)]
@@ -72,12 +73,14 @@ impl Cache {
     pub fn compile(&mut self, src: &mut StoreFile) -> Result<CompileResult, Error> {
         self.cur_height += 1;
 		
-        let mut src_content = "".into();
-		src.file.read_to_string(&mut src_content)?;
+        let mut src_content: String = "".into();
+
+		src.read_to_string(&mut src_content)?;
+
 		let lang = &src.file_type;
         let hash = seq_hash![src_content, lang];
         let exec = self.dir.clone().join(&hash);
-		let clog = exec.clone().join(".c.log");
+		let clog = self.dir.clone().join(hash.clone() + ".c.log");
 
         if let Some(entry) = self.map.get_mut(&hash) {
             self.sorted.remove(entry);
@@ -102,28 +105,32 @@ impl Cache {
             self.map.remove(&s);
         }
 
-		let src_path = self.dir.join("main").join(src.file_type.ext());
+		let src_path = self.dir.join("main".to_owned() + src.file_type.ext());
 		// !!! TODO !!! 处理文件错误
 		src.copy_to(&src_path).unwrap();
         let cpl = src.file_type.compile_sandbox(&src_path, &exec, &clog);
-		// !!! TODO !!! 处理文件错误
-		src_path.remove_file().unwrap();
         let term = cpl.exec_sandbox()?;
+		// !!! TODO !!! 处理文件错误
+
         let entry = Entry::new(self.cur_height, term.status);
 
         self.map.insert(hash.clone(), entry.clone());
         self.sorted.insert(entry.clone(), hash);
 
 		return Ok(match entry.stat {
-			sandbox::Status::Ok => CompileResult {
-				stat: sandbox::Status::Ok,
-				exec: Some(exec),
-				clog,
+			sandbox::Status::Ok => {
+				CompileResult {
+					stat: sandbox::Status::Ok,
+					exec: Some(exec),
+					clog,
+				}
 			},
-			x => CompileResult {
-				stat: x,
-				exec: None,
-				clog,	
+			x => {
+				CompileResult {
+					stat: x,
+					exec: None,
+					clog,	
+				}
 			}
 		});
     }

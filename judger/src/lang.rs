@@ -86,7 +86,7 @@ impl Compile for GnuCpp {
 }
 
 /// 内置的支持的文件类型
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum FileType {
     #[serde(rename = "gnu_cpp20_o2")]
     GnuCpp20O2,

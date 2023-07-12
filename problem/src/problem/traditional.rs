@@ -9,9 +9,12 @@ use crate::{
 use judger::{
     sandbox::{mem, unix::SingletonBuilder, Builder, Elapse, ExecSandBox, Memory},
     truncstr::{TruncStr, TRUNCATE_LEN},
-	cache::CompileResult,
+	// cache::CompileResult,
 };
 use store::FsStore;
+pub use judger::FileType;
+
+pub use judger::sandbox::unix::Lim;
 
 #[derive(FsStore, Debug)]
 pub struct Meta {
@@ -55,6 +58,11 @@ impl JudgeProblem for Traditional {
     ) -> Result<judger::TaskReport, RuntimeError> {
         let wd = judger.working_dir();
         let Subm { source } = subm;
+		
+		wd.join("main").try_remove_file().unwrap();
+		wd.join("main.c.log").try_remove_file().unwrap();
+		wd.join("input").try_remove_file().unwrap();
+		wd.join("answer").try_remove_file().unwrap();
 
 		eprintln!("编译源文件");
 
@@ -95,15 +103,26 @@ impl JudgeProblem for Traditional {
 					},
 					Some(exec) => {
 						// !!! TODO !!! 处理文件错误
-						let clog = c_res.clog;
-						let mut m_exec = std::fs::File::create(wd.join("main")).unwrap();
-						let mut m_clog = std::fs::File::create(wd.join("main.c.log")).unwrap();
-						std::io::copy(&mut exec.open_file().unwrap(), &mut m_exec);
-						std::io::copy(&mut clog.open_file().unwrap(), &mut m_clog);
+						StoreFile {
+							file: exec.open_file().unwrap(),
+							file_type: FileType::Binary,
+						}.copy_to(wd.join("main").as_ref()).unwrap();
+						StoreFile {
+							file: c_res.clog.open_file().unwrap(),
+							file_type: FileType::Plain,
+						}.copy_to(wd.join("main.c.log").as_ref()).unwrap();
 					},
 				}
 			},
 		};
+		// eprintln!("len(exec) = {}", wd.join("main").dir.metadata().unwrap().len());
+
+		eprintln!("添加可执行权限");
+		std::process::Command::new("chmod")
+			.arg("777")
+			.arg(wd.join("main").as_ref())
+			.spawn()
+			.unwrap();
 
         eprintln!("复制 IO 文件");
         copy_in_wd(&mut task.input, &wd, "input")?;
@@ -114,13 +133,20 @@ impl JudgeProblem for Traditional {
             .stdout(wd.join("output"))
             .stderr(wd.join("log"))
             .set_limits(|_| judger::sandbox::unix::Limitation {
-                real_time: meta.time_limit.into(),
-                cpu_time: meta.time_limit.into(),
-                virtual_memory: meta.memory_limit.into(),
-                real_memory: meta.memory_limit.into(),
-                stack_memory: meta.memory_limit.into(),
-                output_memory: mem!(64mb).into(),
-                fileno: 5.into(),
+                // real_time: meta.time_limit.into(),
+                // cpu_time: meta.time_limit.into(),
+                // virtual_memory: meta.memory_limit.into(),
+                // real_memory: meta.memory_limit.into(),
+                // stack_memory: meta.memory_limit.into(),
+                // output_memory: mem!(64mb).into(),
+                // fileno: 5.into(),
+				real_time: Lim::<Elapse>::None,
+				cpu_time: Lim::<Elapse>::None,
+				virtual_memory: Lim::<Memory>::None,
+				real_memory: Lim::<Memory>::None,
+				stack_memory: Lim::<Memory>::None,
+				output_memory: Lim::<Memory>::None,
+				fileno: Lim::<u64>::None,
             })
             .build()
             .unwrap();
@@ -135,6 +161,8 @@ impl JudgeProblem for Traditional {
         let _ = report.add_payload("answer", wd.join("answer"));
         let _ = report.add_payload("stderr", wd.join("log"));
 
+		dbg!(&term_status);
+		
         if !term_status.ok() {
             return Ok(report);
         }
@@ -166,6 +194,7 @@ mod tests {
     use judger::{
         sandbox::{mem, time, Elapse, Memory},
         DefaultJudger,
+		cache::Cache,
     };
     use store::Handle;
 
@@ -176,9 +205,13 @@ mod tests {
     #[test]
     fn test_a_plus_b() {
         let a = Traditional;
-        let dir = tempfile::tempdir().unwrap();
-        let wd = Handle::new(dir);
-        let mut jd = DefaultJudger::new(wd, None);
+        let dir = "/share/Desktop/zroj";
+        let wd = Handle::new(&dir);
+        let dir_2 = "/share/Desktop/zroj";
+		let cd = Handle::new(&dir_2);
+        let cache = Cache::new(3, cd);
+
+        let mut jd = DefaultJudger::new(wd, Some(cache));
         let mut meta = Meta {
             checker: Checker::FileCmp,
             time_limit: time!(5s),
@@ -186,7 +219,7 @@ mod tests {
         };
         let mut task = Task {
             input: StoreFile::create_tmp("1 2"),
-            output: StoreFile::create_tmp("3\n"),
+            output: StoreFile::create_tmp("3\n"), 
         };
         let mut subm = Subm {
             source: {
@@ -211,5 +244,8 @@ mod tests {
             panic!("not accepted")
         }
         dbg!(report);
+		
+		drop(dir);
+		drop(dir_2);
     }
 }
