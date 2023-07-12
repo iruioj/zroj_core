@@ -8,8 +8,28 @@ pub type StmtDB = dyn Manager + Sync + Send;
 
 #[derive(Debug, Serialize)]
 pub struct Statement {
-    statement: String,
+    statement: problem::Mdast,
     meta: render_data::statement::Meta,
+}
+
+impl TypeDef for Statement {
+    fn type_def() -> String {
+        return format!(
+            r#"{{ statement: any; meta: {};}}"#,
+            render_data::statement::Meta::type_def()
+        );
+    }
+}
+
+impl SerdeJsonWithType for Statement {}
+
+impl From<&render_data::Statement> for Statement {
+    fn from(value: &render_data::Statement) -> Self {
+        Self {
+            statement: value.statement.render_mdast(),
+            meta: value.meta.clone(),
+        }
+    }
 }
 
 #[async_trait]
@@ -17,7 +37,7 @@ pub trait Manager {
     /// HTML statement
     async fn get(&self, id: ProblemID) -> Result<Option<Statement>, Error>;
     /// parse statement for reader and insert (update) it
-    async fn insert(&self, id: ProblemID, content: &[u8]) -> Result<(), Error>;
+    async fn insert(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), Error>;
     /// most of the time for debugging
     async fn get_metas(&self) -> Result<Vec<(ProblemID, render_data::statement::Meta)>, Error>;
 }
@@ -47,19 +67,10 @@ mod default {
     #[async_trait]
     impl Manager for DefaultDB {
         async fn get(&self, id: ProblemID) -> Result<Option<Statement>, Error> {
-            Ok(self.data.read()?.get(&id).map(|s| Statement {
-                statement: s.statement.render_html(),
-                meta: s.meta.clone(),
-            }))
+            Ok(self.data.read()?.get(&id).map(|s| From::from(s)))
         }
-        async fn insert(
-            &self,
-            id: ProblemID,
-            content: &[u8],
-        ) -> Result<(), Error> {
-            let s: render_data::Statement =
-                serde_json::from_slice(content).map_err(Error::SerdeJson)?;
-            self.data.write()?.insert(id, s);
+        async fn insert(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), Error> {
+            self.data.write()?.insert(id, stmt);
             std::fs::write(
                 &self.path,
                 serde_json::to_string(
@@ -82,3 +93,4 @@ mod default {
 }
 
 pub use default::DefaultDB;
+use serde_ts_typing::{SerdeJsonWithType, TypeDef};

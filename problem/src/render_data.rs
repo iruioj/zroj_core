@@ -42,7 +42,7 @@ pub enum ProblemKind {
 
 pub mod statement {
     use super::*;
-    use judger::sandbox::{Elapse, Memory};
+    use crate::{Elapse, Memory};
 
     /// 题面数据
     #[derive(Debug, Serialize, Deserialize)]
@@ -76,9 +76,21 @@ pub mod statement {
     }
 
     impl Inner {
-        // re-design
-        pub fn render_html(&self) -> String {
-            todo!()
+        pub fn render_mdast(&self) -> crate::Mdast {
+            match self {
+                Inner::Legacy(s) => {
+                    md::parse_ast(s.as_str())
+                        .expect("parse error")
+                }
+                Inner::Standard {
+                    legend,
+                    input_format,
+                    output_format,
+                    notes,
+                    examples,
+                } => todo!(),
+                Inner::Pdf(_) => todo!(),
+            }
         }
     }
 
@@ -98,13 +110,13 @@ pub mod statement {
     #[derive(Debug, Clone, Serialize, Deserialize, SerdeJsonWithType)]
     pub struct Meta {
         /// 标题
-        title: String,
+        pub title: String,
         /// 时间限制
-        time: Option<Elapse>,
+        pub time: Option<Elapse>,
         /// 空间限制
-        memory: Option<Memory>,
+        pub memory: Option<Memory>,
         /// 题目类型
-        kind: Option<ProblemKind>,
+        pub kind: Option<ProblemKind>,
     }
 }
 

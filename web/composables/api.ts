@@ -39,4 +39,9 @@ edit: { get: () => callAPI("get", "/user/edit") as Promise<AsyncData<{id: number
 post: (payload: {password_hash?: string;email?: string;motto?: string;name?: string;gender?: "Male" | "Female" | "Others" | "Private";}) => callAPI("post", "/user/edit", payload) as Promise<AsyncData<void, FetchError>>,
  },
  },
+problem: { full_dbg: { get: () => callAPI("get", "/problem/full_dbg") as Promise<AsyncData<[number,{title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";}][], FetchError>>,
+ },
+statement: { get: (payload: {id: number;}) => callAPI("get", "/problem/statement", payload) as Promise<AsyncData<{ statement: any; meta: {title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";};}, FetchError>>,
+ },
+ },
  }; }

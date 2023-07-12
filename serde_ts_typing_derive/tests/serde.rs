@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use serde::Serialize;
 use serde_ts_typing::{SerdeJsonWithType, TypeDef};
 

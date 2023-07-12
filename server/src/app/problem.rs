@@ -1,12 +1,33 @@
 use crate::{
-    data::problem_statement::StmtDB,
+    data::problem_statement::{self, StmtDB},
     marker::*,
     // manager::_problem::{Metadata, ProblemManager},
     ProblemID,
 };
-use actix_web::web::Json;
+use actix_web::{error, web::Json};
 use problem::render_data::statement::Meta;
+use serde::Deserialize;
+use serde_ts_typing::SerdeJsonWithType;
 use server_derive::{api, scope_service};
+
+#[derive(Deserialize, SerdeJsonWithType)]
+struct StmtQuery {
+    /// 题目 id
+    id: ProblemID,
+}
+
+/// 所有的题目元信息，用于调试
+#[api(method = get, path = "/statement")]
+async fn statement(
+    stmt_db: ServerData<StmtDB>,
+    query: QueryParam<StmtQuery>,
+) -> JsonResult<problem_statement::Statement> {
+    if let Some(s) = stmt_db.get(query.id).await? {
+        Ok(Json(s))
+    } else {
+        Err(error::ErrorNotFound("problem not found"))
+    }
+}
 
 /// 所有的题目元信息，用于调试
 #[api(method = get, path = "/full_dbg")]
@@ -19,4 +40,5 @@ async fn full_list(stmt_db: ServerData<StmtDB>) -> JsonResult<Vec<(ProblemID, Me
 pub fn service(stmt_db: ServerData<StmtDB>) {
     app_data(stmt_db);
     service(full_list);
+    service(statement);
 }
