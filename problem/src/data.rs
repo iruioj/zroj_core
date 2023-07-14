@@ -80,12 +80,18 @@ impl DepRelation {
         assert!(depender > dependee);
         Self(depender, dependee)
     }
+    pub fn depender(&self) -> usize {
+        self.0
+    }
+    pub fn dependee(&self) -> usize {
+        self.1
+    }
 }
 
 type DepOption = Vec<DepRelation>;
 
 /// 子任务记分规则
-#[derive(Serialize, Deserialize, FsStore, Debug)]
+#[derive(Serialize, Deserialize, FsStore, Debug, Clone, PartialEq, Eq)]
 pub enum Rule {
     /// 各测试点得分和
     Sum,

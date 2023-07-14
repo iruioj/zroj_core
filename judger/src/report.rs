@@ -115,25 +115,31 @@ impl From<sandbox::Termination> for TaskReport {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtaskReport {
     pub status: Status,
-    pub time: u64,
-    pub memory: u64,
+    pub time: Elapse,
+    pub memory: Memory,
     pub tasks: Vec<Option<TaskReport>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum JudgeDetail {
-    Subtask(Vec<Option<SubtaskReport>>),
+    Subtask(Vec<SubtaskReport>),
     Tests(Vec<Option<TaskReport>>),
 }
 
 pub const SCOER_EPS: f64 = 1e-5;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JudgeReport {
+pub struct JudgeReportMeta {
     pub score: f64,
     pub status: Status,
     pub time: Elapse,
     pub memory: Memory,
+}
+
+    
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JudgeReport {
+    pub meta: JudgeReportMeta,
     pub detail: JudgeDetail,
 }
 
@@ -149,14 +155,16 @@ mod tests {
     #[test]
     fn test_judge_result_serde() {
         let r = JudgeReport {
-            score: 1.0,
-            status: crate::Status::WrongAnswer,
-            time: 114.into(),
-            memory: 514.into(),
-            detail: super::JudgeDetail::Subtask(vec![Some(SubtaskReport {
+            meta: crate::JudgeReportMeta {
+                score: 1.0,
                 status: crate::Status::WrongAnswer,
-                time: 114,
-                memory: 514,
+                time: 114.into(),
+                memory: 514.into(),
+            },
+            detail: super::JudgeDetail::Subtask(vec![SubtaskReport {
+                status: crate::Status::WrongAnswer,
+                time: 114.into(),
+                memory: 514.into(),
                 tasks: vec![Some(TaskReport {
                     status: crate::Status::Partial(1., 2.),
                     time: 114.into(),
@@ -167,7 +175,7 @@ mod tests {
                         ("answer".to_string(), "3".into()),
                     ],
                 })],
-            })]),
+            }]),
         };
         eprintln!("{}", serde_json::to_string_pretty(&r).unwrap());
     }
