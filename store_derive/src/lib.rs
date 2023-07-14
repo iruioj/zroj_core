@@ -109,13 +109,13 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
         let meta_enum_ident =
             Ident::new((ident.to_string() + "__Meta").as_str(), Span::call_site());
 
-        for varient in item.variants {
-            let varient_meta = has_meta(&varient.attrs);
-            let varname = varient.ident;
+        for variant in item.variants {
+            let variant_meta = has_meta(&variant.attrs);
+            let varname = variant.ident;
 
-            assert!(varient.discriminant.is_none());
+            assert!(variant.discriminant.is_none());
 
-            match varient.fields {
+            match variant.fields {
                 syn::Fields::Named(varfields) => {
                     let mut save_meta_fields = proc_macro2::TokenStream::new();
                     let mut fields = proc_macro2::TokenStream::new();
@@ -127,7 +127,7 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
                     for field in varfields.named {
                         let name = field.ident.unwrap();
                         fieldnames.push(name.clone());
-                        if varient_meta || has_meta(&field.attrs) {
+                        if variant_meta || has_meta(&field.attrs) {
                             // store in meta file
                             let ty = field.ty;
                             fields.extend(quote!( #name : #ty, ));

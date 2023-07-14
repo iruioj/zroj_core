@@ -1,56 +1,12 @@
 use super::*;
 
-macro_rules! impl_scalar {
-    ($( $type:ty )*, $ts_type:literal) => {
-        $(
-            impl TypeDef for $type {
-                fn type_def() -> String {
-                    $ts_type.into()
-                }
-            }
-        )*
-    };
-}
-
-impl_scalar!(String str, "string");
-impl_scalar!(i16 u16 i32 u32 i64 u64 isize usize f32 f64, "number");
-impl_scalar!(bool, "boolean");
-
-impl<T: TypeDef> TypeDef for Vec<T> {
-    fn type_def() -> String {
-        format!("{}[]", T::type_def())
-    }
-}
-
-macro_rules! impl_tuple {
-    ( $( $type:ident ),*  ) => {
-        impl< $( $type : TypeDef, )* > TypeDef for ( $( $type, )* ) {
-            fn type_def() -> String {
-                let vs = vec![ $( $type::type_def() ),* ];
-                String::from("[") + &vs.join(",") +"]"
-            }
-        }
-    };
-}
-
-impl_tuple!(A);
-impl_tuple!(A, B);
-impl_tuple!(A, B, C);
-impl_tuple!(A, B, C, D);
-impl_tuple!(A, B, C, D, E);
-impl_tuple!(A, B, C, D, E, F);
-impl_tuple!(A, B, C, D, E, F, G);
-
-impl<T: TypeDef> TypeDef for Option<T> {
-    fn type_def() -> String {
-        T::type_def() + " | undefined"
-    }
-}
-
 macro_rules! impl_scalar_cf {
     ($( $type:ty )*, $v:path) => {
         $(
-            impl SerdeJsonTsType for $type {
+            impl TsType for $type {
+                fn register_context(_: &mut Context) {
+                    // nothing
+                }
                 fn type_def() -> TypeExpr {
                     $v
                 }
@@ -60,12 +16,12 @@ macro_rules! impl_scalar_cf {
 }
 
 impl_scalar_cf!(String, TypeExpr::String);
-impl_scalar_cf!(i16 u16 i32 u32 i64 u64 isize usize f32 f64, TypeExpr::Number);
+impl_scalar_cf!(i8 u8 i16 u16 i32 u32 i64 u64 isize usize f32 f64, TypeExpr::Number);
 impl_scalar_cf!(bool, TypeExpr::Boolean);
 
-impl<T: SerdeJsonTsType> SerdeJsonTsType for Vec<T> {
-    fn type_context() -> BTreeMap<String, TypeExpr> {
-        T::type_context()
+impl<T: TsType> TsType for Vec<T> {
+    fn register_context(c: &mut Context) {
+        T::register_self_context(c);
     }
     fn type_def() -> TypeExpr {
         TypeExpr::Array(Box::new(T::type_def()))
@@ -74,12 +30,10 @@ impl<T: SerdeJsonTsType> SerdeJsonTsType for Vec<T> {
 
 macro_rules! impl_tuple_cf {
     ( $( $type:ident ),*  ) => {
-        impl< $( $type : SerdeJsonTsType, )* > SerdeJsonTsType for ( $( $type, )* ) {
+        impl< $( $type : TsType, )* > TsType for ( $( $type, )* ) {
             // merge context
-            fn type_context() -> BTreeMap<String, TypeExpr> {
-                let mut ctx = BTreeMap::new();
-                $( ctx.extend($type::type_context().into_iter()); )*
-                ctx
+            fn register_context(c: &mut Context) {
+                $( $type::register_self_context(c); )*
             }
             fn type_def() -> TypeExpr {
                 let vs = vec![ $( $type::type_def().into() ),* ];
@@ -96,3 +50,25 @@ impl_tuple_cf!(A, B, C, D);
 impl_tuple_cf!(A, B, C, D, E);
 impl_tuple_cf!(A, B, C, D, E, F);
 impl_tuple_cf!(A, B, C, D, E, F, G);
+
+impl<T: TsType> TsType for Option<T> {
+    fn register_context(c: &mut Context) {
+        T::register_self_context(c);
+    }
+    fn type_def() -> TypeExpr {
+        TypeExpr::Union(
+            [TypeExpr::Value(Value::Null), T::type_def()]
+                .into_iter()
+                .collect(),
+        )
+    }
+}
+
+impl<T: TsType> TsType for Box<T> {
+    fn register_context(c: &mut Context) {
+        T::register_self_context(c);
+    }
+    fn type_def() -> TypeExpr {
+        T::type_def()
+    }
+}

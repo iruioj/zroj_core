@@ -10,10 +10,11 @@ pub enum Error {
 }
 
 /// TypeScript type representation
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TypeExpr {
-    /// name of another type
-    Ident(String),
+    /// name, id of another type
+    /// `type name = {...}`
+    Ident(TypeId, String),
     /// 具体的 value，例如 `type Name = 'hello';`
     Value(value::Value),
     /// `string`
@@ -30,12 +31,14 @@ pub enum TypeExpr {
     Tuple(Vec<TypeExpr>),
     /// ` T | S`
     Union(BTreeSet<TypeExpr>),
+    /// ` T & S`
+    Intersection(BTreeSet<TypeExpr>),
 }
 
 impl ToString for TypeExpr {
     fn to_string(&self) -> String {
         match self {
-            TypeExpr::Ident(i) => i.clone(),
+            TypeExpr::Ident(_, n) => n.clone(),
             TypeExpr::Value(v) => v.to_string(),
             TypeExpr::String => "string".into(),
             TypeExpr::Number => "number".into(),
@@ -62,49 +65,17 @@ impl ToString for TypeExpr {
                     r
                 }) + ")"
             }
+            TypeExpr::Intersection(t) => {
+                let mut sep = "";
+                t.iter().fold(String::from("("), |acc, v| {
+                    let r = format!("{acc}{sep}{}", v.to_string());
+                    sep = "&";
+                    r
+                }) + ")"
+            }
         }
     }
 }
-
-// 不需要上下文的类型定义（非递归，不含有未知类型的 identifier）
-// pub struct CtxFreeTypeExpr(TypeExpr);
-
-// impl From<CtxFreeTypeExpr> for TypeExpr {
-//     fn from(value: CtxFreeTypeExpr) -> Self {
-//         value.0
-//     }
-// }
-
-// impl TryFrom<TypeExpr> for CtxFreeTypeExpr {
-//     type Error = Error;
-
-//     fn try_from(value: TypeExpr) -> Result<Self, Self::Error> {
-//         use TypeExpr::*;
-//         match value {
-//             Ident(s) => Err(Error::CtxFreeTypeExprInvalidIdent(s)),
-//             Array(e) => Ok(Self(Array(Box::new(
-//                 ((*e).try_into() as Result<CtxFreeTypeExpr, _>)?.into(),
-//             )))),
-//             Record(r) => Ok(Self(Record(
-//                 r.into_iter()
-//                     .map(|(k, v)| Ok((k, (v.try_into() as Result<CtxFreeTypeExpr, _>)?.into())))
-//                     .collect::<Result<BTreeMap<std::string::String, TypeExpr>, Error>>()?,
-//             ))),
-//             Union(r) => Ok(Self(Union(
-//                 r.into_iter()
-//                     .map(|v| Ok((v.try_into() as Result<CtxFreeTypeExpr, _>)?.into()))
-//                     .collect::<Result<BTreeSet<TypeExpr>, Error>>()?,
-//             ))),
-//             Tuple(r) => Ok(Self(Tuple(
-//                 r.into_iter()
-//                     .map(|v| Ok((v.try_into() as Result<CtxFreeTypeExpr, _>)?.into()))
-//                     .collect::<Result<Vec<TypeExpr>, Error>>()?,
-//             ))),
-
-//             Value(_) | String | Number | Boolean => Ok(Self(value)),
-//         }
-//     }
-// }
 
 /// 对于 Rust 类型提供 typescript 类型生成
 pub trait TypeDef {
@@ -121,16 +92,65 @@ where
 {
 }
 
-pub trait SerdeJsonTsType {
-    fn type_context() -> BTreeMap<String, TypeExpr> {
-        // no context
-        Default::default()
+pub type TypeId = std::any::TypeId;
+
+/// 类型标志符的上下文（类型集合）
+#[derive(Debug, Default)]
+pub struct Context(pub BTreeMap<TypeId, (String, TypeExpr)>);
+
+impl From<BTreeMap<TypeId, (String, TypeExpr)>> for Context {
+    fn from(value: BTreeMap<TypeId, (String, TypeExpr)>) -> Self {
+        Self(value)
     }
+}
+
+impl std::ops::Add for Context {
+    type Output = Context;
+
+    fn add(mut self, mut rhs: Self) -> Self::Output {
+        rhs.0.append(&mut self.0);
+        rhs
+    }
+}
+
+impl Context {
+    pub fn register(&mut self, ty: TypeId, name: String, tydef: TypeExpr) {
+        self.0.insert(ty, (name, tydef));
+    }
+    pub fn contains(&self, id: TypeId) -> bool {
+        self.0.contains_key(&id)
+    }
+    pub fn render_code(&self) -> String {
+        let mut r = String::new();
+        for (_, (name, tydef)) in &self.0 {
+            r += &format!("type {name} = {};\n", tydef.to_string());
+        }
+        r
+    }
+}
+
+pub trait TsType
+where
+    Self: 'static,
+{
+    fn register_context(c: &mut Context);
     fn type_def() -> TypeExpr;
+
+    /// 如果 context 中不包含自身的 context 就调用 register_context
+    fn register_self_context(c: &mut Context) {
+        if !c.contains(TypeId::of::<Self>()) {
+            Self::register_context(c)
+        }
+    }
+    fn type_context() -> Context {
+        let mut r = Context::default();
+        Self::register_context(&mut r);
+        r
+    }
 }
 
 #[allow(unused_imports)]
 #[macro_use]
 extern crate serde_ts_typing_derive;
 
-pub use serde_ts_typing_derive::SerdeJsonWithType;
+pub use serde_ts_typing_derive::TsType;
