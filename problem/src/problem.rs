@@ -2,13 +2,11 @@ use std::marker::PhantomData;
 
 use crate::{
     data::{Data, Rule, StoreFile},
+    prob_judger::JudgeMonitor,
     DataError, Override, RuntimeError,
 };
 
-use judger::{
-    sandbox::{Elapse, Memory},
-    JudgeReport, JudgeReportMeta, SubtaskReport,
-};
+use judger::{JudgeReport, SubtaskReport};
 use store::{FsStore, Handle};
 
 pub trait JudgeTask {
@@ -28,25 +26,6 @@ pub trait JudgeTask {
         task: &mut Self::T,
         subm: &mut Self::Subm,
     ) -> Result<judger::TaskReport, RuntimeError>;
-}
-
-pub fn update_status(
-    meta: &mut JudgeReportMeta,
-    default_score: f64,
-    rule: &Rule,
-    status: judger::Status,
-    time: Elapse,
-    memory: Memory,
-) {
-    meta.time = meta.time.max(time);
-    meta.memory = meta.memory.max(memory);
-    let cur_score = status.score_rate() * status.total_score().unwrap_or(default_score);
-    if let Rule::Sum = rule {
-        meta.score += cur_score;
-    } else {
-        meta.score = meta.score.min(cur_score);
-    }
-    meta.status.update(status);
 }
 
 /// 题目数据结构 + 评测
@@ -89,99 +68,55 @@ where
         mut judger: impl judger::Judger,
         subm: &mut J::Subm,
     ) -> Result<judger::JudgeReport, RuntimeError> {
-        let mut meta = JudgeReportMeta {
-            score: match &self.data.rule {
-                crate::data::Rule::Sum => 0.0,
-                crate::data::Rule::Minimum => 1.0,
-            },
-            status: judger::Status::Accepted,
-            time: 0.into(),
-            memory: 0.into(),
-        };
         Ok(match &mut self.data.tasks {
             crate::data::Taskset::Subtasks { subtasks, deps } => {
+                let mut monitor = JudgeMonitor::new(0.0, &Rule::Sum);
                 let mut reports: Vec<SubtaskReport> = Vec::new();
                 for (id, sbt) in subtasks.iter_mut().enumerate() {
-                    let dependency_ok = deps
-                        .iter()
-                        .filter(|d| d.depender() == id)
-                        .all(|d| matches!(reports[d.dependee()].status, judger::Status::Accepted));
+                    let dependency_ok = deps.iter().filter(|d| d.depender() == id).all(|d| {
+                        matches!(reports[d.dependee()].meta.status, judger::Status::Accepted)
+                    });
+
                     let default_score = 1.0 / sbt.tasks.len() as f64;
-                    let mut sub_meta = JudgeReportMeta {
-                        score: 1.0,
-                        status: judger::Status::Accepted,
-                        time: 0.into(),
-                        memory: 0.into(),
-                    };
                     let mut subreports = Vec::new();
+                    let mut sub_monitor = JudgeMonitor::new(default_score, &Rule::Minimum);
                     for task in &mut sbt.tasks {
-                        if !dependency_ok
-                            || (self.data.rule == Rule::Minimum && meta.score < judger::SCOER_EPS)
-                        {
+                        if !dependency_ok || sub_monitor.skippable() || monitor.skippable() {
                             // skip
                             subreports.push(None);
                         } else {
                             let r = J::judge_task(&mut judger, &mut self.data.meta, task, subm)?;
-                            update_status(
-                                &mut sub_meta,
-                                default_score,
-                                &Rule::Minimum,
-                                r.status.clone(),
-                                r.time.clone(),
-                                r.memory.clone(),
-                            );
+                            sub_monitor.update(&r.meta);
                             subreports.push(Some(r));
                         }
                     }
+                    let sub_meta = sub_monitor.report();
+                    monitor.update(&sub_meta);
                     reports.push(SubtaskReport {
-                        status: sub_meta.status.clone(),
-                        time: sub_meta.time,
-                        memory: sub_meta.memory,
+                        meta: sub_meta,
                         tasks: subreports,
                     });
-
-                    meta.status.update(sub_meta.status.clone());
-                    meta.time = meta.time.max(sub_meta.time);
-                    meta.memory = meta.memory.max(sub_meta.memory);
-                    let cur_score = sub_meta.status.score_rate()
-                        * sub_meta.status.total_score().unwrap_or(sbt.score);
-                    meta.score = match self.data.rule {
-                        Rule::Sum => meta.score + cur_score,
-                        Rule::Minimum => meta.score.min(cur_score),
-                    }
                 }
                 JudgeReport {
-                    meta,
+                    meta: monitor.report(),
                     detail: judger::JudgeDetail::Subtask(reports),
                 }
             }
             crate::data::Taskset::Tests { tasks } => {
                 let default_score = 1.0 / tasks.len() as f64;
-                let r: Result<_, RuntimeError> = tasks.iter_mut().try_fold(
-                    (meta, Vec::new(), default_score),
-                    |(mut meta, mut reports, default_score), task| {
-                        if self.data.rule == Rule::Minimum && meta.score < judger::SCOER_EPS {
-                            // skip
-                            reports.push(None);
-                        } else {
-                            let r = J::judge_task(&mut judger, &mut self.data.meta, task, subm)?;
-                            update_status(
-                                &mut meta,
-                                default_score,
-                                &self.data.rule,
-                                r.status.clone(),
-                                r.time.clone(),
-                                r.memory.clone(),
-                            );
-                            reports.push(Some(r));
-                        }
-
-                        Ok((meta, reports, default_score))
-                    },
-                );
-                let (meta, reports, ..) = r?;
-                judger::JudgeReport {
-                    meta,
+                let mut reports = Vec::new();
+                let mut monitor = JudgeMonitor::new(default_score, &self.data.rule);
+                for task in tasks {
+                    if monitor.skippable() {
+                        reports.push(None)
+                    } else {
+                        let r = J::judge_task(&mut judger, &mut self.data.meta, task, subm)?;
+                        monitor.update(&r.meta);
+                        reports.push(Some(r));
+                    }
+                }
+                JudgeReport {
+                    meta: monitor.report(),
                     detail: judger::JudgeDetail::Tests(reports),
                 }
             }

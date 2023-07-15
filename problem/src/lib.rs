@@ -4,6 +4,7 @@ pub mod database;
 mod error;
 pub mod problem;
 pub mod render_data;
+pub mod prob_judger;
 
 pub use checker::Checker;
 pub use error::{DataError, RuntimeError};

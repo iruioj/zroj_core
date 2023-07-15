@@ -59,9 +59,12 @@ impl JudgeTask for Traditional {
         if !term.status.ok() {
             return Ok({
                 let mut r = judger::TaskReport {
-                    status: judger::Status::CompileError(term.status),
-                    time: term.cpu_time,
-                    memory: term.memory,
+                    meta: judger::TaskMeta {
+                        score: 0.0,
+                        status: judger::Status::CompileError(term.status),
+                        time: term.cpu_time,
+                        memory: term.memory,
+                    },
                     // todo: add log
                     payload: Vec::new(),
                 };
@@ -93,7 +96,16 @@ impl JudgeTask for Traditional {
         let term = s.exec_fork().unwrap();
         let term_status = term.status.clone();
 
-        let mut report = judger::TaskReport::from(term);
+        let mut report = judger::TaskReport {
+            meta: judger::TaskMeta {
+                score: 0.0,
+                status: term.status.into(),
+                time: term.cpu_time,
+                memory: term.memory,
+            },
+            payload: Vec::new(),
+        };
+        report.meta.score = report.meta.status.score_rate();
         let _ = report.add_payload("compile log", wd.join("main.c.log"));
         let _ = report.add_payload("stdin", wd.join("input"));
         let _ = report.add_payload("stdout", wd.join("output"));
@@ -110,7 +122,7 @@ impl JudgeTask for Traditional {
             .check(wd.join("input"), wd.join("output"), wd.join("answer"));
 
         if r.is_err() {
-            report.status = judger::Status::WrongAnswer;
+            report.meta.status = judger::Status::WrongAnswer;
         }
         report.payload.push((
             "checker log".into(),
@@ -167,7 +179,7 @@ mod tests {
         };
 
         let report = Traditional::judge_task(&mut jd, &mut meta, &mut task, &mut subm).unwrap();
-        let judger::Status::Accepted = report.status else {
+        let judger::Status::Accepted = report.meta.status else {
             panic!("not accepted")
         };
         dbg!(report);

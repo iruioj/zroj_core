@@ -28,7 +28,7 @@ int main() {
         one.set_wd(Handle::new(&dir));
 
         let res = one.exec()?;
-        if let Status::Accepted = res.status {
+        if let Status::Accepted = res.meta.status {
             eprintln!("res = {:?}", res);
             assert_eq!(String::from(&res.payload[1].1), "3\n");
         } else {

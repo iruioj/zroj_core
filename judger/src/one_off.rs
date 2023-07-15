@@ -44,6 +44,8 @@ impl OneOff {
     }
     #[cfg(all(unix))]
     pub fn exec(&mut self) -> Result<TaskReport, Error> {
+        use crate::TaskMeta;
+
         let src = self
             .working_dir
             .join(String::from("main") + self.file.file_type.ext());
@@ -60,9 +62,16 @@ impl OneOff {
             .exec_fork()?;
         let st = term.status.clone();
         if st != sandbox::Status::Ok {
-            let mut r: TaskReport = term.into();
+            let mut r = TaskReport {
+                meta: TaskMeta {
+                    score: 0.0,
+                    status: Status::CompileError(st),
+                    time: term.cpu_time,
+                    memory: term.memory,
+                },
+                payload: Vec::new(),
+            };
             let _ = r.add_payload("compile log", clog);
-            r.status = Status::CompileError(st);
             eprintln!("编译失败");
             dbg!(&self.working_dir);
             return Ok(r);
@@ -90,7 +99,16 @@ impl OneOff {
             .build()
             .unwrap();
         let term = s.exec_fork()?;
-        let mut r: TaskReport = term.into();
+        let mut r: TaskReport = TaskReport {
+            meta: TaskMeta {
+                score: 0.0,
+                status: term.status.into(),
+                time: term.cpu_time,
+                memory: term.memory,
+            },
+            payload: Vec::new(),
+        };
+        r.meta.score = r.meta.status.score_rate();
         // ignore error
         let _ = r.add_payload("compile log", clog).map_err(|e| dbg!(e));
         let _ = r.add_payload("stdout", out).map_err(|e| dbg!(e));

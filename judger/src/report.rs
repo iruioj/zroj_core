@@ -63,15 +63,24 @@ impl Status {
     }
 }
 
-/// 一个测试点的测试结果
+/// 一个测试点的测试结果指标
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TaskReport {
+pub struct TaskMeta {
+    /// 得分
+    pub score: f64,
     /// 评测结果
     pub status: Status,
     /// 花费时间
     pub time: Elapse,
     /// 占用内存
     pub memory: Memory,
+}
+
+/// 一个测试点的测试结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskReport {
+    /// 指标
+    pub meta: TaskMeta,
     /// 相关载荷（stdin, stdout, answer ...)
     pub payload: Vec<(String, TruncStr)>,
 }
@@ -93,30 +102,43 @@ impl TaskReport {
     }
 }
 
-impl From<sandbox::Termination> for TaskReport {
-    /// 从 termination 自动生成 task report，默认没有 payload
-    fn from(value: sandbox::Termination) -> Self {
-        Self {
-            status: match value.status {
-                sandbox::Status::Ok => Status::Accepted,
-                sandbox::Status::RuntimeError(_, _) => Status::RuntimeError,
-                sandbox::Status::MemoryLimitExceeded(_) => Status::MemoryLimitExceeded,
-                sandbox::Status::TimeLimitExceeded(_) => Status::TimeLimitExceeded,
-                sandbox::Status::OutputLimitExceeded => Status::OutputLimitExceeded,
-                sandbox::Status::DangerousSyscall => Status::DangerousSyscall,
-            },
-            time: value.cpu_time,
-            memory: value.memory,
-            payload: Vec::new(),
+impl From<sandbox::Status> for Status {
+    fn from(value: sandbox::Status) -> Self {
+        match value {
+            sandbox::Status::Ok => Status::Accepted,
+            sandbox::Status::RuntimeError(_, _) => Status::RuntimeError,
+            sandbox::Status::MemoryLimitExceeded(_) => Status::MemoryLimitExceeded,
+            sandbox::Status::TimeLimitExceeded(_) => Status::TimeLimitExceeded,
+            sandbox::Status::OutputLimitExceeded => Status::OutputLimitExceeded,
+            sandbox::Status::DangerousSyscall => Status::DangerousSyscall,
         }
     }
 }
 
+// impl From<sandbox::Termination> for TaskReport {
+//     /// 从 termination 自动生成 task report，默认没有 payload
+//     fn from(value: sandbox::Termination) -> Self {
+//         Self {
+//             meta: TaskMeta {
+//                 status: match value.status {
+//                     sandbox::Status::Ok => Status::Accepted,
+//                     sandbox::Status::RuntimeError(_, _) => Status::RuntimeError,
+//                     sandbox::Status::MemoryLimitExceeded(_) => Status::MemoryLimitExceeded,
+//                     sandbox::Status::TimeLimitExceeded(_) => Status::TimeLimitExceeded,
+//                     sandbox::Status::OutputLimitExceeded => Status::OutputLimitExceeded,
+//                     sandbox::Status::DangerousSyscall => Status::DangerousSyscall,
+//                 },
+//                 time: value.cpu_time,
+//                 memory: value.memory,
+//             },
+//             payload: Vec::new(),
+//         }
+//     }
+// }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtaskReport {
-    pub status: Status,
-    pub time: Elapse,
-    pub memory: Memory,
+    pub meta: TaskMeta,
     pub tasks: Vec<Option<TaskReport>>,
 }
 
@@ -129,17 +151,8 @@ pub enum JudgeDetail {
 pub const SCOER_EPS: f64 = 1e-5;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JudgeReportMeta {
-    pub score: f64,
-    pub status: Status,
-    pub time: Elapse,
-    pub memory: Memory,
-}
-
-    
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JudgeReport {
-    pub meta: JudgeReportMeta,
+    pub meta: TaskMeta,
     pub detail: JudgeDetail,
 }
 
@@ -155,20 +168,26 @@ mod tests {
     #[test]
     fn test_judge_result_serde() {
         let r = JudgeReport {
-            meta: crate::JudgeReportMeta {
-                score: 1.0,
+            meta: crate::TaskMeta {
+                score: 0.0,
                 status: crate::Status::WrongAnswer,
                 time: 114.into(),
                 memory: 514.into(),
             },
             detail: super::JudgeDetail::Subtask(vec![SubtaskReport {
-                status: crate::Status::WrongAnswer,
-                time: 114.into(),
-                memory: 514.into(),
-                tasks: vec![Some(TaskReport {
-                    status: crate::Status::Partial(1., 2.),
+                meta: crate::TaskMeta {
+                    score: 0.0,
+                    status: crate::Status::WrongAnswer,
                     time: 114.into(),
                     memory: 514.into(),
+                },
+                tasks: vec![Some(TaskReport {
+                    meta: crate::TaskMeta {
+                        score: 0.5,
+                        status: crate::Status::Partial(1., 2.),
+                        time: 114.into(),
+                        memory: 514.into(),
+                    },
                     payload: vec![
                         ("stdin".to_string(), "1 2".into()),
                         ("stdout".to_string(), "2".into()),
