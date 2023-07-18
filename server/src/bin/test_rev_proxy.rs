@@ -5,14 +5,15 @@ use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
 use server::auth::SessionManager;
 use server::data::types::{EmailAddress, Username};
-use server::data::user::{self, Manager};
+use server::data::user::{self, UserDB};
+use server::mkdata;
 use server::rev_proxy::RevProxy;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let dir = tempfile::tempdir().unwrap();
     let session_container = SessionManager::default();
-    let user_db = web::Data::from(user::FsManager::new(dir.path().join("user_data")).to_amanager());
+    let user_db = mkdata!(UserDB, user::DefaultDB::new(dir.path().join("user_data")));
     // 预先插入一个用户方便测试
     user_db
         .new_user(
