@@ -2,10 +2,11 @@
 
 pub mod app;
 pub mod auth;
-// pub mod config;
 pub mod data;
 pub mod manager;
+pub mod rev_proxy;
 
+// pub mod config;
 pub type GroupID = u32;
 pub type SessionID = uuid::Uuid;
 pub type UserID = u32;
