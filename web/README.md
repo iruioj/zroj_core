@@ -5,8 +5,31 @@ https://dev.to/tao/adding-eslint-and-prettier-to-nuxt-3-2023-5bg
 开发环境：
 
 ```
-yarn: 3.4.1
-node: 18.16.0
+pnpm: 8.6
+node: 18.16
+wasm-pack 0.12.1
+```
+
+# 「更新」本地开发
+
+首先安装依赖：
+
+```bash
+pnpm i
+```
+
+然后使用 wasm-pack 在项目根目录构建 passwd 包：
+
+```bash
+wasm-pack build --features wasm
+```
+
+如果卡住，可以进行终端代理。
+
+启动开发服务器：
+
+```bash
+pnpm dev
 ```
 
 # 在本地进行 HTTPS 开发
