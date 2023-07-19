@@ -1,18 +1,21 @@
 use crate::{
     data::{
         types::*,
-        user::{UserDB, User},
+        user::{User, UserDB},
     },
     marker::*,
     UserID,
 };
+use actix_files::NamedFile;
 use actix_web::{
-    error::{self, Result},
+    error::{self, ErrorInternalServerError, Result},
     web,
 };
+use md5::{Digest, Md5};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
+use std::{path::Path, io::Write};
 
 #[derive(Serialize, TsType)]
 struct UserDisplayInfo {
@@ -129,10 +132,58 @@ async fn edit_post(
     Ok("ok".to_string())
 }
 
+#[derive(Deserialize, SerdeJsonWithType)]
+pub struct GravatarInfo {
+    pub email: EmailAddress,
+    pub no_cache: Option<bool>,
+}
+
+#[api(method = post, path = "/gravatar")]
+async fn gravatar(info: JsonBody<GravatarInfo>) -> Result<NamedFile> {
+    let mut md5 = Md5::new();
+    md5.update(info.email.to_string().to_lowercase());
+    let hash = format!("{:x?}", md5.finalize().as_slice());
+    let path = Path::new("/gravatar").join(&hash).join(".jpg");
+    if !path.exists() || info.no_cache == Some(true) {
+        let url = String::from("https://www.gravatar.com/avatar/") + &hash;
+        let client = awc::Client::default();
+        let req = client.get(&url);
+        let mut res = req.send().await.map_err(|e| {
+            ErrorInternalServerError(format!(
+                "Failed to get image from gravatar, {}, url={}",
+                e, url
+            ))
+        })?;
+        if !res.status().is_success() {
+            return Err(ErrorInternalServerError(format!(
+                "Failed to get image from gravatar, status_code:{}, url={}",
+                res.status(),
+                url
+            )));
+        }
+        let img = res.body().await.map_err(|e| {
+            ErrorInternalServerError(format!(
+                "Failed to get image from gravatar, {}, url={}",
+                e, url
+            ))
+        })?;
+        let mut f = std::fs::OpenOptions::new().create(true).write(true).open(&path)?;
+        f.write_all(&img)?;
+    }
+    NamedFile::open_async(&path).await.map_err(|e| {
+        ErrorInternalServerError(format!(
+            "Failed to open {}, {}",
+            path.to_string_lossy(),
+            e.to_string()
+        ))
+    })
+}
+
 #[scope_service(path = "/user")]
 pub fn service(user_database: web::Data<UserDB>) {
     app_data(user_database);
     service(profile);
     service(edit_get);
     service(edit_post);
+    service(gravatar);
 }
