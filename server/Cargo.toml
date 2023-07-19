@@ -11,6 +11,7 @@ server_derive = { path = "../server_derive" }
 serde_ts_typing = { path = "../serde_ts_typing" }
 
 actix-web = "4"
+actix-http = "3.3"
 actix-session = { version = "0.7", features = ["cookie-session"] }
 actix-multipart = { version = "0.6" }
 actix-rt = "2.8"

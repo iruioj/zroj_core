@@ -172,7 +172,7 @@ fn add_client_ip(fwd_header_value: &mut String, client_addr: SocketAddr) {
     fwd_header_value.push_str(client_ip_str);
 }
 
-fn remove_connection_headers(headers: &mut HeaderMap) {
+fn _remove_connection_headers(headers: &mut HeaderMap) {
     let mut headers_to_delete: Vec<String> = Vec::new();
     let header_connection = &(*HEADER_CONNECTION);
 
@@ -189,7 +189,8 @@ fn remove_connection_headers(headers: &mut HeaderMap) {
     }
 }
 
-fn remove_request_hop_by_hop_headers(headers: &mut HeaderMap) {
+// https://book.hacktricks.xyz/pentesting-web/abusing-hop-by-hop-headers
+fn _remove_request_hop_by_hop_headers(headers: &mut HeaderMap) {
     for h in HOP_BY_HOP_HEADERS.iter() {
         if let Some(v) = headers.get(h) {
             if v == "" || (h == *HEADER_TE && v == "trailers") {

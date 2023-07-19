@@ -6,6 +6,8 @@ pub mod data;
 pub mod manager;
 pub mod rev_proxy;
 
+pub mod dev;
+
 // pub mod config;
 pub type GroupID = u32;
 pub type SessionID = uuid::Uuid;
