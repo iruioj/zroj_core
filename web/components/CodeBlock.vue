@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import hljs from "highlight.js/lib/core";
 import cpp from "highlight.js/lib/languages/cpp";
+import plain from "highlight.js/lib/languages/plaintext";
 import "highlight.js/styles/github.css";
 
 hljs.registerLanguage("cpp", cpp);
+hljs.registerLanguage("", plain);
+hljs.registerLanguage("plain", plain);
 
 const props = defineProps<{
   raw: string;

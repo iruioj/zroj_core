@@ -1,4 +1,17 @@
 use server::app;
+use std::collections::BTreeMap;
+
+fn to_typename(path: String) -> String {
+    path.split("/").fold(String::new(), |acc, s| {
+        acc + &s.split("_").fold(String::new(), |acc, s| {
+            let mut c = s.chars();
+            acc + &match c.next() {
+                None => String::new(),
+                Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+            }
+        })
+    })
+}
 
 #[derive(Clone, Debug)]
 enum EntryNode {
@@ -18,14 +31,25 @@ struct EntryRoot(Vec<EntryNode>);
 
 impl EntryRoot {
     fn gen_code(&self) -> String {
-        let code = self
+        let (code, types) = self
             .0
             .iter()
             .map(|s| s.gen_code(String::new()))
-            .reduce(|acc, cur| acc + &cur)
+            .reduce(|acc, cur| {
+                (
+                    acc.0 + &cur.0,
+                    acc.1.into_iter().chain(cur.1.into_iter()).collect(),
+                )
+            })
             .unwrap();
 
-        format!("export function useAPI () {{ return {{ {code} }}; }}")
+        format!(
+            "export function useAPI () {{ return {{ {code} }}; }}\n{}",
+            types
+                .into_iter()
+                .map(|(k, v)| format!("export type {k} = {v};\n"))
+                .fold(String::new(), |acc, cur| acc + &cur)
+        )
     }
 }
 
@@ -67,29 +91,41 @@ impl EntryNode {
         }
         children
     }
-    fn gen_code(&self, path: String) -> String {
+    // 返回 api code 和 type context
+    fn gen_code(&self, path: String) -> (String, BTreeMap<String, String>) {
         match self {
             EntryNode::Endpoint {
                 method,
                 payload,
                 returns,
             } => {
+                let mut ty = BTreeMap::new();
+                let ret_ty = returns.clone().map(|ret| {
+                    let ret_ty = to_typename(path.clone() + "/" + method + "/return");
+                    ty.insert(ret_ty.clone(), ret.clone());
+                    ret_ty
+                });
                 if let Some(payload) = payload {
-                    format!(
+                    let path_ty = to_typename(path.clone() + "/" + method + "/payload");
+                    ty.insert(path_ty.clone(), payload.clone());
+                    (format!(
                         "{}: (payload: {}) => callAPI({:?}, {:?}, payload) as Promise<AsyncData<{}, FetchError>>,\n",
                         method,
                         payload,
                         method,
                         path,
-                        returns.clone().unwrap_or("void".into()),
-                    )
+                        ret_ty.unwrap_or("void".into()),
+                    ), ty)
                 } else {
-                    format!(
+                    (
+                        format!(
                         "{}: () => callAPI({:?}, {:?}) as Promise<AsyncData<{}, FetchError>>,\n",
                         method,
                         method,
                         path,
-                        returns.clone().unwrap_or("void".into()),
+                        ret_ty.unwrap_or("void".into()),
+                    ),
+                        ty,
                     )
                 }
             }
@@ -97,9 +133,14 @@ impl EntryNode {
                 let inner = children
                     .iter()
                     .map(|c| c.gen_code(path.clone() + "/" + slug))
-                    .reduce(|acc, cur| acc + &cur)
+                    .reduce(|acc, cur| {
+                        (
+                            acc.0 + &cur.0,
+                            acc.1.into_iter().chain(cur.1.into_iter()).collect(),
+                        )
+                    })
                     .unwrap();
-                format!("{}: {{ {} }},\n", slug, inner)
+                (format!("{}: {{ {} }},\n", slug, inner.0), inner.1)
             }
         }
     }
@@ -114,10 +155,10 @@ fn gen_entry(service: server::ServiceDoc) -> EntryNode {
             panic!("query conflict with body payload")
         }
         if api.query_type.is_some() && api.method != "get" {
-            panic!("query should not by used for non-get api")
+            panic!("query should not be used for non-get api")
         }
         if api.method == "get" && api.body_type.is_some() {
-            panic!("body should not by used for get api")
+            panic!("body should not be used for get api")
         }
 
         let path = service.path.clone() + &api.path;

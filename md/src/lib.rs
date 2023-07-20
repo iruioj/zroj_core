@@ -24,7 +24,11 @@ pub use ast::Node;
 /// # }
 /// ```
 pub fn parse_ast(content: &str) -> Result<ast::Node, String> {
-    markdown::to_mdast(content, &markdown::ParseOptions::gfm()).map(|a| a.into())
+    let mut opt = markdown::ParseOptions::gfm();
+    opt.math_text_single_dollar = true;
+    opt.constructs.math_text = true;
+    opt.constructs.math_flow = true;
+    markdown::to_mdast(content, &opt).map(|a| a.into())
 }
 
 pub fn add(left: usize, right: usize) -> usize {
@@ -37,7 +41,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let tree = parse_ast("# Hey, *you*!").unwrap();
+        let tree = parse_ast("hello $a + b$ baba\n\n$$\na^2 + b^2 = c^2\n$$").unwrap();
 
         println!("{:?}", tree);
     }

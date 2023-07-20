@@ -5,6 +5,8 @@
 //!
 //! 渲染数据等源数据仍然与评测数据保存到一起，在 OJ 上在线修改时也需要做出相应的修改。遇到修改也是一样的处理。
 //! 数据库里维护的是与搜索有关/已经渲染好的题面等等
+//! 
+//! 不考虑任何修改相关的操作（这些应该由造题工具考虑）
 
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::SerdeJsonWithType;
@@ -59,6 +61,8 @@ pub mod statement {
         /// custom layout, only for import
         Legacy(String),
         /// standard form, consists of several pre-defined parts
+        /// 
+        /// 与 Legacy 区分的主要原因是样例的格式不是 markdown 语法，依赖自定义的渲染方式
         Standard {
             /// problem background & description
             legend: String,

@@ -31,17 +31,28 @@ logout: { post: () => callAPI("post", "/auth/logout") as Promise<AsyncData<void,
  },
 register: { post: (payload: {email: string;username: string;passwordHash: string;}) => callAPI("post", "/auth/register", payload) as Promise<AsyncData<void, FetchError>>,
  },
-info: { get: () => callAPI("get", "/auth/info") as Promise<AsyncData<{username: string;email: string;}, FetchError>>,
+info: { get: () => callAPI("get", "/auth/info") as Promise<AsyncData<AuthInfoGetReturn, FetchError>>,
  },
  },
-user: { get: (payload: {username: string;}) => callAPI("get", "/user", payload) as Promise<AsyncData<{id: number;username: string;email: string;motto: string;name: string;register_time: string;gender: "Male" | "Female" | "Others" | "Private";}, FetchError>>,
-edit: { get: () => callAPI("get", "/user/edit") as Promise<AsyncData<{id: number;username: string;email: string;motto: string;name: string;register_time: string;gender: "Male" | "Female" | "Others" | "Private";}, FetchError>>,
+user: { get: (payload: {username: string;}) => callAPI("get", "/user", payload) as Promise<AsyncData<UserGetReturn, FetchError>>,
+edit: { get: () => callAPI("get", "/user/edit") as Promise<AsyncData<UserEditGetReturn, FetchError>>,
 post: (payload: {password_hash?: string;email?: string;motto?: string;name?: string;gender?: "Male" | "Female" | "Others" | "Private";}) => callAPI("post", "/user/edit", payload) as Promise<AsyncData<void, FetchError>>,
  },
  },
-problem: { full_dbg: { get: () => callAPI("get", "/problem/full_dbg") as Promise<AsyncData<[number,{title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";}][], FetchError>>,
+problem: { full_dbg: { get: () => callAPI("get", "/problem/full_dbg") as Promise<AsyncData<ProblemFullDbgGetReturn, FetchError>>,
  },
-statement: { get: (payload: {id: number;}) => callAPI("get", "/problem/statement", payload) as Promise<AsyncData<{ statement: any; meta: {title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";};}, FetchError>>,
+statement: { get: (payload: {id: number;}) => callAPI("get", "/problem/statement", payload) as Promise<AsyncData<ProblemStatementGetReturn, FetchError>>,
  },
  },
  }; }
+export type AuthInfoGetReturn = {username: string;email: string;};
+export type AuthLoginPostPayload = {username: string;passwordHash: string;};
+export type AuthRegisterPostPayload = {email: string;username: string;passwordHash: string;};
+export type ProblemFullDbgGetReturn = [number,{title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";}][];
+export type ProblemStatementGetPayload = {id: number;};
+export type ProblemStatementGetReturn = { statement: any; meta: {title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";};};
+export type UserEditGetReturn = {id: number;username: string;email: string;motto: string;name: string;register_time: string;gender: "Male" | "Female" | "Others" | "Private";};
+export type UserEditPostPayload = {password_hash?: string;email?: string;motto?: string;name?: string;gender?: "Male" | "Female" | "Others" | "Private";};
+export type UserGetPayload = {username: string;};
+export type UserGetReturn = {id: number;username: string;email: string;motto: string;name: string;register_time: string;gender: "Male" | "Female" | "Others" | "Private";};
+

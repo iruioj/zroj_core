@@ -17,6 +17,9 @@ devDependencies:
   '@pinia/nuxt':
     specifier: ^0.4.11
     version: 0.4.11(typescript@5.1.6)(vue@3.3.4)
+  '@types/katex':
+    specifier: ^0.16.1
+    version: 0.16.1
   '@types/node':
     specifier: ^18.16.19
     version: 18.16.19
@@ -38,6 +41,9 @@ devDependencies:
   highlight.js:
     specifier: ^11.8.0
     version: 11.8.0
+  katex:
+    specifier: ^0.16.8
+    version: 0.16.8
   nuxt:
     specifier: ^3.6.3
     version: 3.6.3(@types/node@18.16.19)(eslint@8.37.0)(typescript@5.1.6)
@@ -1535,6 +1541,10 @@ packages:
 
   /@types/json5@0.0.29:
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
+    dev: true
+
+  /@types/katex@0.16.1:
+    resolution: {integrity: sha512-cwglq2A63Yk082CQk0t8LIoDhZAVgJqkumLyk3grpg3K8sevaDW//Qsspmxj9Sf+97biqt79CfAlPrvizHlP0w==}
     dev: true
 
   /@types/node@18.16.19:
@@ -4705,6 +4715,13 @@ packages:
       universalify: 2.0.0
     optionalDependencies:
       graceful-fs: 4.2.11
+    dev: true
+
+  /katex@0.16.8:
+    resolution: {integrity: sha512-ftuDnJbcbOckGY11OO+zg3OofESlbR5DRl2cmN8HeWeeFIV7wTXvAOx8kEjZjobhA+9wh2fbKeO6cdcA9Mnovg==}
+    hasBin: true
+    dependencies:
+      commander: 8.3.0
     dev: true
 
   /keygrip@1.1.0:

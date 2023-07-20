@@ -7,6 +7,9 @@ use actix_web::{
     web, App,
 };
 
+use crate::data::user;
+use crate::data::{problem_statement, types::*};
+use crate::mkdata;
 use crate::rev_proxy::RevProxy;
 
 /// 将非 `/api` 开头的请求转发到 localhost:3000
@@ -51,4 +54,96 @@ pub fn dev_server(
             // .cookie_http_only(false)
             .build(),
         )
+}
+
+/// 存储在文件中的用户数据库
+///
+/// 预先插入用户名 `testtest`，密码 `testtest` 的用户
+pub async fn test_userdb(dir: &std::path::Path) -> web::Data<dyn user::Manager + Send + Sync> {
+    let r = mkdata!(
+        crate::data::user::UserDB,
+        user::DefaultDB::new(dir.join("user_data"))
+    );
+    // 预先插入一个用户方便测试
+    r.new_user(
+        &Username::new("testtest").unwrap(),
+        &passwd::register_hash("testtest"),
+        &EmailAddress::new("test@test.com").unwrap(),
+    )
+    .await
+    .unwrap();
+    r
+}
+
+/// 用于测试的题面数据库
+///
+/// 预先插入 A + B problem 的题面，id = 0
+pub async fn test_stmtdb(
+    dir: &std::path::Path,
+) -> web::Data<dyn problem_statement::Manager + Send + Sync> {
+    let stmt_db = mkdata!(
+        problem_statement::StmtDB,
+        problem_statement::DefaultDB::new(dir.join("stmt_data"))
+    );
+    use problem::render_data::statement::Meta;
+    use problem::render_data::Statement;
+    stmt_db
+        .insert(
+            0,
+            Statement {
+                statement: problem::render_data::statement::Inner::Legacy(
+                    r#"## 题目描述
+
+这是一道简单题。
+
+你需要从标准输入中读入 $a, b$，请你输出 $a + b$。
+
+## 读入格式
+
+一行两个整数分别表示 $a$ 和 $b$。
+
+## 输出格式
+
+一行一个整数表示答案。
+
+## 样例
+
+```
+1 2
+```
+
+```
+3
+```
+
+## 提示
+
+```cpp
+#include<iostream>
+
+using namespace std;
+
+int main() {
+    int a, b;
+    cin >> a >> b;
+    cout << a + b << endl;
+    return 0;
+}
+```
+"#
+                    .into(),
+                ),
+                meta: Meta {
+                    title: "A + B Problem".into(),
+                    time: None,
+                    memory: None,
+                    kind: Some(problem::render_data::ProblemKind::Traditional(
+                        problem::render_data::IOKind::StdIO,
+                    )),
+                },
+            },
+        )
+        .await
+        .expect("fail to insert A + B Problem");
+    stmt_db
 }
