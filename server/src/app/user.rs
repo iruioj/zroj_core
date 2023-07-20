@@ -142,7 +142,7 @@ pub struct GravatarInfo {
 async fn gravatar(info: JsonBody<GravatarInfo>) -> Result<NamedFile> {
     let mut md5 = Md5::new();
     md5.update(info.email.to_string().to_lowercase());
-    let hash = format!("{:x?}", md5.finalize().as_slice());
+    let hash = hex::encode(md5.finalize().as_slice());
     let path = Path::new("/gravatar").join(&hash).join(".jpg");
     if !path.exists() || info.no_cache == Some(true) {
         let url = String::from("https://www.gravatar.com/avatar/") + &hash;
