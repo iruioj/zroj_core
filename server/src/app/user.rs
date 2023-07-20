@@ -15,7 +15,7 @@ use md5::{Digest, Md5};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
-use std::{path::Path, io::Write};
+use std::{io::Write, path::PathBuf};
 
 #[derive(Serialize, TsType)]
 struct UserDisplayInfo {
@@ -143,20 +143,36 @@ async fn gravatar(info: JsonBody<GravatarInfo>) -> Result<NamedFile> {
     let mut md5 = Md5::new();
     md5.update(info.email.to_string().to_lowercase());
     let hash = hex::encode(md5.finalize().as_slice());
-    let path = Path::new("/gravatar").join(&hash).join(".jpg");
+    let mut path = PathBuf::from("./gravatar");
+    if !path.exists() {
+        std::fs::create_dir(&path).map_err(|e| {
+            ErrorInternalServerError(format!(
+                "Failed to create gravatar storage dir: {}, error: {}",
+                path.to_string_lossy(),
+                e.to_string()
+            ))
+        })?;
+    }
+    if path.is_file() {
+        return Err(ErrorInternalServerError(format!(
+            "gravatar storage dir \"{}\" taken up by another file",
+            path.to_string_lossy()
+        )));
+    }
+    path = path.join(&hash);
     if !path.exists() || info.no_cache == Some(true) {
-        let url = String::from("https://www.gravatar.com/avatar/") + &hash;
+        let url = String::from("http://www.gravatar.com/avatar/") + &hash;
         let client = awc::Client::default();
         let req = client.get(&url);
         let mut res = req.send().await.map_err(|e| {
             ErrorInternalServerError(format!(
-                "Failed to get image from gravatar, {}, url={}",
+                "Failed to send request to gravatar.com,\n- error: {},\n- url: {}",
                 e, url
             ))
         })?;
         if !res.status().is_success() {
             return Err(ErrorInternalServerError(format!(
-                "Failed to get image from gravatar, status_code:{}, url={}",
+                "Failed to connect to gravatar,\n- status_code:{},\n- url={}",
                 res.status(),
                 url
             )));
@@ -167,7 +183,10 @@ async fn gravatar(info: JsonBody<GravatarInfo>) -> Result<NamedFile> {
                 e, url
             ))
         })?;
-        let mut f = std::fs::OpenOptions::new().create(true).write(true).open(&path)?;
+        let mut f = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(&path)?;
         f.write_all(&img)?;
     }
     NamedFile::open_async(&path).await.map_err(|e| {
