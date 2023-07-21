@@ -1,10 +1,9 @@
 <script lang="ts" setup>
-import { Text } from '../../composables/markdown_types';
+import { Text } from "../../composables/markdown_types";
 
 const props = defineProps<{
-  data: Text
+  data: Text;
 }>();
-
 </script>
 
 <template>

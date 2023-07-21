@@ -1,25 +1,24 @@
 <script lang="ts" setup>
-import { Node } from '../../composables/markdown_types';
-import Code from './Code.vue';
+import { Node } from "../../composables/markdown_types";
+import Code from "./Code.vue";
 
-import Heading from './Heading.vue';
-import InlineMath from './InlineMath.vue';
-import Paragraph from './Paragraph.vue';
-import Root from './Root.vue';
-import Text from './Text.vue';
+import Heading from "./Heading.vue";
+import InlineMath from "./InlineMath.vue";
+import Paragraph from "./Paragraph.vue";
+import Root from "./Root.vue";
+import Text from "./Text.vue";
 
 defineProps<{
-    data: Node
+  data: Node;
 }>();
-
 </script>
 
 <template>
-    <Root v-if="data.type == 'root'" :data="data" />
-    <Heading v-else-if="data.type == 'heading'" :data="data" />
-    <Text v-else-if="data.type == 'text'" :data="data" />
-    <Paragraph v-else-if="data.type == 'paragraph'" :data="data" />
-    <Code v-else-if="data.type == 'code'" :data="data" />
-    <InlineMath v-else-if="data.type == 'inlineMath'" :data="data" />
-    <pre v-else>{{ data }}</pre>
+  <Root v-if="data.type == 'root'" :data="data" />
+  <Heading v-else-if="data.type == 'heading'" :data="data" />
+  <Text v-else-if="data.type == 'text'" :data="data" />
+  <Paragraph v-else-if="data.type == 'paragraph'" :data="data" />
+  <Code v-else-if="data.type == 'code'" :data="data" />
+  <InlineMath v-else-if="data.type == 'inlineMath'" :data="data" />
+  <pre v-else>{{ data }}</pre>
 </template>

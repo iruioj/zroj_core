@@ -1,13 +1,12 @@
 <script lang="ts" setup>
-import { InlineMath } from '../../composables/markdown_types';
+import "katex/dist/katex.min.css";
+import katex from "katex";
 
-import 'katex/dist/katex.min.css'
-import katex from 'katex'
+import { InlineMath } from "../../composables/markdown_types";
 
-const props = defineProps<{
-  data: InlineMath
+defineProps<{
+  data: InlineMath;
 }>();
-
 </script>
 
 <template>

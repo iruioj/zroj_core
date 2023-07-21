@@ -1,14 +1,13 @@
 <!-- 题目描述页面 -->
 <script setup lang="ts">
-
-const id = computed(() => parseInt(useRoute().params.id as string))
-const { data } = await useAPI().problem.statement.get({ id: id.value })
+const id = computed(() => parseInt(useRoute().params.id as string));
+const { data } = await useAPI().problem.statement.get({ id: id.value });
 
 watch(data, (val) => {
   useHead({
-    title: val.meta.title
-  })
-})
+    title: val.meta.title,
+  });
+});
 </script>
 
 <template>
@@ -17,23 +16,26 @@ watch(data, (val) => {
       <div class="grow text-2xl text-brand">
         #{{ id }} {{ data.meta.title }}
       </div>
-      <RouterTabsBar class="print:hidden" :items="[
-        {
-          title: '题面',
-          key: 'problem-id',
-          link: '/problem/' + $route.params.id,
-        },
-        {
-          title: '提交',
-          key: 'problem-id-submit',
-          link: '/problem/' + $route.params.id + '/submit',
-        },
-        {
-          title: '统计',
-          key: 'problem-id-statics',
-          link: '/problem/' + $route.params.id + '/statics',
-        },
-      ]" />
+      <RouterTabsBar
+        class="print:hidden"
+        :items="[
+          {
+            title: '题面',
+            key: 'problem-id',
+            link: '/problem/' + $route.params.id,
+          },
+          {
+            title: '提交',
+            key: 'problem-id-submit',
+            link: '/problem/' + $route.params.id + '/submit',
+          },
+          {
+            title: '统计',
+            key: 'problem-id-statics',
+            link: '/problem/' + $route.params.id + '/statics',
+          },
+        ]"
+      />
     </div>
 
     <NuxtPage :data="data" />
