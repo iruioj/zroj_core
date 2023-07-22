@@ -4,9 +4,11 @@ const id = computed(() => parseInt(useRoute().params.id as string));
 const { data } = await useAPI().problem.statement.get({ id: id.value });
 
 watch(data, (val) => {
-  useHead({
-    title: val.meta.title,
-  });
+  if (val) {
+    useHead({
+      title: val.meta.title,
+    });
+  }
 });
 </script>
 

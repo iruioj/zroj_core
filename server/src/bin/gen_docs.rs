@@ -114,7 +114,7 @@ impl EntryNode {
                         payload,
                         method,
                         path,
-                        ret_ty.unwrap_or("void".into()),
+                        ret_ty.map(|s| s + " | null").unwrap_or("void".into()),
                     ), ty)
                 } else {
                     (
@@ -123,7 +123,7 @@ impl EntryNode {
                         method,
                         method,
                         path,
-                        ret_ty.unwrap_or("void".into()),
+                        ret_ty.map(|s| s + " | null").unwrap_or("void".into()),
                     ),
                         ty,
                     )
