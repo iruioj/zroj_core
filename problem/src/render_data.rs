@@ -47,7 +47,7 @@ pub mod statement {
     use crate::{Elapse, Memory};
 
     /// 题面数据
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct Statement {
         /// 题面描述
         pub statement: Inner,
@@ -56,7 +56,7 @@ pub mod statement {
     }
 
     /// problem statement, stored in self.statement_path
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
     pub enum Inner {
         /// custom layout, only for import
         Legacy(String),

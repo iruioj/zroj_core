@@ -28,7 +28,8 @@ pub trait JudgeTask {
     ) -> Result<judger::TaskReport, RuntimeError>;
 }
 
-/// 题目数据结构 + 评测
+/// 题目数据 + 评测
+#[derive(FsStore)]
 pub struct JudgeData<T, M, S, J>
 where
     T: FsStore,
@@ -36,20 +37,42 @@ where
     S: Override<M> + FsStore,
     J: JudgeTask<T = T, M = M, S = S>,
 {
-    pub data: Data<T, M, S>,
+    /// 最终评测的数据
+    data: Data<T, M, S>,
+    /// 样例评测的数据
+    ///
+    /// 初始化时与 data 的元信息一致，数据集为空
+    pre: Data<T, M, S>,
+    /// 额外的评测数据
+    ///
+    /// 初始化时与 data 的元信息一致，数据集为空
+    extra: Data<T, M, S>,
+    /// marker，题目的评测过程
     judge_task: PhantomData<J>,
 }
 
 impl<T, M, S, J> JudgeData<T, M, S, J>
 where
     T: FsStore,
-    M: FsStore,
+    M: FsStore + Clone,
     S: FsStore + Override<M>,
-    J: JudgeTask<T = T, M = M, S = S> + Default,
+    J: JudgeTask<T = T, M = M, S = S>,
 {
     pub fn from_data(data: Data<T, M, S>) -> Self {
+        let pre = Data {
+            tasks: crate::data::Taskset::Tests { tasks: Vec::new() },
+            meta: data.meta.clone(),
+            rule: data.rule.clone(),
+        };
+        let extra = Data {
+            tasks: crate::data::Taskset::Tests { tasks: Vec::new() },
+            meta: data.meta.clone(),
+            rule: data.rule.clone(),
+        };
         Self {
             data,
+            pre,
+            extra,
             judge_task: PhantomData,
         }
     }
@@ -153,3 +176,26 @@ fn copy_in_wd(file: &mut StoreFile, wd: &Handle, name: impl AsRef<str>) -> Resul
 
 pub mod traditional;
 pub type TraditionalData = Data<traditional::Task, traditional::Meta, ()>;
+
+/// OJ 支持的题目类型，用于题目数据的保存和读取
+pub enum StandardProblem {
+    Traditional(TraditionalData),
+}
+
+impl FsStore for StandardProblem {
+    fn open(ctx: &Handle) -> Result<Self, store::Error> {
+        if ctx.join("traditional").as_ref().exists() {
+            Ok(Self::Traditional(TraditionalData::open(
+                &ctx.join("traditional"),
+            )?))
+        } else {
+            Err(store::Error::NotFile)
+        }
+    }
+
+    fn save(&mut self, ctx: &Handle) -> Result<(), store::Error> {
+        match self {
+            StandardProblem::Traditional(t) => t.save(&ctx.join("traditional")),
+        }
+    }
+}

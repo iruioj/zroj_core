@@ -22,7 +22,7 @@ fn compare_byline(
 /// OJ 内置的 Checker
 ///
 /// 鉴于 testlib 年久失修并且非 rust 原生，输出格式不好控制，这里将常见的 checker 使用 rust 重写
-#[derive(FsStore, Debug)]
+#[derive(FsStore, Debug, Clone)]
 pub enum Checker {
     /// 全文比较
     FileCmp,

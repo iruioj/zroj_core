@@ -10,7 +10,7 @@ use judger::{
 };
 use store::FsStore;
 
-#[derive(FsStore, Debug)]
+#[derive(FsStore, Debug, Clone)]
 pub struct Meta {
     pub checker: Checker,
     // pub validator: String,

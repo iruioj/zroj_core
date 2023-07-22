@@ -16,7 +16,7 @@ struct StmtQuery {
     id: ProblemID,
 }
 
-/// 所有的题目元信息，用于调试
+/// 题面数据
 #[api(method = get, path = "/statement")]
 async fn statement(
     stmt_db: ServerData<StmtDB>,

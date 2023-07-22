@@ -206,6 +206,16 @@ impl FsStore for std::fs::File {
     }
 }
 
+impl<T> FsStore for std::marker::PhantomData<T> {
+    fn open(_: &Handle) -> Result<Self, Error> {
+        Ok(Self)
+    }
+
+    fn save(&mut self, _: &Handle) -> Result<(), Error> {
+        Ok(())
+    }
+}
+
 #[macro_use]
 #[allow(unused_imports)]
 extern crate serde;
