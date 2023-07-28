@@ -11,6 +11,7 @@ pub enum Error {
     Forbidden(String),
     DuplicatedGroupName(String),
     SerdeJson(serde_json::Error),
+    Regex(regex::Error),
 }
 
 impl From<Error> for actix_web::Error {
@@ -57,7 +58,8 @@ impl Display for Error {
             Self::InvalidArgument(s) => write!(f, "Invalid argument: {}", s),
             Self::Forbidden(s) => write!(f, "Forbidden operation: {}", s),
             Self::DuplicatedGroupName(s) => write!(f, "duplicated group name {s}"),
-            Self::SerdeJson(e) => write!(f, "serialize or deserializing data: {e}")
+            Self::SerdeJson(e) => write!(f, "serialize or deserializing data: {e}"),
+            Self::Regex(e) => write!(f, "creating regex: {e}"),
         }
     }
 }

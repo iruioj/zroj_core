@@ -41,6 +41,8 @@ post: (payload: {password_hash?: string;email?: string;motto?: string;name?: str
  },
 problem: { full_dbg: { get: () => callAPI("get", "/problem/full_dbg") as Promise<AsyncData<ProblemFullDbgGetReturn | null, FetchError>>,
  },
+metas: { get: (payload: {max_count: number;pattern?: string;min_id?: number;max_id?: number;}) => callAPI("get", "/problem/metas", payload) as Promise<AsyncData<ProblemMetasGetReturn | null, FetchError>>,
+ },
 statement: { get: (payload: {id: number;}) => callAPI("get", "/problem/statement", payload) as Promise<AsyncData<ProblemStatementGetReturn | null, FetchError>>,
  },
  },
@@ -49,6 +51,8 @@ export type AuthInfoGetReturn = {username: string;email: string;};
 export type AuthLoginPostPayload = {username: string;passwordHash: string;};
 export type AuthRegisterPostPayload = {email: string;username: string;passwordHash: string;};
 export type ProblemFullDbgGetReturn = [number,{title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";}][];
+export type ProblemMetasGetPayload = {max_count: number;pattern?: string;min_id?: number;max_id?: number;};
+export type ProblemMetasGetReturn = [number,{title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";}][];
 export type ProblemStatementGetPayload = {id: number;};
 export type ProblemStatementGetReturn = { statement: any; meta: {title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";};};
 export type UserEditGetReturn = {id: number;username: string;email: string;motto: string;name: string;register_time: string;gender: "Male" | "Female" | "Others" | "Private";};

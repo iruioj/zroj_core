@@ -5,7 +5,7 @@ use crate::{
     ProblemID,
 };
 use actix_web::{error, web::Json};
-use problem::render_data::statement::Meta;
+use problem::render_data::statement::StmtMeta;
 use serde::Deserialize;
 use serde_ts_typing::SerdeJsonWithType;
 use server_derive::{api, scope_service};
@@ -29,10 +29,35 @@ async fn statement(
     }
 }
 
+// TODO: 权限/ownership 限制
+#[derive(Deserialize, SerdeJsonWithType)]
+struct MetasQuery {
+    // limitations
+
+    /// 利用类型限制，一次请求的数量不能超过 256 个
+    max_count: u8,
+
+    // filters
+
+    /// 搜索的关键字/模式匹配
+    pattern: Option<String>,
+    /// 题目 ID 下限
+    min_id: Option<ProblemID>,
+    /// 题目 ID 上限
+    max_id: Option<ProblemID>,
+}
+
+/// 获取题目的元信息
+#[api(method = get, path = "/metas")]
+async fn metas(stmt_db: ServerData<StmtDB>, query: QueryParam<MetasQuery>) -> JsonResult<Vec<(ProblemID, StmtMeta)>> {
+    let query = query.into_inner();
+    Ok(Json(stmt_db.get_metas(query.max_count, query.pattern, query.min_id, query.max_id).await?))
+}
+
 /// 所有的题目元信息，用于调试
 #[api(method = get, path = "/full_dbg")]
-async fn full_list(stmt_db: ServerData<StmtDB>) -> JsonResult<Vec<(ProblemID, Meta)>> {
-    Ok(Json(stmt_db.get_metas().await?))
+async fn full_list(stmt_db: ServerData<StmtDB>) -> JsonResult<Vec<(ProblemID, StmtMeta)>> {
+    Ok(Json(stmt_db.get_metas(255, None, None, None).await?))
 }
 
 /// 提供 problem 相关服务
@@ -40,5 +65,6 @@ async fn full_list(stmt_db: ServerData<StmtDB>) -> JsonResult<Vec<(ProblemID, Me
 pub fn service(stmt_db: ServerData<StmtDB>) {
     app_data(stmt_db);
     service(full_list);
+    service(metas);
     service(statement);
 }

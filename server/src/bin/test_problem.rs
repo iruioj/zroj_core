@@ -29,7 +29,7 @@ async fn main() -> std::io::Result<()> {
         StmtDB,
         data::problem_statement::DefaultDB::new(dir.path().join("stmt_data"))
     );
-    use problem::render_data::statement::Meta;
+    use problem::render_data::statement::StmtMeta;
     use problem::render_data::Statement;
     stmt_db
         .insert(
@@ -38,7 +38,7 @@ async fn main() -> std::io::Result<()> {
                 statement: problem::render_data::statement::Inner::Legacy(
                     "读入 a, b，请你输出 a + b。".into(),
                 ),
-                meta: Meta {
+                meta: StmtMeta {
                     title: "A + B Problem".into(),
                     time: None,
                     memory: None,

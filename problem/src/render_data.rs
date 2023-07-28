@@ -62,7 +62,7 @@ pub mod statement {
         /// 题面描述
         pub statement: Inner,
         /// 题目元数据
-        pub meta: Meta,
+        pub meta: StmtMeta,
     }
 
     /// problem statement, stored in self.statement_path
@@ -169,7 +169,7 @@ pub mod statement {
 
     /// 题目显示时的元数据，在渲染 pdf 题面时也会需要
     #[derive(Debug, Clone, Serialize, Deserialize, SerdeJsonWithType)]
-    pub struct Meta {
+    pub struct StmtMeta {
         /// 标题
         pub title: String,
         /// 时间限制

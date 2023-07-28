@@ -17,7 +17,7 @@ macro_rules! impl_scalar {
 }
 
 impl_scalar!(String str, "string");
-impl_scalar!(i16 u16 i32 u32 i64 u64 isize usize f32 f64, "number");
+impl_scalar!(i8 u8 i16 u16 i32 u32 i64 u64 isize usize f32 f64, "number");
 impl_scalar!(bool, "boolean");
 
 impl<T: TypeDef> TypeDef for Vec<T> {

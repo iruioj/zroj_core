@@ -85,7 +85,7 @@ pub async fn test_stmtdb(
         problem_statement::StmtDB,
         problem_statement::DefaultDB::new(dir.join("stmt_data"))
     );
-    use problem::render_data::statement::Meta;
+    use problem::render_data::statement::StmtMeta;
     use problem::render_data::Statement;
     stmt_db
         .insert(
@@ -122,7 +122,7 @@ int main() {
                         },
                     )],
                 },
-                meta: Meta {
+                meta: StmtMeta {
                     title: "A + B Problem".into(),
                     time: None,
                     memory: None,
