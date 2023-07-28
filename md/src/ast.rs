@@ -180,6 +180,10 @@ pub enum Node {
     /// Paragraph.
     #[serde(rename = "paragraph")]
     Paragraph(Paragraph),
+
+    /// Two columns.
+    #[serde(rename = "twoColumns")]
+    TwoColumns(TwoColumns),
 }
 
 impl std::fmt::Debug for Node {
@@ -215,6 +219,7 @@ impl std::fmt::Debug for Node {
             Node::ListItem(x) => x.fmt(f),
             Node::Definition(x) => x.fmt(f),
             Node::Paragraph(x) => x.fmt(f),
+            Node::TwoColumns(x) => x.fmt(f),
         }
     }
 }
@@ -260,6 +265,9 @@ impl ToString for Node {
             | Node::ImageReference(_)
             | Node::ThematicBreak(_)
             | Node::Definition(_) => String::new(),
+            
+            // custom
+            Node::TwoColumns(x) => x.left.to_string() + &x.right.to_string(),
         }
     }
 }
@@ -775,6 +783,14 @@ pub struct Toml {
     // Void.
     /// Content model.
     pub value: String,
+}
+
+/// 拓展语法：两栏布局
+/// 主要用于样例的显示
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct TwoColumns {
+    pub left: Box<Node>,
+    pub right: Box<Node>,
 }
 
 impl From<markdown::mdast::Root> for Root {

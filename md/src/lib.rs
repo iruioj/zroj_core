@@ -1,4 +1,4 @@
-mod ast;
+pub mod ast;
 pub use ast::Node;
 /// Turn markdown into a syntax tree.
 ///

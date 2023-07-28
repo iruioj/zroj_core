@@ -91,34 +91,14 @@ pub async fn test_stmtdb(
         .insert(
             0,
             Statement {
-                statement: problem::render_data::statement::Inner::Legacy(
-                    r#"## 题目描述
+                statement: problem::render_data::statement::Inner::Standard {
+                    legend: r#"这是一道简单题。
 
-这是一道简单题。
-
-你需要从标准输入中读入 $a, b$，请你输出 $a + b$。
-
-## 读入格式
-
-一行两个整数分别表示 $a$ 和 $b$。
-
-## 输出格式
-
-一行一个整数表示答案。
-
-## 样例
-
-```
-1 2
-```
-
-```
-3
-```
-
-## 提示
-
-```cpp
+你需要从标准输入中读入 $a, b$，请你输出 $a + b$。"#
+                        .into(),
+                    input_format: "输入数据包括两行，每行一个数，分别表示 $a$ 和 $b$。".into(),
+                    output_format: "一行一个整数表示答案。".into(),
+                    notes: r#"```cpp
 #include<iostream>
 
 using namespace std;
@@ -129,10 +109,19 @@ int main() {
     cout << a + b << endl;
     return 0;
 }
-```
-"#
-                    .into(),
-                ),
+```"#
+                        .into(),
+                    samples: vec![(
+                        problem::render_data::statement::IOData {
+                            fd: problem::render_data::FileDescriptor::Stdin,
+                            content: "1\n2".into(),
+                        },
+                        problem::render_data::statement::IOData {
+                            fd: problem::render_data::FileDescriptor::Stdout,
+                            content: "3".into(),
+                        },
+                    )],
+                },
                 meta: Meta {
                     title: "A + B Problem".into(),
                     time: None,

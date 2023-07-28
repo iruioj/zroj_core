@@ -7,6 +7,7 @@ import InlineMath from "./InlineMath.vue";
 import Paragraph from "./Paragraph.vue";
 import Root from "./Root.vue";
 import Text from "./Text.vue";
+import TwoColumns from "./TwoColumns.vue";
 
 defineProps<{
   data: Node;
@@ -20,5 +21,6 @@ defineProps<{
   <Paragraph v-else-if="data.type == 'paragraph'" :data="data" />
   <Code v-else-if="data.type == 'code'" :data="data" />
   <InlineMath v-else-if="data.type == 'inlineMath'" :data="data" />
+  <TwoColumns v-else-if="data.type == 'twoColumns'" :data="data" />
   <pre v-else>{{ data }}</pre>
 </template>

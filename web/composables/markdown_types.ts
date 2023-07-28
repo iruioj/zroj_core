@@ -1,4 +1,11 @@
-export type Node = Root | Heading | Text | Paragraph | Code | InlineMath;
+export type Node =
+  | Root
+  | Heading
+  | Text
+  | Paragraph
+  | Code
+  | InlineMath
+  | TwoColumns;
 
 export type Root = {
   type: "root";
@@ -30,4 +37,10 @@ export type Code = {
 export type InlineMath = {
   type: "inlineMath";
   value: string;
+};
+
+export type TwoColumns = {
+  type: "twoColumns";
+  left: Node;
+  right: Node;
 };
