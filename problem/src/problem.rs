@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::{
-    data::{Data, Rule, StoreFile},
+    data::{Data, Rule, StoreFile, OJData},
     prob_judger::JudgeMonitor,
     DataError, Override, RuntimeError,
 };
@@ -175,7 +175,7 @@ fn copy_in_wd(file: &mut StoreFile, wd: &Handle, name: impl AsRef<str>) -> Resul
 }
 
 pub mod traditional;
-pub type TraditionalData = Data<traditional::Task, traditional::Meta, ()>;
+pub type TraditionalData = OJData<traditional::Task, traditional::Meta, ()>;
 
 /// OJ 支持的题目类型，用于题目数据的保存和读取
 pub enum StandardProblem {

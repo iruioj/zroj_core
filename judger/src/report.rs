@@ -115,27 +115,6 @@ impl From<sandbox::Status> for Status {
     }
 }
 
-// impl From<sandbox::Termination> for TaskReport {
-//     /// 从 termination 自动生成 task report，默认没有 payload
-//     fn from(value: sandbox::Termination) -> Self {
-//         Self {
-//             meta: TaskMeta {
-//                 status: match value.status {
-//                     sandbox::Status::Ok => Status::Accepted,
-//                     sandbox::Status::RuntimeError(_, _) => Status::RuntimeError,
-//                     sandbox::Status::MemoryLimitExceeded(_) => Status::MemoryLimitExceeded,
-//                     sandbox::Status::TimeLimitExceeded(_) => Status::TimeLimitExceeded,
-//                     sandbox::Status::OutputLimitExceeded => Status::OutputLimitExceeded,
-//                     sandbox::Status::DangerousSyscall => Status::DangerousSyscall,
-//                 },
-//                 time: value.cpu_time,
-//                 memory: value.memory,
-//             },
-//             payload: Vec::new(),
-//         }
-//     }
-// }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtaskReport {
     pub meta: TaskMeta,

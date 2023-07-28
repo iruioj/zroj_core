@@ -5,7 +5,7 @@ use crate::{
     Checker, RuntimeError,
 };
 use judger::{
-    sandbox::{mem, unix::SingletonBuilder, Builder, Elapse, ExecSandBox, Memory},
+    sandbox::{unix::SingletonBuilder, Builder, Elapse, ExecSandBox, Memory},
     truncstr::{TruncStr, TRUNCATE_LEN},
 };
 use store::FsStore;
@@ -20,6 +20,9 @@ pub struct Meta {
     /// 空间限制
     #[meta]
     pub memory_limit: Memory,
+    /// 输出限制
+    #[meta]
+    pub output_limit: Memory,
 }
 
 #[derive(FsStore, Debug)]
@@ -87,7 +90,7 @@ impl JudgeTask for Traditional {
                 virtual_memory: meta.memory_limit.into(),
                 real_memory: meta.memory_limit.into(),
                 stack_memory: meta.memory_limit.into(),
-                output_memory: mem!(64mb).into(),
+                output_memory: meta.output_limit.into(),
                 fileno: 5.into(),
             })
             .build()
@@ -159,6 +162,7 @@ mod tests {
             checker: Checker::FileCmp,
             time_limit: time!(5s),
             memory_limit: mem!(256mb),
+            output_limit: mem!(64mb),
         };
         let mut task = Task {
             input: StoreFile::from_str("1 2", judger::FileType::Plain),

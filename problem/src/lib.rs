@@ -33,9 +33,9 @@ impl<T> Override<T> for () {
 /// 题目的数据、题面和题解组成的完整数据
 #[derive(FsStore)]
 pub struct ProblemFullData {
-    data: problem::StandardProblem,
+    pub data: problem::StandardProblem,
     #[meta]
-    statement: render_data::Statement,
+    pub statement: render_data::Statement,
     #[meta]
-    tutorial: render_data::Tutorial
+    pub tutorial: render_data::Tutorial
 }

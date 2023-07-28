@@ -41,6 +41,82 @@ where
     pub rule: Rule,
 }
 
+/// 在线评测系统的题目数据
+///
+/// 比题目评测数据多了预测 (pre) 和额外测试 (extra)
+#[derive(FsStore, Debug)]
+pub struct OJData<T, M, S>
+where
+    T: FsStore,
+    M: FsStore,
+    S: Override<M> + FsStore,
+{
+    /// 测试数据
+    data: Taskset<T, S>,
+    /// 样例评测的数据
+    ///
+    /// 初始化时与 data 的元信息一致，数据集为空
+    pre: Taskset<T, S>,
+    /// 额外的评测数据
+    ///
+    /// 初始化时与 data 的元信息一致，数据集为空
+    extra: Taskset<T, S>,
+    /// see [`Data`]
+    pub meta: M,
+    /// see [`Data`]
+    pub rule: Rule,
+}
+
+impl<T, M, S> OJData<T, M, S>
+where
+    T: FsStore,
+    M: FsStore,
+    S: Override<M> + FsStore,
+{
+    pub fn new(meta: M, rule: Rule) -> Self {
+        Self {
+            data: Default::default(),
+            pre: Default::default(),
+            extra: Default::default(),
+            meta,
+            rule,
+        }
+    }
+    pub fn set_data(mut self, data: Taskset<T, S>) -> Self {
+        self.data = data;
+        self
+    }
+    pub fn set_pre(mut self, data: Taskset<T, S>) -> Self {
+        self.pre = data;
+        self
+    }
+    pub fn set_extra(mut self, data: Taskset<T, S>) -> Self {
+        self.extra = data;
+        self
+    }
+    pub fn to_data(self) -> Data<T, M, S> {
+        Data {
+            tasks: self.data,
+            meta: self.meta,
+            rule: self.rule,
+        }
+    }
+    pub fn to_pre(self) -> Data<T, M, S> {
+        Data {
+            tasks: self.pre,
+            meta: self.meta,
+            rule: self.rule,
+        }
+    }
+    pub fn to_extra(self) -> Data<T, M, S> {
+        Data {
+            tasks: self.extra,
+            meta: self.meta,
+            rule: self.rule,
+        }
+    }
+}
+
 #[derive(FsStore, Debug)]
 pub struct Subtask<Task, SubtaskMeta>
 where
@@ -53,7 +129,7 @@ where
     pub score: f64,
 }
 
-/// 任务集合
+/// 任务集合，分成测试点模式和子任务模式
 #[derive(FsStore, Debug)]
 pub enum Taskset<Task, SubtaskMeta>
 where
@@ -71,8 +147,21 @@ where
     },
 }
 
+impl<T, S> Default for Taskset<T, S>
+where
+    T: FsStore,
+    S: FsStore,
+{
+    fn default() -> Self {
+        Self::Tests {
+            tasks: Vec::default(),
+        }
+    }
+}
+
+/// (a, b) a > b, a depends on b
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DepRelation(usize, usize); // (a, b) a > b, a depends on b
+pub struct DepRelation(usize, usize); 
 
 impl DepRelation {
     /// depender depends on dependee
