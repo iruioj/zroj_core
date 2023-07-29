@@ -1,5 +1,3 @@
-use std::any::TypeId;
-
 use serde::Serialize;
 use serde_ts_typing::{TsType, TypeExpr};
 
@@ -21,6 +19,7 @@ struct Test{
 #[derive(Serialize, TsType)]
 #[ts(inline)]
 #[serde(tag = "tt")]
+#[allow(dead_code)]
 enum TestEnum {
     Test(Test)
 }

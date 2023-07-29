@@ -16,6 +16,7 @@ pub type ProblemID = problem::database::ProbID;
 
 // re-export
 pub use actix_session;
+use serde_ts_typing::TypeExpr;
 
 /// 可以覆盖 T 类型的默认值
 trait Override<T> {
@@ -40,9 +41,9 @@ pub(crate) mod marker {
 pub struct ApiDocMeta {
     pub path: String,
     pub method: String,
-    pub query_type: Option<String>,
-    pub body_type: Option<String>,
-    pub res_type: Option<String>,
+    pub query_type: Option<TypeExpr>,
+    pub body_type: Option<TypeExpr>,
+    pub res_type: Option<TypeExpr>,
     pub description: String,
 }
 

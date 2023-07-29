@@ -7,10 +7,10 @@ use crate::{
 use actix_web::{error, web::Json};
 use problem::render_data::statement::StmtMeta;
 use serde::Deserialize;
-use serde_ts_typing::SerdeJsonWithType;
+use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
 
-#[derive(Deserialize, SerdeJsonWithType)]
+#[derive(Deserialize, TsType)]
 struct StmtQuery {
     /// 题目 id
     id: ProblemID,
@@ -30,7 +30,7 @@ async fn statement(
 }
 
 // TODO: 权限/ownership 限制
-#[derive(Deserialize, SerdeJsonWithType)]
+#[derive(Deserialize, TsType)]
 struct MetasQuery {
     // limitations
 

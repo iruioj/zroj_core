@@ -1,10 +1,10 @@
 use super::*;
-use serde_ts_typing::SerdeJsonWithType;
+use serde_ts_typing::TsType;
 
 /// 性别类型
 ///
 /// TODO: 更多的性别
-#[derive(Debug, Serialize, Deserialize, Clone, SerdeJsonWithType)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "mysql", derive(SqlType, FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "mysql", diesel(sql_type = Unsigned<Integer>))]
 pub enum Gender {
@@ -12,6 +12,16 @@ pub enum Gender {
     Female = 1,
     Others = 2,
     Private = 3,
+}
+
+impl TsType for Gender {
+    fn register_context(_: &mut serde_ts_typing::Context) {
+        // nothing
+    }
+
+    fn type_def() -> serde_ts_typing::TypeExpr {
+        serde_ts_typing::TypeExpr::Number
+    }
 }
 
 #[derive(Debug)]

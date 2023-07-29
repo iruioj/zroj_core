@@ -3,10 +3,10 @@
 //! [mdast]: https://github.com/syntax-tree/mdast
 
 use serde::Serialize;
-use serde_ts_typing::SerdeJsonWithType;
+use serde_ts_typing::TsType;
 
 /// Explicitness of a reference.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, SerdeJsonWithType)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TsType)]
 pub enum ReferenceKind {
     /// The reference is implicit, its identifier inferred from its content.
     #[serde(rename = "shortcut")]
@@ -22,7 +22,7 @@ pub enum ReferenceKind {
 /// GFM: alignment of phrasing content.
 ///
 /// Used to align the contents of table cells within a table.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, SerdeJsonWithType)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TsType)]
 pub enum AlignKind {
     /// Left alignment.
     ///
@@ -71,7 +71,7 @@ pub enum AlignKind {
 }
 
 /// Nodes.
-#[derive(Clone, Eq, PartialEq, Serialize)]
+#[derive(Clone, Eq, PartialEq, Serialize, TsType)]
 #[serde(tag = "type")]
 pub enum Node {
     // Document:
@@ -278,7 +278,7 @@ impl ToString for Node {
 /// > | a
 ///     ^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Root {
     // Parent.
     /// Content model.
@@ -291,7 +291,7 @@ pub struct Root {
 /// > | a
 ///     ^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Paragraph {
     // Parent.
     /// Content model.
@@ -304,7 +304,7 @@ pub struct Paragraph {
 /// > | # a
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Heading {
     // Parent.
     /// Content model.
@@ -320,7 +320,7 @@ pub struct Heading {
 /// > | ***
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct ThematicBreak {
     // Void.
 }
@@ -331,7 +331,7 @@ pub struct ThematicBreak {
 /// > | > a
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct BlockQuote {
     // Parent.
     /// Content model.
@@ -344,7 +344,7 @@ pub struct BlockQuote {
 /// > | * a
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct List {
     // Parent.
     /// Content model.
@@ -366,7 +366,7 @@ pub struct List {
 /// > | * a
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct ListItem {
     // Parent.
     /// Content model.
@@ -386,7 +386,7 @@ pub struct ListItem {
 /// > | <a>
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Html {
     // Text.
     /// Content model.
@@ -403,7 +403,7 @@ pub struct Html {
 /// > | ~~~
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Code {
     // Text.
     /// Content model.
@@ -425,7 +425,7 @@ pub struct Code {
 /// > | $$
 ///     ^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Math {
     // Text.
     /// Content model.
@@ -441,7 +441,7 @@ pub struct Math {
 /// > | [a]: b
 ///     ^^^^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Definition {
     // Void.
     // Resource.
@@ -471,7 +471,7 @@ pub struct Definition {
 /// > | a
 ///     ^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Text {
     // Text.
     /// Content model.
@@ -484,7 +484,7 @@ pub struct Text {
 /// > | *a*
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Emphasis {
     // Parent.
     /// Content model.
@@ -497,7 +497,7 @@ pub struct Emphasis {
 /// > | **a**
 ///     ^^^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Strong {
     // Parent.
     /// Content model.
@@ -510,7 +510,7 @@ pub struct Strong {
 /// > | `a`
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct InlineCode {
     // Text.
     /// Content model.
@@ -523,7 +523,7 @@ pub struct InlineCode {
 /// > | $a$
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct InlineMath {
     // Text.
     /// Content model.
@@ -537,7 +537,7 @@ pub struct InlineMath {
 ///      ^
 ///   | b
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Break {
     // Void.
 }
@@ -548,7 +548,7 @@ pub struct Break {
 /// > | [a](b)
 ///     ^^^^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Link {
     // Parent.
     /// Content model.
@@ -567,7 +567,7 @@ pub struct Link {
 /// > | ![a](b)
 ///     ^^^^^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Image {
     // Void.
     // Alternative.
@@ -588,7 +588,7 @@ pub struct Image {
 /// > | [a]
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct LinkReference {
     // Parent.
     /// Content model.
@@ -618,7 +618,7 @@ pub struct LinkReference {
 /// > | ![a]
 ///     ^^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, SerdeJsonWithType)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct ImageReference {
     // Void.
     // Alternative.
@@ -650,7 +650,7 @@ pub struct ImageReference {
 /// > | [^a]: b
 ///     ^^^^^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct FootnoteDefinition {
     // Parent.
     /// Content model.
@@ -676,7 +676,7 @@ pub struct FootnoteDefinition {
 /// > | [^a]
 ///     ^^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, SerdeJsonWithType)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct FootnoteReference {
     // Void.
     // Association.
@@ -702,7 +702,7 @@ pub struct FootnoteReference {
 /// > | | - |
 ///     ^^^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Table {
     // Parent.
     /// Content model.
@@ -718,7 +718,7 @@ pub struct Table {
 /// > | | a |
 ///     ^^^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct TableRow {
     // Parent.
     /// Content model.
@@ -731,7 +731,7 @@ pub struct TableRow {
 /// > | | a |
 ///     ^^^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct TableCell {
     // Parent.
     /// Content model.
@@ -744,7 +744,7 @@ pub struct TableCell {
 /// > | ~~a~~
 ///     ^^^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Delete {
     // Parent.
     /// Content model.
@@ -761,7 +761,7 @@ pub struct Delete {
 /// > | ---
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, SerdeJsonWithType)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Yaml {
     // Void.
     /// Content model.
@@ -778,7 +778,7 @@ pub struct Yaml {
 /// > | +++
 ///     ^^^
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, SerdeJsonWithType)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct Toml {
     // Void.
     /// Content model.
@@ -787,7 +787,7 @@ pub struct Toml {
 
 /// 拓展语法：两栏布局
 /// 主要用于样例的显示
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, TsType)]
 pub struct TwoColumns {
     pub left: Box<Node>,
     pub right: Box<Node>,
@@ -1055,4 +1055,10 @@ impl From<markdown::mdast::Node> for Node {
             _ => panic!("invalid node"),
         }
     }
+}
+
+#[test]
+fn test_ts() {
+    eprintln!("{}", Node::type_context().render_code());
+    eprintln!("{}", Node::type_def().to_string());
 }

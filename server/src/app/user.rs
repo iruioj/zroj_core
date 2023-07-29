@@ -11,10 +11,10 @@ use actix_web::{
     web,
 };
 use serde::{Deserialize, Serialize};
-use serde_ts_typing::SerdeJsonWithType;
+use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
 
-#[derive(Serialize, SerdeJsonWithType)]
+#[derive(Serialize, TsType)]
 struct UserDisplayInfo {
     pub id: u32,
     pub username: Username,
@@ -38,7 +38,7 @@ impl From<User> for UserDisplayInfo {
     }
 }
 
-#[derive(Deserialize, SerdeJsonWithType)]
+#[derive(Deserialize, TsType)]
 struct ProfileQuery {
     username: Username,
 }
@@ -54,7 +54,7 @@ async fn profile(
     }
 }
 
-#[derive(Serialize, SerdeJsonWithType)]
+#[derive(Serialize, TsType)]
 struct UserEditInfo {
     pub id: u32,
     pub username: String,
@@ -90,7 +90,7 @@ async fn edit_get(
     }
 }
 
-#[derive(Deserialize, SerdeJsonWithType)]
+#[derive(Deserialize, TsType)]
 pub struct UserUpdateInfo {
     pub password_hash: Option<String>,
     pub email: Option<EmailAddress>,

@@ -25,38 +25,88 @@ function callAPI(method: string, path: string, args?: any): Promise<any> {
         return useFetch(path, { ...options, body: args });
     }
 }
-export function useAPI () { return { auth: { login: { post: (payload: {username: string;passwordHash: string;}) => callAPI("post", "/auth/login", payload) as Promise<AsyncData<void, FetchError>>,
+type Image = {alt:string;title:(null|string);url:string;};
+type Heading = {children:Node[];depth:number;};
+type TwoColumns = {left:Node;right:Node;};
+type StmtMeta = {kind:(ProblemKind|null);memory:(Memory|null);time:(Elapse|null);title:string;};
+type ImageReference = {alt:string;identifier:string;label:(null|string);reference_kind:ReferenceKind;};
+type RegisterPayload = {email:string;passwordHash:string;username:Username;};
+type Username = string;
+type UserUpdateInfo = {email:(null|string);gender:(null|number);motto:(null|string);name:(null|string);password_hash:(null|string);};
+type ProblemKind = ("Interactive"|"SubmitAnswer"|{Traditional:IOKind;});
+type Html = {value:string;};
+type ListItem = {checked:(null|boolean);children:Node[];spread:boolean;};
+type FileDescriptor = ("Stdin"|"Stdout"|{Named:string;});
+type UserEditInfo = {email:string;gender:number;id:number;motto:string;name:string;register_time:string;username:string;};
+type IOKind = ("StdIO"|{FileIO:{input:FileDescriptor;output:FileDescriptor;};});
+type Statement = {meta:StmtMeta;statement:Node;};
+type Definition = {identifier:string;label:(null|string);title:(null|string);url:string;};
+type FootnoteReference = {identifier:string;label:(null|string);};
+type Toml = {value:string;};
+type ThematicBreak = {};
+type LinkReference = {children:Node[];identifier:string;label:(null|string);reference_kind:ReferenceKind;};
+type InlineCode = {value:string;};
+type Memory = number;
+type AlignKind = ("center"|"left"|"none"|"right");
+type List = {children:Node[];ordered:boolean;spread:boolean;start:(null|number);};
+type Paragraph = {children:Node[];};
+type Break = {};
+type Yaml = {value:string;};
+type StmtQuery = {id:number;};
+type TableRow = {children:Node[];};
+type InlineMath = {value:string;};
+type TableCell = {children:Node[];};
+type FootnoteDefinition = {children:Node[];identifier:string;label:(null|string);};
+type AuthInfoRes = {email:string;username:Username;};
+type ReferenceKind = ("collapsed"|"full"|"shortcut");
+type ProfileQuery = {username:Username;};
+type Math = {meta:(null|string);value:string;};
+type Code = {lang:(null|string);meta:(null|string);value:string;};
+type Table = {align:AlignKind[];children:Node[];};
+type BlockQuote = {children:Node[];};
+type Text = {value:string;};
+type Link = {children:Node[];title:(null|string);url:string;};
+type LoginPayload = {passwordHash:string;username:Username;};
+type MetasQuery = {max_count:number;max_id:(null|number);min_id:(null|number);pattern:(null|string);};
+type UserDisplayInfo = {email:string;gender:number;id:number;motto:string;name:string;register_time:string;username:Username;};
+type Emphasis = {children:Node[];};
+type Strong = {children:Node[];};
+type Delete = {children:Node[];};
+type Elapse = number;
+type Root = {children:Node[];};
+type Node = ((Image&{type:"image";})|(Heading&{type:"heading";})|(TwoColumns&{type:"twoColumns";})|(ImageReference&{type:"imageReference";})|(Html&{type:"html";})|(ListItem&{type:"listItem";})|(Definition&{type:"definition";})|(FootnoteReference&{type:"footnoteReference";})|(Toml&{type:"toml";})|(ThematicBreak&{type:"thematicBreak";})|(LinkReference&{type:"linkReference";})|(InlineCode&{type:"inlineCode";})|(List&{type:"list";})|(Paragraph&{type:"paragraph";})|(Break&{type:"break";})|(Yaml&{type:"yaml";})|(TableRow&{type:"tableRow";})|(InlineMath&{type:"inlineMath";})|(TableCell&{type:"tableCell";})|(FootnoteDefinition&{type:"footnoteDefinition";})|(Math&{type:"math";})|(Code&{type:"code";})|(Table&{type:"table";})|(BlockQuote&{type:"blockquote";})|(Text&{type:"text";})|(Link&{type:"link";})|(Emphasis&{type:"emphasis";})|(Strong&{type:"strong";})|(Delete&{type:"delete";})|(Root&{type:"root";}));
+export function useAPI () { return { auth: { login: { post: (payload: LoginPayload) => callAPI("post", "/auth/login", payload) as Promise<AsyncData<void, FetchError>>,
  },
 logout: { post: () => callAPI("post", "/auth/logout") as Promise<AsyncData<void, FetchError>>,
  },
-register: { post: (payload: {email: string;username: string;passwordHash: string;}) => callAPI("post", "/auth/register", payload) as Promise<AsyncData<void, FetchError>>,
+register: { post: (payload: RegisterPayload) => callAPI("post", "/auth/register", payload) as Promise<AsyncData<void, FetchError>>,
  },
 info: { get: () => callAPI("get", "/auth/info") as Promise<AsyncData<AuthInfoGetReturn | null, FetchError>>,
  },
  },
-user: { get: (payload: {username: string;}) => callAPI("get", "/user", payload) as Promise<AsyncData<UserGetReturn | null, FetchError>>,
+user: { get: (payload: ProfileQuery) => callAPI("get", "/user", payload) as Promise<AsyncData<UserGetReturn | null, FetchError>>,
 edit: { get: () => callAPI("get", "/user/edit") as Promise<AsyncData<UserEditGetReturn | null, FetchError>>,
-post: (payload: {password_hash?: string;email?: string;motto?: string;name?: string;gender?: "Male" | "Female" | "Others" | "Private";}) => callAPI("post", "/user/edit", payload) as Promise<AsyncData<void, FetchError>>,
+post: (payload: UserUpdateInfo) => callAPI("post", "/user/edit", payload) as Promise<AsyncData<void, FetchError>>,
  },
  },
 problem: { full_dbg: { get: () => callAPI("get", "/problem/full_dbg") as Promise<AsyncData<ProblemFullDbgGetReturn | null, FetchError>>,
  },
-metas: { get: (payload: {max_count: number;pattern?: string;min_id?: number;max_id?: number;}) => callAPI("get", "/problem/metas", payload) as Promise<AsyncData<ProblemMetasGetReturn | null, FetchError>>,
+metas: { get: (payload: MetasQuery) => callAPI("get", "/problem/metas", payload) as Promise<AsyncData<ProblemMetasGetReturn | null, FetchError>>,
  },
-statement: { get: (payload: {id: number;}) => callAPI("get", "/problem/statement", payload) as Promise<AsyncData<ProblemStatementGetReturn | null, FetchError>>,
+statement: { get: (payload: StmtQuery) => callAPI("get", "/problem/statement", payload) as Promise<AsyncData<ProblemStatementGetReturn | null, FetchError>>,
  },
  },
  }; }
-export type AuthInfoGetReturn = {username: string;email: string;};
-export type AuthLoginPostPayload = {username: string;passwordHash: string;};
-export type AuthRegisterPostPayload = {email: string;username: string;passwordHash: string;};
-export type ProblemFullDbgGetReturn = [number,{title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";}][];
-export type ProblemMetasGetPayload = {max_count: number;pattern?: string;min_id?: number;max_id?: number;};
-export type ProblemMetasGetReturn = [number,{title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";}][];
-export type ProblemStatementGetPayload = {id: number;};
-export type ProblemStatementGetReturn = { statement: any; meta: {title: string;time?: number;memory?: number;kind?: {Traditional: "StdIO" | {FileIO: {input: "Stdin" | "Stdout" | {Named: string};output: "Stdin" | "Stdout" | {Named: string};}}} | "Interactive" | "SubmitAnswer";};};
-export type UserEditGetReturn = {id: number;username: string;email: string;motto: string;name: string;register_time: string;gender: "Male" | "Female" | "Others" | "Private";};
-export type UserEditPostPayload = {password_hash?: string;email?: string;motto?: string;name?: string;gender?: "Male" | "Female" | "Others" | "Private";};
-export type UserGetPayload = {username: string;};
-export type UserGetReturn = {id: number;username: string;email: string;motto: string;name: string;register_time: string;gender: "Male" | "Female" | "Others" | "Private";};
+export type AuthInfoGetReturn = AuthInfoRes;
+export type AuthLoginPostPayload = LoginPayload;
+export type AuthRegisterPostPayload = RegisterPayload;
+export type ProblemFullDbgGetReturn = [number,StmtMeta][];
+export type ProblemMetasGetPayload = MetasQuery;
+export type ProblemMetasGetReturn = [number,StmtMeta][];
+export type ProblemStatementGetPayload = StmtQuery;
+export type ProblemStatementGetReturn = Statement;
+export type UserEditGetReturn = UserEditInfo;
+export type UserEditPostPayload = UserUpdateInfo;
+export type UserGetPayload = ProfileQuery;
+export type UserGetReturn = UserDisplayInfo;
 

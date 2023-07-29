@@ -3,22 +3,15 @@ use crate::ProblemID;
 use async_trait::async_trait;
 use problem::render_data::{self, statement::StmtMeta};
 use serde::Serialize;
+use serde_ts_typing::TsType;
 
 pub type StmtDB = dyn Manager + Sync + Send;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, TsType)]
 pub struct Statement {
     statement: problem::Mdast,
     meta: StmtMeta,
 }
-
-impl TypeDef for Statement {
-    fn type_def() -> String {
-        return format!(r#"{{ statement: any; meta: {};}}"#, StmtMeta::type_def());
-    }
-}
-
-impl SerdeJsonWithType for Statement {}
 
 impl From<&render_data::Statement> for Statement {
     fn from(value: &render_data::Statement) -> Self {
@@ -116,4 +109,3 @@ mod default {
 }
 
 pub use default::DefaultDB;
-use serde_ts_typing::{SerdeJsonWithType, TypeDef};

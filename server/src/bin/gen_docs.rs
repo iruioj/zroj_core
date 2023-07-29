@@ -172,8 +172,8 @@ fn gen_entry(service: server::ServiceDoc) -> EntryNode {
             &slugs,
             EntryNode::Endpoint {
                 method: api.method.clone(),
-                payload: api.body_type.or(api.query_type),
-                returns: api.res_type,
+                payload: api.body_type.or(api.query_type).map(|ty| ty.to_string()),
+                returns: api.res_type.map(|ty| ty.to_string()),
             },
         );
     }
@@ -208,10 +208,13 @@ fn gen_nuxt_basic() -> String {
 }
 
 fn main() {
+    let auth = app::auth::service_doc();
+    let user = app::user::service_doc();
+    let problem = app::problem::service_doc();
     let entry = EntryRoot(vec![
-        gen_entry(app::auth::service_doc()),
-        gen_entry(app::user::service_doc()),
-        gen_entry(app::problem::service_doc()),
+        gen_entry(auth.0),
+        gen_entry(user.0),
+        gen_entry(problem.0),
     ]);
 
     let code = String::from(
@@ -223,6 +226,7 @@ import type { FetchError } from "ofetch";
 
 "#,
     ) + &gen_nuxt_basic()
+        + &(auth.1 + user.1 + problem.1).render_code()
         + &entry.gen_code();
     println!("{code}");
 }

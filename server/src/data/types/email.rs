@@ -1,7 +1,5 @@
 //! 自定义用户名的类型，实现内容正确性检验
 
-use serde_ts_typing::SerdeJsonWithType;
-
 use super::*;
 use std::{
     borrow::{Borrow, BorrowMut},
@@ -14,12 +12,15 @@ use std::{
 #[cfg_attr(feature = "mysql", diesel(sql_type = Text))]
 pub struct EmailAddress(email_address::EmailAddress);
 
-impl serde_ts_typing::TypeDef for EmailAddress {
-    fn type_def() -> String {
-        "string".into()
+impl serde_ts_typing::TsType for EmailAddress {
+    fn register_context(_: &mut serde_ts_typing::Context) {
+        // nothing
+    }
+
+    fn type_def() -> serde_ts_typing::TypeExpr {
+        serde_ts_typing::TypeExpr::String
     }
 }
-impl SerdeJsonWithType for EmailAddress {}
 
 impl EmailAddress {
     /// 检查字符串内容并新建一个用户名

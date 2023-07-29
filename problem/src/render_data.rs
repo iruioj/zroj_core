@@ -9,11 +9,11 @@
 //! 不考虑任何修改相关的操作（这些应该由造题工具考虑）
 
 use serde::{Deserialize, Serialize};
-use serde_ts_typing::SerdeJsonWithType;
+use serde_ts_typing::TsType;
 use std::path::PathBuf;
 
 /// 描述一个文件
-#[derive(Debug, Clone, Serialize, Deserialize, SerdeJsonWithType)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub enum FileDescriptor {
     Stdin,
     Stdout,
@@ -31,7 +31,7 @@ impl std::fmt::Display for FileDescriptor {
 }
 
 /// for traditional problem
-#[derive(Debug, Clone, Serialize, Deserialize, SerdeJsonWithType)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub enum IOKind {
     /// read from stdin, write to stdout
     StdIO,
@@ -42,7 +42,7 @@ pub enum IOKind {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, SerdeJsonWithType)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub enum ProblemKind {
     /// Traditional, also supports NOI style interactive problem
     Traditional(IOKind),
@@ -168,7 +168,7 @@ pub mod statement {
     }
 
     /// 题目显示时的元数据，在渲染 pdf 题面时也会需要
-    #[derive(Debug, Clone, Serialize, Deserialize, SerdeJsonWithType)]
+    #[derive(Debug, Clone, Serialize, Deserialize, TsType)]
     pub struct StmtMeta {
         /// 标题
         pub title: String,

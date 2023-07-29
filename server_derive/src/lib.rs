@@ -71,7 +71,11 @@ pub fn scope_service(
                     if let Expr::Path(p) = name {
                         let name = p.path.to_token_stream().to_string();
                         let api_doc_name = format_ident!("{}_doc", name);
-                        doc_stmt.extend(quote!(docs.push(#api_doc_name());));
+                        doc_stmt.extend(quote!({
+                            let (doc, c) = #api_doc_name();
+                            docs.push(doc);
+                            ctxt = ctxt + c;
+                        }));
                     } else {
                         panic!("{:?}", name)
                     }
@@ -109,12 +113,13 @@ pub fn scope_service(
 
     let ret = quote! {
         /// documentation metadata
-        pub fn #doc_name() -> crate::ServiceDoc {
+        pub fn #doc_name() -> (crate::ServiceDoc, serde_ts_typing::Context) {
             let path = String::from(#path);
+            let mut ctxt = serde_ts_typing::Context::default();
             let apis = {
                 #doc_stmt
             };
-            crate::ServiceDoc { path, apis }
+            (crate::ServiceDoc { path, apis }, ctxt)
         }
 
         #attrs
@@ -200,6 +205,7 @@ pub fn api(
     let method_str = method_ident.to_string();
     let path = config.path;
 
+    let mut ctxt_stmt = quote!(let mut c = serde_ts_typing::Context::default(););
     let mut body_type_stmt = quote!(let body_type = None;);
     let mut query_type_stmt = quote!(let query_type = None;);
 
@@ -214,10 +220,16 @@ pub fn api(
         .for_each(|arg| {
             if let Some(v) = parse_marker_type("JsonBody", *arg.ty.clone()) {
                 body_type_stmt =
-                    quote!(let body_type = Some(<#v as serde_ts_typing::TypeDef>::type_def()););
+                    quote!(let body_type = Some(<#v as serde_ts_typing::TsType>::type_def()););
+                ctxt_stmt.extend(quote!(
+                    <#v as serde_ts_typing::TsType>::register_context(&mut c);
+                ))
             } else if let Some(v) = parse_marker_type("QueryParam", *arg.ty) {
                 query_type_stmt =
-                    quote!(let query_type = Some(<#v as serde_ts_typing::TypeDef>::type_def()););
+                    quote!(let query_type = Some(<#v as serde_ts_typing::TsType>::type_def()););
+                ctxt_stmt.extend(quote!(
+                    <#v as serde_ts_typing::TsType>::register_context(&mut c);
+                ))
             }
         });
 
@@ -225,7 +237,10 @@ pub fn api(
     if let ReturnType::Type(_, ty) = &func.sig.output {
         if let Some(v) = parse_marker_type("JsonResult", *ty.clone()) {
             res_type_stmt =
-                quote!(let res_type = Some(<#v as serde_ts_typing::TypeDef>::type_def()););
+                quote!(let res_type = Some(<#v as serde_ts_typing::TsType>::type_def()););
+            ctxt_stmt.extend(quote!(
+                <#v as serde_ts_typing::TsType>::register_context(&mut c);
+            ))
         }
     }
 
@@ -247,21 +262,24 @@ pub fn api(
         .for_each(|e| descrip_stmt.extend(quote!( description += #e; )));
 
     let ret = quote! {
-        fn #doc_name() -> crate::ApiDocMeta {
+        fn #doc_name() -> (crate::ApiDocMeta, serde_ts_typing::Context) {
             let path = String::from(#path);
             let method = String::from(#method_str);
             #body_type_stmt
             #res_type_stmt
             #descrip_stmt
             #query_type_stmt
-            crate::ApiDocMeta {
+            (crate::ApiDocMeta {
                 path,
                 method,
                 query_type,
                 body_type,
                 res_type,
                 description
-            }
+            }, {
+                #ctxt_stmt
+                c
+            })
         }
 
         #[actix_web:: #method_ident(#path)]
