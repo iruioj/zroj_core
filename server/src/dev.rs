@@ -8,7 +8,7 @@ use actix_web::{
 };
 
 use crate::data::user;
-use crate::data::{problem_statement, types::*};
+use crate::data::{problemdata, types::*};
 use crate::mkdata;
 use crate::rev_proxy::RevProxy;
 
@@ -80,10 +80,10 @@ pub async fn test_userdb(dir: &std::path::Path) -> web::Data<dyn user::Manager +
 /// 预先插入 A + B problem 的题面，id = 0
 pub async fn test_stmtdb(
     dir: &std::path::Path,
-) -> web::Data<dyn problem_statement::Manager + Send + Sync> {
+) -> web::Data<dyn problemdata::Manager + Send + Sync> {
     let stmt_db = mkdata!(
-        problem_statement::StmtDB,
-        problem_statement::DefaultDB::new(dir.join("stmt_data"))
+        problemdata::StmtDB,
+        problemdata::DefaultDB::new(dir.join("stmt_data"))
     );
     use problem::render_data::statement::StmtMeta;
     use problem::render_data::Statement;

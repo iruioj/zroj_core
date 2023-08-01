@@ -1,5 +1,5 @@
 use crate::{
-    data::problem_statement::{self, StmtDB},
+    data::problemdata::{self, StmtDB},
     marker::*,
     // manager::_problem::{Metadata, ProblemManager},
     ProblemID,
@@ -21,7 +21,7 @@ struct StmtQuery {
 async fn statement(
     stmt_db: ServerData<StmtDB>,
     query: QueryParam<StmtQuery>,
-) -> JsonResult<problem_statement::Statement> {
+) -> JsonResult<problemdata::Statement> {
     if let Some(s) = stmt_db.get(query.id).await? {
         Ok(Json(s))
     } else {

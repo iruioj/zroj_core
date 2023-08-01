@@ -6,7 +6,7 @@ use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
 use server::auth::middleware::SessionAuth;
 use server::auth::SessionManager;
-use server::data::problem_statement::StmtDB;
+use server::data::problemdata::StmtDB;
 use server::data::types::{EmailAddress, Username};
 use server::data::user::{self, UserDB};
 use server::{app, data, mkdata};
@@ -27,7 +27,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
     let stmt_db = mkdata!(
         StmtDB,
-        data::problem_statement::DefaultDB::new(dir.path().join("stmt_data"))
+        data::problemdata::DefaultDB::new(dir.path().join("stmt_data"))
     );
     use problem::render_data::statement::StmtMeta;
     use problem::render_data::Statement;
