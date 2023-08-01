@@ -36,6 +36,8 @@ pub trait Manager {
         min_id: Option<ProblemID>,
         max_id: Option<ProblemID>,
     ) -> Result<Vec<(ProblemID, StmtMeta)>, Error>;
+    /// 当前的最大的题目 id
+    async fn max_id(&self) -> Result<ProblemID, Error>;
 }
 
 mod default {
@@ -104,6 +106,15 @@ mod default {
                 .take(max_count.into());
 
             Ok(data.map(|d| (*d.0, d.1.meta.clone())).collect())
+        }
+        async fn max_id(&self) -> Result<ProblemID, Error> {
+            Ok(self
+                .data
+                .read()?
+                .iter()
+                .next_back()
+                .map(|v| *v.0)
+                .unwrap_or(0))
         }
     }
 }

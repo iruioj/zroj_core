@@ -10,7 +10,7 @@ use crate::{
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{error, web::Json};
 use problem::{render_data::statement::StmtMeta, ProblemFullData};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
 use store::{FsStore, Handle};
@@ -73,7 +73,8 @@ async fn full_list(stmt_db: ServerData<StmtDB>) -> JsonResult<Vec<(ProblemID, St
 #[derive(Debug, MultipartForm)]
 struct PostDataPayload {
     /// 题目 id
-    id: Text<ProblemID>,
+    /// 如果不指定 id 就新建题目
+    id: Option<Text<ProblemID>>,
     /// [`ProblemFullData`] 的压缩文件
     data: TempFile,
 }
@@ -87,17 +88,28 @@ pub fn tempdir_unzip(
     Ok(dir)
 }
 
+#[derive(Debug, Serialize, TsType)]
+struct PostDataReturn {
+    // 返回题目的 id
+    id: ProblemID,
+}
+
 /// 上传题目数据
 #[api(method = post, path = "/fulldata")]
 async fn fulldata(
     payload: FormData<PostDataPayload>,
     db: ServerData<OJDataDB>,
     stmt_db: ServerData<StmtDB>,
-) -> actix_web::Result<String> {
+) -> JsonResult<PostDataReturn> {
     let payload = payload.into_inner();
     let file = payload.data.file.into_file();
     let dir = tempdir_unzip(file).map_err(|e| error::ErrorBadRequest(e))?;
-    let id = payload.id.0;
+    let id = payload.id.map(|x| x.0).unwrap_or(
+        stmt_db
+            .max_id()
+            .await
+            .map_err(|e| error::ErrorInternalServerError(e))?,
+    );
     let fulldata =
         ProblemFullData::open(&Handle::new(dir.path())).map_err(|e| error::ErrorBadRequest(e))?;
 
@@ -110,7 +122,7 @@ async fn fulldata(
         .map_err(|e| error::ErrorInternalServerError(e))?;
 
     drop(dir); // 限制 dir 的生命周期
-    Ok("ok".into())
+    Ok(Json(PostDataReturn { id }))
 }
 
 /// 提供 problem 相关服务

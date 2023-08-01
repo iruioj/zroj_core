@@ -25,56 +25,58 @@ function callAPI(method: string, path: string, args?: any): Promise<any> {
         return useFetch(path, { ...options, body: args });
     }
 }
-type Image = {alt:string;title:(null|string);url:string;};
-type Heading = {children:Node[];depth:number;};
-type TwoColumns = {left:Node;right:Node;};
-type StmtMeta = {kind:(ProblemKind|null);memory:(Memory|null);time:(Elapse|null);title:string;};
-type ImageReference = {alt:string;identifier:string;label:(null|string);reference_kind:ReferenceKind;};
-type RegisterPayload = {email:string;passwordHash:string;username:Username;};
-type Username = string;
-type UserUpdateInfo = {email:(null|string);gender:(null|number);motto:(null|string);name:(null|string);password_hash:(null|string);};
-type ProblemKind = ("Interactive"|"SubmitAnswer"|{Traditional:IOKind;});
-type Html = {value:string;};
-type ListItem = {checked:(null|boolean);children:Node[];spread:boolean;};
-type FileDescriptor = ("Stdin"|"Stdout"|{Named:string;});
-type UserEditInfo = {email:string;gender:number;id:number;motto:string;name:string;register_time:string;username:string;};
 type IOKind = ("StdIO"|{FileIO:{input:FileDescriptor;output:FileDescriptor;};});
-type Statement = {meta:StmtMeta;statement:Node;};
-type Definition = {identifier:string;label:(null|string);title:(null|string);url:string;};
-type FootnoteReference = {identifier:string;label:(null|string);};
-type Toml = {value:string;};
-type ThematicBreak = {};
-type LinkReference = {children:Node[];identifier:string;label:(null|string);reference_kind:ReferenceKind;};
-type InlineCode = {value:string;};
-type Memory = number;
-type AlignKind = ("center"|"left"|"none"|"right");
-type List = {children:Node[];ordered:boolean;spread:boolean;start:(null|number);};
-type Paragraph = {children:Node[];};
-type Break = {};
-type Yaml = {value:string;};
-type StmtQuery = {id:number;};
-type TableRow = {children:Node[];};
-type InlineMath = {value:string;};
-type TableCell = {children:Node[];};
-type FootnoteDefinition = {children:Node[];identifier:string;label:(null|string);};
-type AuthInfoRes = {email:string;username:Username;};
-type ReferenceKind = ("collapsed"|"full"|"shortcut");
+type StmtMeta = {kind:(ProblemKind|null);memory:(Memory|null);time:(Elapse|null);title:string;};
 type ProfileQuery = {username:Username;};
-type Math = {meta:(null|string);value:string;};
-type Code = {lang:(null|string);meta:(null|string);value:string;};
-type Table = {align:AlignKind[];children:Node[];};
-type BlockQuote = {children:Node[];};
-type Text = {value:string;};
-type Link = {children:Node[];title:(null|string);url:string;};
-type LoginPayload = {passwordHash:string;username:Username;};
-type MetasQuery = {max_count:number;max_id:(null|number);min_id:(null|number);pattern:(null|string);};
-type UserDisplayInfo = {email:string;gender:number;id:number;motto:string;name:string;register_time:string;username:Username;};
-type Emphasis = {children:Node[];};
-type Strong = {children:Node[];};
 type Delete = {children:Node[];};
-type Elapse = number;
 type Root = {children:Node[];};
-type Node = ((Image&{type:"image";})|(Heading&{type:"heading";})|(TwoColumns&{type:"twoColumns";})|(ImageReference&{type:"imageReference";})|(Html&{type:"html";})|(ListItem&{type:"listItem";})|(Definition&{type:"definition";})|(FootnoteReference&{type:"footnoteReference";})|(Toml&{type:"toml";})|(ThematicBreak&{type:"thematicBreak";})|(LinkReference&{type:"linkReference";})|(InlineCode&{type:"inlineCode";})|(List&{type:"list";})|(Paragraph&{type:"paragraph";})|(Break&{type:"break";})|(Yaml&{type:"yaml";})|(TableRow&{type:"tableRow";})|(InlineMath&{type:"inlineMath";})|(TableCell&{type:"tableCell";})|(FootnoteDefinition&{type:"footnoteDefinition";})|(Math&{type:"math";})|(Code&{type:"code";})|(Table&{type:"table";})|(BlockQuote&{type:"blockquote";})|(Text&{type:"text";})|(Link&{type:"link";})|(Emphasis&{type:"emphasis";})|(Strong&{type:"strong";})|(Delete&{type:"delete";})|(Root&{type:"root";}));
+type ThematicBreak = {};
+type Break = {};
+type ReferenceKind = ("collapsed"|"full"|"shortcut");
+type Username = string;
+type GravatarInfo = {email:string;no_cache:(null|boolean);};
+type StmtQuery = {id:number;};
+type Image = {alt:string;title:(null|string);url:string;};
+type Code = {lang:(null|string);meta:(null|string);value:string;};
+type List = {children:Node[];ordered:boolean;spread:boolean;start:(null|number);};
+type ImageReference = {alt:string;identifier:string;label:(null|string);reference_kind:ReferenceKind;};
+type ProblemKind = ("Interactive"|"SubmitAnswer"|{Traditional:IOKind;});
+type Yaml = {value:string;};
+type Memory = number;
+type Definition = {identifier:string;label:(null|string);title:(null|string);url:string;};
+type BlockQuote = {children:Node[];};
+type UserUpdateInfo = {email:(null|string);gender:(null|number);motto:(null|string);name:(null|string);password_hash:(null|string);};
+type Paragraph = {children:Node[];};
+type TableRow = {children:Node[];};
+type Elapse = number;
+type Heading = {children:Node[];depth:number;};
+type UserDisplayInfo = {email:string;gender:number;id:number;motto:string;name:string;register_time:string;username:Username;};
+type Math = {meta:(null|string);value:string;};
+type Text = {value:string;};
+type InlineMath = {value:string;};
+type ListItem = {checked:(null|boolean);children:Node[];spread:boolean;};
+type AuthInfoRes = {email:string;username:Username;};
+type Emphasis = {children:Node[];};
+type Table = {align:AlignKind[];children:Node[];};
+type UserEditInfo = {email:string;gender:number;id:number;motto:string;name:string;register_time:string;username:string;};
+type FootnoteDefinition = {children:Node[];identifier:string;label:(null|string);};
+type LinkReference = {children:Node[];identifier:string;label:(null|string);reference_kind:ReferenceKind;};
+type RegisterPayload = {email:string;passwordHash:string;username:Username;};
+type Statement = {meta:StmtMeta;statement:Node;};
+type AlignKind = ("center"|"left"|"none"|"right");
+type Node = ((Delete&{type:"delete";})|(Root&{type:"root";})|(ThematicBreak&{type:"thematicBreak";})|(Break&{type:"break";})|(Image&{type:"image";})|(Code&{type:"code";})|(List&{type:"list";})|(ImageReference&{type:"imageReference";})|(Yaml&{type:"yaml";})|(Definition&{type:"definition";})|(BlockQuote&{type:"blockquote";})|(Paragraph&{type:"paragraph";})|(TableRow&{type:"tableRow";})|(Heading&{type:"heading";})|(Math&{type:"math";})|(Text&{type:"text";})|(InlineMath&{type:"inlineMath";})|(ListItem&{type:"listItem";})|(Emphasis&{type:"emphasis";})|(Table&{type:"table";})|(FootnoteDefinition&{type:"footnoteDefinition";})|(LinkReference&{type:"linkReference";})|(TableCell&{type:"tableCell";})|(Toml&{type:"toml";})|(InlineCode&{type:"inlineCode";})|(FootnoteReference&{type:"footnoteReference";})|(Strong&{type:"strong";})|(Html&{type:"html";})|(TwoColumns&{type:"twoColumns";})|(Link&{type:"link";}));
+type TableCell = {children:Node[];};
+type MetasQuery = {max_count:number;max_id:(null|number);min_id:(null|number);pattern:(null|string);};
+type PostDataReturn = {id:number;};
+type Toml = {value:string;};
+type InlineCode = {value:string;};
+type FileDescriptor = ("Stdin"|"Stdout"|{Named:string;});
+type LoginPayload = {passwordHash:string;username:Username;};
+type FootnoteReference = {identifier:string;label:(null|string);};
+type Strong = {children:Node[];};
+type Html = {value:string;};
+type TwoColumns = {left:Node;right:Node;};
+type Link = {children:Node[];title:(null|string);url:string;};
 export function useAPI () { return { auth: { login: { post: (payload: LoginPayload) => callAPI("post", "/auth/login", payload) as Promise<AsyncData<void, FetchError>>,
  },
 logout: { post: () => callAPI("post", "/auth/logout") as Promise<AsyncData<void, FetchError>>,
@@ -88,6 +90,8 @@ user: { get: (payload: ProfileQuery) => callAPI("get", "/user", payload) as Prom
 edit: { get: () => callAPI("get", "/user/edit") as Promise<AsyncData<UserEditGetReturn | null, FetchError>>,
 post: (payload: UserUpdateInfo) => callAPI("post", "/user/edit", payload) as Promise<AsyncData<void, FetchError>>,
  },
+gravatar: { get: (payload: GravatarInfo) => callAPI("get", "/user/gravatar", payload) as Promise<AsyncData<void, FetchError>>,
+ },
  },
 problem: { full_dbg: { get: () => callAPI("get", "/problem/full_dbg") as Promise<AsyncData<ProblemFullDbgGetReturn | null, FetchError>>,
  },
@@ -95,12 +99,15 @@ metas: { get: (payload: MetasQuery) => callAPI("get", "/problem/metas", payload)
  },
 statement: { get: (payload: StmtQuery) => callAPI("get", "/problem/statement", payload) as Promise<AsyncData<ProblemStatementGetReturn | null, FetchError>>,
  },
+fulldata: { post: () => callAPI("post", "/problem/fulldata") as Promise<AsyncData<ProblemFulldataPostReturn | null, FetchError>>,
+ },
  },
  }; }
 export type AuthInfoGetReturn = AuthInfoRes;
 export type AuthLoginPostPayload = LoginPayload;
 export type AuthRegisterPostPayload = RegisterPayload;
 export type ProblemFullDbgGetReturn = [number,StmtMeta][];
+export type ProblemFulldataPostReturn = PostDataReturn;
 export type ProblemMetasGetPayload = MetasQuery;
 export type ProblemMetasGetReturn = [number,StmtMeta][];
 export type ProblemStatementGetPayload = StmtQuery;
@@ -109,4 +116,5 @@ export type UserEditGetReturn = UserEditInfo;
 export type UserEditPostPayload = UserUpdateInfo;
 export type UserGetPayload = ProfileQuery;
 export type UserGetReturn = UserDisplayInfo;
+export type UserGravatarGetPayload = GravatarInfo;
 
