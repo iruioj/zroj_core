@@ -7,6 +7,7 @@ edition.workspace = true
 judger = { path = "../judger" }
 passwd = { path = "../passwd" }
 problem = { path = "../problem" }
+store = { path = "../store" }
 server_derive = { path = "../server_derive" }
 serde_ts_typing = { path = "../serde_ts_typing" }
 
@@ -18,7 +19,7 @@ actix-rt = "2.8"
 actix-cors = "0.6"
 awc = "3.0.0-beta.9"
 
-async-trait = "0.1.68"
+async-trait = "0.1"
 crossbeam-channel = "0.5.8"
 email_address = "0.2.4"
 env_logger = "0.10.0"
@@ -36,6 +37,7 @@ regex = "1.9.1"
 md-5 = "0.10.5"
 actix-files = "0.6.2"
 hex = "0.4"
+zip = "0.6.4"
 
 [dependencies.uuid]
 version = "1.3.0"

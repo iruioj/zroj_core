@@ -3,13 +3,14 @@ use crate::{
         custom_test::{start_custom_test, CustomTestManager},
         judge_queue::JudgeQueue,
     },
-    UserID,
+    UserID, marker::JsonResult,
 };
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
-use actix_web::{error::ErrorBadRequest, web, Result};
+use actix_web::{error::ErrorBadRequest, web};
 use judger::{StoreFile, TaskReport};
 use serde::Serialize;
 use serde_json::json;
+use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
 use std::fmt::Debug;
 
@@ -36,7 +37,7 @@ async fn custom_test_post(
     manager: web::Data<CustomTestManager>,
     queue: web::Data<JudgeQueue>,
     uid: web::ReqData<UserID>,
-) -> Result<String> {
+) -> actix_web::Result<String> {
     if let Some(file_name) = payload.source.file_name.clone() {
         let lang = parse_source_name(file_name).expect("invalid file name");
         let source = StoreFile {
@@ -57,7 +58,7 @@ async fn custom_test_post(
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, TsType)]
 pub struct CustomTestResult {
     /// return None if the judging or failed
     pub result: Option<TaskReport>,
@@ -67,7 +68,7 @@ pub struct CustomTestResult {
 async fn custom_test_get(
     manager: web::Data<CustomTestManager>,
     uid: web::ReqData<UserID>,
-) -> Result<web::Json<CustomTestResult>> {
+) -> JsonResult<CustomTestResult> {
     Ok(web::Json(CustomTestResult {
         result: manager.fetch_result(&uid)?,
     }))

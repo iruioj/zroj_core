@@ -2,7 +2,8 @@ pub mod error;
 pub mod group;
 pub mod types;
 pub mod user;
-pub mod problemdata;
+pub mod problem_statement;
+pub mod problem_ojdata;
 
 pub mod problem_config;
 pub mod schema;

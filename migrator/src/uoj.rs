@@ -211,7 +211,6 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, L
             memory_limit: conf.memory_limit.unwrap_or(256 << 20).into(),
             output_limit: conf.output_limit.unwrap_or(64 << 20).into()
         },
-        problem::data::Rule::Sum,
     )
     .set_data(if let Some((subtasks, deps)) = &conf.subtasks {
         Taskset::Subtasks {

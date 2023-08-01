@@ -1,12 +1,9 @@
 //! 题目数据存储
 
+use crate::Override;
 pub use judger::FileType;
 use serde::{Deserialize, Serialize};
-use std::io;
 use store::FsStore;
-use tempfile::TempDir;
-
-use crate::{DataError, Override};
 
 /// 题目的数据
 ///
@@ -37,8 +34,8 @@ where
     ///
     /// 在评测时如果没有子任务就按这里的限制评测，如果有那么各自子任务的元数据会代替
     pub meta: M,
-    /// 子任务计分规则
-    pub rule: Rule,
+    // 子任务计分规则
+    // pub rule: Rule,
 }
 
 /// 在线评测系统的题目数据
@@ -63,8 +60,8 @@ where
     extra: Taskset<T, S>,
     /// see [`Data`]
     pub meta: M,
-    /// see [`Data`]
-    pub rule: Rule,
+    // see [`Data`]
+    // pub rule: Rule,
 }
 
 impl<T, M, S> OJData<T, M, S>
@@ -73,13 +70,13 @@ where
     M: FsStore,
     S: Override<M> + FsStore,
 {
-    pub fn new(meta: M, rule: Rule) -> Self {
+    pub fn new(meta: M) -> Self {
         Self {
             data: Default::default(),
             pre: Default::default(),
             extra: Default::default(),
             meta,
-            rule,
+            // rule,
         }
     }
     pub fn set_data(mut self, data: Taskset<T, S>) -> Self {
@@ -98,21 +95,21 @@ where
         Data {
             tasks: self.data,
             meta: self.meta,
-            rule: self.rule,
+            // rule: self.rule,
         }
     }
     pub fn to_pre(self) -> Data<T, M, S> {
         Data {
             tasks: self.pre,
             meta: self.meta,
-            rule: self.rule,
+            // rule: self.rule,
         }
     }
     pub fn to_extra(self) -> Data<T, M, S> {
         Data {
             tasks: self.extra,
             meta: self.meta,
-            rule: self.rule,
+            // rule: self.rule,
         }
     }
 }
@@ -161,7 +158,7 @@ where
 
 /// (a, b) a > b, a depends on b
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DepRelation(usize, usize); 
+pub struct DepRelation(usize, usize);
 
 impl DepRelation {
     /// depender depends on dependee
@@ -186,14 +183,6 @@ pub enum Rule {
     Sum,
     /// 取各测试点最低分
     Minimum,
-}
-
-/// 将文件解压到临时文件夹中
-pub fn tempdir_unzip(reader: impl io::Read + io::Seek) -> Result<TempDir, DataError> {
-    let dir = TempDir::new()?;
-    let mut zip = zip::ZipArchive::new(reader)?;
-    zip.extract(dir.path())?;
-    Ok(dir)
 }
 
 pub use judger::StoreFile;

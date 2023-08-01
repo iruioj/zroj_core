@@ -188,7 +188,7 @@ pub mod tutorial {
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Tutorial {
         pub tutorial: Inner,
-        pub meta: Meta,
+        pub meta: TutrMeta,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -200,13 +200,13 @@ pub mod tutorial {
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
-    pub struct Meta {
+    pub struct TutrMeta {
         /// 题目来源、作者
-        origin: Option<String>,
+        pub origin: Option<String>,
         /// 有关难度的描述
-        difficulty: Option<String>,
+        pub difficulty: Option<String>,
         /// 算法标签
-        tags: Vec<String>,
+        pub tags: Vec<String>,
     }
 }
 

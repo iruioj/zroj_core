@@ -12,7 +12,7 @@ pub mod dev;
 pub type GroupID = u32;
 pub type SessionID = uuid::Uuid;
 pub type UserID = u32;
-pub type ProblemID = problem::database::ProbID;
+pub type ProblemID = u32;
 
 // re-export
 pub use actix_session;
@@ -35,6 +35,8 @@ pub(crate) mod marker {
     pub type JsonResult<T> = actix_web::Result<web::Json<T>>;
     /// 标记一个 API 需要用到的服务器数据
     pub type ServerData<T> = web::Data<T>;
+    /// 标记一个 API 的 body 类型，使用 [`actix_multipart::form::MultipartForm`] extractor
+    pub type FormData<T> = actix_multipart::form::MultipartForm<T>;
 }
 
 #[derive(Debug)]

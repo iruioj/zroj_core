@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
+use serde_ts_typing::TsType;
 
 /// 裁剪过的文本内容，用于提交记录中文本文件的展示
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub struct TruncStr {
     str: String,
     limit: usize,

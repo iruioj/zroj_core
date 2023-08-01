@@ -4,9 +4,10 @@
 use crate::{truncstr::TruncStr, Error};
 use sandbox::{Elapse, Memory};
 use serde::{Deserialize, Serialize};
+use serde_ts_typing::TsType;
 
 /// 一个测试点提交的可能的返回状态
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 #[serde(tag = "name", content = "payload", rename_all = "snake_case")]
 pub enum Status {
     /// 通过
@@ -64,7 +65,7 @@ impl Status {
 }
 
 /// 一个测试点的测试结果指标
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub struct TaskMeta {
     /// 得分
     pub score: f64,
@@ -77,7 +78,7 @@ pub struct TaskMeta {
 }
 
 /// 一个测试点的测试结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub struct TaskReport {
     /// 指标
     pub meta: TaskMeta,

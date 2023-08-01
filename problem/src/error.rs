@@ -2,7 +2,6 @@
 #[derive(Debug)]
 pub enum DataError {
     IO(std::io::Error),
-    Zip(zip::result::ZipError),
     SerdeJson(serde_json::Error),
     NoVersion,
     InvalidVersion,
@@ -13,11 +12,6 @@ pub enum DataError {
 impl From<std::io::Error> for DataError {
     fn from(value: std::io::Error) -> Self {
         Self::IO(value)
-    }
-}
-impl From<zip::result::ZipError> for DataError {
-    fn from(value: zip::result::ZipError) -> Self {
-        Self::Zip(value)
     }
 }
 impl From<serde_json::Error> for DataError {

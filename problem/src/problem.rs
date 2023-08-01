@@ -62,12 +62,12 @@ where
         let pre = Data {
             tasks: crate::data::Taskset::Tests { tasks: Vec::new() },
             meta: data.meta.clone(),
-            rule: data.rule.clone(),
+            // rule: data.rule.clone(),
         };
         let extra = Data {
             tasks: crate::data::Taskset::Tests { tasks: Vec::new() },
             meta: data.meta.clone(),
-            rule: data.rule.clone(),
+            // rule: data.rule.clone(),
         };
         Self {
             data,
@@ -128,7 +128,7 @@ where
             crate::data::Taskset::Tests { tasks } => {
                 let default_score = 1.0 / tasks.len() as f64;
                 let mut reports = Vec::new();
-                let mut monitor = JudgeMonitor::new(default_score, &self.data.rule);
+                let mut monitor = JudgeMonitor::new(default_score, &Rule::Minimum);
                 for task in tasks {
                     if monitor.skippable() {
                         reports.push(None)

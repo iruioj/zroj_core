@@ -132,15 +132,16 @@ async fn edit_post(
     Ok("ok".to_string())
 }
 
-#[derive(Deserialize, SerdeJsonWithType)]
+#[derive(Deserialize, TsType)]
 pub struct GravatarInfo {
     pub email: EmailAddress,
     pub no_cache: Option<bool>,
 }
 
-#[api(method = post, path = "/gravatar")]
-async fn gravatar(info: JsonBody<GravatarInfo>) -> Result<NamedFile> {
-    let mut md5 = Md5::new();
+#[api(method = get, path = "/gravatar")]
+async fn gravatar(info: QueryParam<GravatarInfo>) -> Result<NamedFile> {
+    todo!()
+    /*let mut md5 = Md5::new();
     md5.update(info.email.to_string().to_lowercase());
     let hash = hex::encode(md5.finalize().as_slice());
     let mut path = PathBuf::from("./gravatar");
@@ -195,7 +196,7 @@ async fn gravatar(info: JsonBody<GravatarInfo>) -> Result<NamedFile> {
             path.to_string_lossy(),
             e.to_string()
         ))
-    })
+    })*/
 }
 
 #[scope_service(path = "/user")]

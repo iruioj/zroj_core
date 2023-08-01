@@ -1,14 +1,19 @@
 use crate::{
-    data::problemdata::{self, StmtDB},
+    data::{
+        problem_ojdata::OJDataDB,
+        problem_statement::{self, StmtDB},
+    },
     marker::*,
     // manager::_problem::{Metadata, ProblemManager},
     ProblemID,
 };
+use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{error, web::Json};
-use problem::render_data::statement::StmtMeta;
+use problem::{render_data::statement::StmtMeta, ProblemFullData};
 use serde::Deserialize;
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
+use store::{FsStore, Handle};
 
 #[derive(Deserialize, TsType)]
 struct StmtQuery {
@@ -21,7 +26,7 @@ struct StmtQuery {
 async fn statement(
     stmt_db: ServerData<StmtDB>,
     query: QueryParam<StmtQuery>,
-) -> JsonResult<problemdata::Statement> {
+) -> JsonResult<problem_statement::Statement> {
     if let Some(s) = stmt_db.get(query.id).await? {
         Ok(Json(s))
     } else {
@@ -33,12 +38,10 @@ async fn statement(
 #[derive(Deserialize, TsType)]
 struct MetasQuery {
     // limitations
-
     /// 利用类型限制，一次请求的数量不能超过 256 个
     max_count: u8,
 
     // filters
-
     /// 搜索的关键字/模式匹配
     pattern: Option<String>,
     /// 题目 ID 下限
@@ -49,9 +52,16 @@ struct MetasQuery {
 
 /// 获取题目的元信息
 #[api(method = get, path = "/metas")]
-async fn metas(stmt_db: ServerData<StmtDB>, query: QueryParam<MetasQuery>) -> JsonResult<Vec<(ProblemID, StmtMeta)>> {
+async fn metas(
+    stmt_db: ServerData<StmtDB>,
+    query: QueryParam<MetasQuery>,
+) -> JsonResult<Vec<(ProblemID, StmtMeta)>> {
     let query = query.into_inner();
-    Ok(Json(stmt_db.get_metas(query.max_count, query.pattern, query.min_id, query.max_id).await?))
+    Ok(Json(
+        stmt_db
+            .get_metas(query.max_count, query.pattern, query.min_id, query.max_id)
+            .await?,
+    ))
 }
 
 /// 所有的题目元信息，用于调试
@@ -60,11 +70,56 @@ async fn full_list(stmt_db: ServerData<StmtDB>) -> JsonResult<Vec<(ProblemID, St
     Ok(Json(stmt_db.get_metas(255, None, None, None).await?))
 }
 
+#[derive(Debug, MultipartForm)]
+struct PostDataPayload {
+    /// 题目 id
+    id: Text<ProblemID>,
+    /// [`ProblemFullData`] 的压缩文件
+    data: TempFile,
+}
+/// 将文件解压到临时文件夹中
+pub fn tempdir_unzip(
+    reader: impl std::io::Read + std::io::Seek,
+) -> Result<tempfile::TempDir, zip::result::ZipError> {
+    let dir = tempfile::TempDir::new()?;
+    let mut zip = zip::ZipArchive::new(reader)?;
+    zip.extract(dir.path())?;
+    Ok(dir)
+}
+
+/// 上传题目数据
+#[api(method = post, path = "/fulldata")]
+async fn fulldata(
+    payload: FormData<PostDataPayload>,
+    db: ServerData<OJDataDB>,
+    stmt_db: ServerData<StmtDB>,
+) -> actix_web::Result<String> {
+    let payload = payload.into_inner();
+    let file = payload.data.file.into_file();
+    let dir = tempdir_unzip(file).map_err(|e| error::ErrorBadRequest(e))?;
+    let id = payload.id.0;
+    let fulldata =
+        ProblemFullData::open(&Handle::new(dir.path())).map_err(|e| error::ErrorBadRequest(e))?;
+
+    db.insert(id, fulldata.data)
+        .await
+        .map_err(|e| error::ErrorInternalServerError(e))?;
+    stmt_db
+        .insert(id, fulldata.statement)
+        .await
+        .map_err(|e| error::ErrorInternalServerError(e))?;
+
+    drop(dir); // 限制 dir 的生命周期
+    Ok("ok".into())
+}
+
 /// 提供 problem 相关服务
 #[scope_service(path = "/problem")]
-pub fn service(stmt_db: ServerData<StmtDB>) {
+pub fn service(stmt_db: ServerData<StmtDB>, ojdata_db: ServerData<OJDataDB>) {
     app_data(stmt_db);
+    app_data(ojdata_db);
     service(full_list);
     service(metas);
     service(statement);
+    service(fulldata);
 }
