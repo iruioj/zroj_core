@@ -170,7 +170,7 @@ impl Parse for ApiConfig {
 }
 
 /// 解析形如 `Marker<InnerType>` 的类型
-fn parse_marker_type(marker: impl AsRef<str>, ty: syn::Type) -> Option<syn::TypePath> {
+fn parse_marker_type(marker: impl AsRef<str>, ty: &syn::Type) -> Option<syn::TypePath> {
     if let syn::Type::Path(ty) = ty {
         // 粗暴，只看最后一个是不是和 marker 一样
         let last = ty.path.segments.last().unwrap();
@@ -208,6 +208,7 @@ pub fn api(
     let mut ctxt_stmt = quote!(let mut c = serde_ts_typing::Context::default(););
     let mut body_type_stmt = quote!(let body_type = None;);
     let mut query_type_stmt = quote!(let query_type = None;);
+    let mut is_form = false;
 
     func.sig
         .inputs
@@ -218,24 +219,26 @@ pub fn api(
             FnArg::Typed(t) => Some(t),
         })
         .for_each(|arg| {
-            if let Some(v) = parse_marker_type("JsonBody", *arg.ty.clone()) {
+            if let Some(v) = parse_marker_type("JsonBody", &arg.ty) {
                 body_type_stmt =
                     quote!(let body_type = Some(<#v as serde_ts_typing::TsType>::type_def()););
                 ctxt_stmt.extend(quote!(
                     <#v as serde_ts_typing::TsType>::register_context(&mut c);
                 ))
-            } else if let Some(v) = parse_marker_type("QueryParam", *arg.ty) {
+            } else if let Some(v) = parse_marker_type("QueryParam", &arg.ty) {
                 query_type_stmt =
                     quote!(let query_type = Some(<#v as serde_ts_typing::TsType>::type_def()););
                 ctxt_stmt.extend(quote!(
                     <#v as serde_ts_typing::TsType>::register_context(&mut c);
                 ))
+            } else if let Some(_) = parse_marker_type("FormData", &arg.ty) {
+                is_form = true;
             }
         });
 
     let mut res_type_stmt = quote!(let res_type = None;);
     if let ReturnType::Type(_, ty) = &func.sig.output {
-        if let Some(v) = parse_marker_type("JsonResult", *ty.clone()) {
+        if let Some(v) = parse_marker_type("JsonResult", &ty) {
             res_type_stmt =
                 quote!(let res_type = Some(<#v as serde_ts_typing::TsType>::type_def()););
             ctxt_stmt.extend(quote!(
@@ -274,6 +277,7 @@ pub fn api(
                 method,
                 query_type,
                 body_type,
+                is_form: #is_form,
                 res_type,
                 description
             }, {

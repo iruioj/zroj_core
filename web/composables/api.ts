@@ -21,6 +21,8 @@ function callAPI(method: string, path: string, args?: any): Promise<any> {
         return useFetch(path, options);
     } else if (method === 'get') {
         return useFetch(path, { ...options, query: args });
+    } else if (args instanceof FormData) {
+        return useFetch(path, { ...options, body: args});
     } else {
         return useFetch(path, { ...options, body: args });
     }
@@ -77,29 +79,29 @@ type Strong = {children:Node[];};
 type Html = {value:string;};
 type TwoColumns = {left:Node;right:Node;};
 type Link = {children:Node[];title:(null|string);url:string;};
-export function useAPI () { return { auth: { login: { post: (payload: LoginPayload) => callAPI("post", "/auth/login", payload) as Promise<AsyncData<void, FetchError>>,
+export function useAPI () { return { auth: { login: { post: (payload: AuthLoginPostPayload) => callAPI("post", "/auth/login", payload) as Promise<AsyncData<void, FetchError>>,
  },
 logout: { post: () => callAPI("post", "/auth/logout") as Promise<AsyncData<void, FetchError>>,
  },
-register: { post: (payload: RegisterPayload) => callAPI("post", "/auth/register", payload) as Promise<AsyncData<void, FetchError>>,
+register: { post: (payload: AuthRegisterPostPayload) => callAPI("post", "/auth/register", payload) as Promise<AsyncData<void, FetchError>>,
  },
 info: { get: () => callAPI("get", "/auth/info") as Promise<AsyncData<AuthInfoGetReturn | null, FetchError>>,
  },
  },
-user: { get: (payload: ProfileQuery) => callAPI("get", "/user", payload) as Promise<AsyncData<UserGetReturn | null, FetchError>>,
+user: { get: (payload: UserGetPayload) => callAPI("get", "/user", payload) as Promise<AsyncData<UserGetReturn | null, FetchError>>,
 edit: { get: () => callAPI("get", "/user/edit") as Promise<AsyncData<UserEditGetReturn | null, FetchError>>,
-post: (payload: UserUpdateInfo) => callAPI("post", "/user/edit", payload) as Promise<AsyncData<void, FetchError>>,
+post: (payload: UserEditPostPayload) => callAPI("post", "/user/edit", payload) as Promise<AsyncData<void, FetchError>>,
  },
-gravatar: { get: (payload: GravatarInfo) => callAPI("get", "/user/gravatar", payload) as Promise<AsyncData<void, FetchError>>,
+gravatar: { get: (payload: UserGravatarGetPayload) => callAPI("get", "/user/gravatar", payload) as Promise<AsyncData<void, FetchError>>,
  },
  },
 problem: { full_dbg: { get: () => callAPI("get", "/problem/full_dbg") as Promise<AsyncData<ProblemFullDbgGetReturn | null, FetchError>>,
  },
-metas: { get: (payload: MetasQuery) => callAPI("get", "/problem/metas", payload) as Promise<AsyncData<ProblemMetasGetReturn | null, FetchError>>,
+metas: { get: (payload: ProblemMetasGetPayload) => callAPI("get", "/problem/metas", payload) as Promise<AsyncData<ProblemMetasGetReturn | null, FetchError>>,
  },
-statement: { get: (payload: StmtQuery) => callAPI("get", "/problem/statement", payload) as Promise<AsyncData<ProblemStatementGetReturn | null, FetchError>>,
+statement: { get: (payload: ProblemStatementGetPayload) => callAPI("get", "/problem/statement", payload) as Promise<AsyncData<ProblemStatementGetReturn | null, FetchError>>,
  },
-fulldata: { post: () => callAPI("post", "/problem/fulldata") as Promise<AsyncData<ProblemFulldataPostReturn | null, FetchError>>,
+fulldata: { post: (payload: ProblemFulldataPostPayload) => callAPI("post", "/problem/fulldata", payload) as Promise<AsyncData<ProblemFulldataPostReturn | null, FetchError>>,
  },
  },
  }; }
@@ -107,6 +109,7 @@ export type AuthInfoGetReturn = AuthInfoRes;
 export type AuthLoginPostPayload = LoginPayload;
 export type AuthRegisterPostPayload = RegisterPayload;
 export type ProblemFullDbgGetReturn = [number,StmtMeta][];
+export type ProblemFulldataPostPayload = FormData;
 export type ProblemFulldataPostReturn = PostDataReturn;
 export type ProblemMetasGetPayload = MetasQuery;
 export type ProblemMetasGetReturn = [number,StmtMeta][];

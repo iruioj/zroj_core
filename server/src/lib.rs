@@ -45,6 +45,7 @@ pub struct ApiDocMeta {
     pub method: String,
     pub query_type: Option<TypeExpr>,
     pub body_type: Option<TypeExpr>,
+    pub is_form: bool,
     pub res_type: Option<TypeExpr>,
     pub description: String,
 }

@@ -111,7 +111,7 @@ impl EntryNode {
                     (format!(
                         "{}: (payload: {}) => callAPI({:?}, {:?}, payload) as Promise<AsyncData<{}, FetchError>>,\n",
                         method,
-                        payload,
+                        path_ty,
                         method,
                         path,
                         ret_ty.map(|s| s + " | null").unwrap_or("void".into()),
@@ -151,14 +151,14 @@ fn gen_entry(service: server::ServiceDoc) -> EntryNode {
     let mut children = Vec::new();
     for api in service.apis {
         // some invalid case
-        if api.query_type.is_some() && api.body_type.is_some() {
-            panic!("query conflict with body payload")
+        if api.query_type.is_some() && (api.body_type.is_some() || api.is_form) {
+            panic!("query conflict with body/form payload")
         }
         if api.query_type.is_some() && api.method != "get" {
             panic!("query should not be used for non-get api")
         }
-        if api.method == "get" && api.body_type.is_some() {
-            panic!("body should not be used for get api")
+        if api.method == "get" && (api.body_type.is_some() || api.is_form) {
+            panic!("body/form should not be used for get api")
         }
 
         let path = service.path.clone() + &api.path;
@@ -172,7 +172,11 @@ fn gen_entry(service: server::ServiceDoc) -> EntryNode {
             &slugs,
             EntryNode::Endpoint {
                 method: api.method.clone(),
-                payload: api.body_type.or(api.query_type).map(|ty| ty.to_string()),
+                payload: if api.is_form {
+                    Some("FormData".into())
+                } else {
+                    api.body_type.or(api.query_type).map(|ty| ty.to_string())
+                },
                 returns: api.res_type.map(|ty| ty.to_string()),
             },
         );
@@ -199,6 +203,8 @@ fn gen_nuxt_basic() -> String {
         return useFetch(path, options);
     } else if (method === 'get') {
         return useFetch(path, { ...options, query: args });
+    } else if (args instanceof FormData) {
+        return useFetch(path, { ...options, body: args});
     } else {
         return useFetch(path, { ...options, body: args });
     }
