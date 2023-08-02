@@ -3,4 +3,6 @@ defineProps<{
   data: any;
 }>();
 </script>
-<template>Statics</template>
+<template>
+  <div>Statics</div>
+</template>

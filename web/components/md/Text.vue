@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { Text } from "../../composables/markdown_types";
+import { NodeText } from "composables/api";
 
 const props = defineProps<{
-  data: Text;
+  data: NodeText;
 }>();
 </script>
 

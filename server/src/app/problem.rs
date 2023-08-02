@@ -125,6 +125,21 @@ async fn fulldata(
     Ok(Json(PostDataReturn { id }))
 }
 
+#[derive(Debug, TsType, Deserialize)]
+struct FullDataMetaQuery {
+    id: ProblemID,
+}
+/// 上传题目数据
+#[api(method = get, path = "/fulldata_meta")]
+async fn fulldata_meta(
+    query: QueryParam<FullDataMetaQuery>,
+    db: ServerData<OJDataDB>,
+) -> AnyResult<String> {
+    db.get_meta(query.id)
+        .await
+        .map_err(|e| error::ErrorInternalServerError(e))
+}
+
 /// 提供 problem 相关服务
 #[scope_service(path = "/problem")]
 pub fn service(stmt_db: ServerData<StmtDB>, ojdata_db: ServerData<OJDataDB>) {
@@ -134,4 +149,5 @@ pub fn service(stmt_db: ServerData<StmtDB>, ojdata_db: ServerData<OJDataDB>) {
     service(metas);
     service(statement);
     service(fulldata);
+    service(fulldata_meta);
 }

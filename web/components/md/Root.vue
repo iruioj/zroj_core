@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import { Root } from "../../composables/markdown_types";
 import Node from "./Node.vue";
+import { NodeRoot } from "composables/api";
 
 const props = defineProps<{
-  data: Root;
+  data: NodeRoot;
 }>();
 </script>
 

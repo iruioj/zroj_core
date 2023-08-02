@@ -129,7 +129,7 @@ int main() {
 pub async fn test_stmtdb(dir: &std::path::Path) -> web::Data<StmtDB> {
     let stmt_db = mkdata!(
         StmtDB,
-        problem_statement::DefaultDB::new(dir.join("stmt_data"))
+        problem_statement::DefaultDB::new(dir.join("ojdata"))
     );
     stmt_db
         .insert(0, gen_a_plus_b_statment())

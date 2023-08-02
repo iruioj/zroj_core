@@ -1,11 +1,10 @@
 <script lang="ts" setup>
 import "katex/dist/katex.min.css";
 import katex from "katex";
-
-import { InlineMath } from "../../composables/markdown_types";
+import { NodeInlineMath } from "composables/api";
 
 defineProps<{
-  data: InlineMath;
+  data: NodeInlineMath;
 }>();
 </script>
 

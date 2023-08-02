@@ -12,7 +12,7 @@ async fn main() -> std::io::Result<()> {
     let session_container = SessionManager::default();
     let user_db = dev::test_userdb(dir.path()).await;
     let stmt_db = dev::test_stmtdb(dir.path()).await;
-    let ojdata_db = dev::test_ojdata_db(dir.path().join("ojdata")).await;
+    let ojdata_db = dev::test_ojdata_db(dir.path()).await;
 
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     let session_key = actix_web::cookie::Key::generate();

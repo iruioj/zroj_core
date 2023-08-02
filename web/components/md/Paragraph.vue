@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import { Paragraph } from "../../composables/markdown_types";
 import Node from "./Node.vue";
+import { NodeParagraph } from "composables/api";
 
 defineProps<{
-  data: Paragraph;
+  data: NodeParagraph;
 }>();
 </script>
 

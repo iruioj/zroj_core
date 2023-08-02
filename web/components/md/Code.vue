@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import { Code } from "../../composables/markdown_types";
 import CodeBlock from "../CodeBlock.vue";
+import { NodeCode } from "composables/api";
 
 defineProps<{
-  data: Code;
+  data: NodeCode;
   copyable?: boolean;
 }>();
 </script>

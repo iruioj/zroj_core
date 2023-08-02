@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import { TwoColumns } from "../../composables/markdown_types";
 import Node from "./Node.vue";
 import Code from "./Code.vue";
+import { NodeTwoColumns } from "composables/api";
 
 const props = defineProps<{
-  data: TwoColumns;
+  data: NodeTwoColumns;
 }>();
 </script>
 

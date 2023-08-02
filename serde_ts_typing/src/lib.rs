@@ -33,6 +33,8 @@ pub enum TypeExpr {
     Union(BTreeSet<TypeExpr>),
     /// ` T & S`
     Intersection(BTreeSet<TypeExpr>),
+    /// any
+    Any,
 }
 
 impl ToString for TypeExpr {
@@ -73,6 +75,7 @@ impl ToString for TypeExpr {
                     r
                 }) + ")"
             }
+            TypeExpr::Any => "any".into()
         }
     }
 }
@@ -128,7 +131,7 @@ impl Context {
     pub fn render_code(&self) -> String {
         let mut r = String::new();
         for (name, tydef) in &self.0 {
-            r += &format!("type {name} = {};\n", tydef.to_string());
+            r += &format!("export type {name} = {};\n", tydef.to_string());
         }
         r
     }

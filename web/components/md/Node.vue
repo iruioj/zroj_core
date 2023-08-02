@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import { Node } from "../../composables/markdown_types";
 import Code from "./Code.vue";
 
 import Heading from "./Heading.vue";
@@ -8,6 +7,7 @@ import Paragraph from "./Paragraph.vue";
 import Root from "./Root.vue";
 import Text from "./Text.vue";
 import TwoColumns from "./TwoColumns.vue";
+import { Node } from "composables/api";
 
 defineProps<{
   data: Node;

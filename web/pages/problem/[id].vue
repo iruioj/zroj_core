@@ -10,14 +10,6 @@ watch(data, (val) => {
     });
   }
 });
-
-provide(probId, id)
-</script>
-
-<script lang="ts">
-import { InjectionKey } from 'vue';
-
-export const probId = Symbol() as InjectionKey<ComputedRef<number>>
 </script>
 
 <template>
@@ -53,6 +45,6 @@ export const probId = Symbol() as InjectionKey<ComputedRef<number>>
       />
     </div>
 
-    <NuxtPage :data="data" />
+    <NuxtPage :data="data" :pid="id" />
   </PageContainer>
 </template>

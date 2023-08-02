@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import { Heading } from "../../composables/markdown_types";
 import Node from "./Node.vue";
+import { NodeHeading } from "composables/api";
 
 defineProps<{
-  data: Heading;
+  data: NodeHeading;
 }>();
 </script>
 
