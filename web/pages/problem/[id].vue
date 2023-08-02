@@ -10,6 +10,14 @@ watch(data, (val) => {
     });
   }
 });
+
+provide(probId, id)
+</script>
+
+<script lang="ts">
+import { InjectionKey } from 'vue';
+
+export const probId = Symbol() as InjectionKey<ComputedRef<number>>
 </script>
 
 <template>
@@ -35,6 +43,11 @@ watch(data, (val) => {
             title: '统计',
             key: 'problem-id-statics',
             link: '/problem/' + $route.params.id + '/statics',
+          },
+          {
+            title: '管理',
+            key: 'problem-id-manage',
+            link: '/problem/' + $route.params.id + '/manage',
           },
         ]"
       />

@@ -108,18 +108,18 @@ async fn fulldata(
         stmt_db
             .max_id()
             .await
-            .map_err(|e| error::ErrorInternalServerError(e))?,
+            .map_err(|e| error::ErrorInternalServerError(format!("get max_id: {e}")))?,
     );
     let fulldata =
         ProblemFullData::open(&Handle::new(dir.path())).map_err(|e| error::ErrorBadRequest(e))?;
 
     db.insert(id, fulldata.data)
         .await
-        .map_err(|e| error::ErrorInternalServerError(e))?;
+        .map_err(|e| error::ErrorInternalServerError(format!("insert data: {e}")))?;
     stmt_db
         .insert(id, fulldata.statement)
         .await
-        .map_err(|e| error::ErrorInternalServerError(e))?;
+        .map_err(|e| error::ErrorInternalServerError(format!("insert stmt: {e}")))?;
 
     drop(dir); // 限制 dir 的生命周期
     Ok(Json(PostDataReturn { id }))

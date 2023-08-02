@@ -58,6 +58,9 @@ impl Handle {
     pub fn serialize_new_file<T: Serialize>(&self, data: &T) -> Result<(), Error> {
         serde_json::to_writer(self.create_new_file()?, data).map_err(Error::Serialize)
     }
+    pub fn path(&self) -> &Path {
+        &self.dir
+    }
 }
 
 impl Handle {

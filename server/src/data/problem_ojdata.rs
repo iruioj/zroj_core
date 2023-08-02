@@ -50,6 +50,9 @@ mod default {
         }
         async fn insert(&self, id: ProblemID, mut data: StandardProblem) -> Result<(), Error> {
             let handle = self.root.join(id.to_string());
+            if handle.path().exists() { // 删掉以前的数据（危险的操作，可以考虑加入备份的机制）
+                std::fs::remove_dir_all(handle.path()).unwrap();
+            }
             data.save(&handle).map_err(Error::Store)
         }
     }
