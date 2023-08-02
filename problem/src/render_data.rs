@@ -14,6 +14,7 @@ use std::path::PathBuf;
 
 /// 描述一个文件
 #[derive(Debug, Clone, Serialize, Deserialize, TsType)]
+#[ts(variant_inline)]
 pub enum FileDescriptor {
     Stdin,
     Stdout,
@@ -32,6 +33,7 @@ impl std::fmt::Display for FileDescriptor {
 
 /// for traditional problem
 #[derive(Debug, Clone, Serialize, Deserialize, TsType)]
+#[ts(variant_inline)]
 pub enum IOKind {
     /// read from stdin, write to stdout
     StdIO,
@@ -43,6 +45,7 @@ pub enum IOKind {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TsType)]
+#[ts(variant_inline)]
 pub enum ProblemKind {
     /// Traditional, also supports NOI style interactive problem
     Traditional(IOKind),

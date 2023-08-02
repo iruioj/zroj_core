@@ -10,7 +10,7 @@ pub enum Error {
 }
 
 /// TypeScript type representation
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum TypeExpr {
     /// name, id of another type
     /// `type name = {...}`
@@ -96,11 +96,11 @@ pub type TypeId = std::any::TypeId;
 
 /// 类型标志符的上下文（类型集合）
 #[derive(Debug, Default)]
-pub struct Context(pub BTreeMap<TypeId, (String, TypeExpr)>);
+pub struct Context(BTreeMap<String, TypeExpr>, BTreeMap<TypeId, String>);
 
-impl From<BTreeMap<TypeId, (String, TypeExpr)>> for Context {
-    fn from(value: BTreeMap<TypeId, (String, TypeExpr)>) -> Self {
-        Self(value)
+impl From<(BTreeMap<String, TypeExpr>, BTreeMap<TypeId, String>)> for Context {
+    fn from(value: (BTreeMap<String, TypeExpr>, BTreeMap<TypeId, String>)) -> Self {
+        Self(value.0, value.1)
     }
 }
 
@@ -109,23 +109,31 @@ impl std::ops::Add for Context {
 
     fn add(mut self, mut rhs: Self) -> Self::Output {
         rhs.0.append(&mut self.0);
+        rhs.1.append(&mut self.1);
         rhs
     }
 }
 
 impl Context {
     pub fn register(&mut self, ty: TypeId, name: String, tydef: TypeExpr) {
-        self.0.insert(ty, (name, tydef));
+        self.0.insert(name.clone(), tydef);
+        self.1.insert(ty, name);
+    }
+    pub fn register_variant(&mut self, name: String, tydef: TypeExpr) {
+        self.0.insert(name.clone(), tydef);
     }
     pub fn contains(&self, id: TypeId) -> bool {
-        self.0.contains_key(&id)
+        self.1.contains_key(&id)
     }
     pub fn render_code(&self) -> String {
         let mut r = String::new();
-        for (_, (name, tydef)) in &self.0 {
+        for (name, tydef) in &self.0 {
             r += &format!("type {name} = {};\n", tydef.to_string());
         }
         r
+    }
+    pub fn get_ty_by_id(&self, id: &TypeId) -> Option<&TypeExpr> {
+        self.0.get(self.1.get(id)?)
     }
 }
 

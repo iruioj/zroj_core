@@ -12,6 +12,11 @@ pub enum ContainerAttr {
     ///
     /// Conflict with `name`
     Inline,
+
+    /// `ts(variant_inline)`
+    ///
+    /// **do not** specify type names variants of enum, default it's container name + variant name.
+    VariantInline
 }
 pub fn parse_container_attr(attrs: &[Attribute]) -> Vec<ContainerAttr> {
     parse_attrs("ts", attrs)
@@ -31,6 +36,9 @@ pub fn parse_container_attr(attrs: &[Attribute]) -> Vec<ContainerAttr> {
                 if item.is_ident("inline") {
                     return ContainerAttr::Inline;
                 }
+                if item.is_ident("variant_inline") {
+                    return ContainerAttr::VariantInline;
+                }
                 panic!("invalid ts attr")
             }
             Meta::List(_) => panic!("invalid ts attr"),
@@ -42,6 +50,7 @@ pub fn parse_container_attr(attrs: &[Attribute]) -> Vec<ContainerAttr> {
 pub struct ContainerContext {
     pub inline: bool,
     pub name: Option<String>,
+    pub variant_inline: bool,
 }
 
 impl ContainerContext {
@@ -51,6 +60,7 @@ impl ContainerContext {
             match attr {
                 ContainerAttr::Name(s) => r.name = Some(s),
                 ContainerAttr::Inline => r.inline = true,
+                ContainerAttr::VariantInline => r.variant_inline = true,
             }
         }
         r

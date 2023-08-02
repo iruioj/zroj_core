@@ -42,10 +42,9 @@ fn test_struct() {
     let v = TupleStruct::default();
     assert_eq!(
         TupleStruct::type_context()
-            .0
-            .get(&TypeId::of::<TupleStruct>())
+            .get_ty_by_id(&TypeId::of::<TupleStruct>())
             .unwrap()
-            .1,
+            .clone(),
         TypeExpr::Tuple(vec![TypeExpr::Number, TypeExpr::Number, TypeExpr::Boolean])
     );
     assert!(matches!(TupleStruct::type_def(), TypeExpr::Ident(_, _)));
@@ -129,7 +128,7 @@ fn test_option() {
 struct Recursive {
     id: u32,
     is_key: bool,
-    children: Vec<Recursive>
+    children: Vec<Recursive>,
 }
 
 #[derive(Serialize, TsType)]
@@ -141,13 +140,13 @@ enum Node {
 
 #[derive(Serialize, TsType)]
 struct Root {
-    children: Vec<Node>
+    children: Vec<Node>,
 }
 
 #[derive(Serialize, TsType)]
 struct ShadowRoot {
     id: String,
-    root: Root
+    root: Root,
 }
 
 #[test]

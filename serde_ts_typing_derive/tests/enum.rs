@@ -2,7 +2,7 @@ use serde::Serialize;
 use serde_ts_typing::{TsType, TypeExpr};
 
 #[derive(Serialize, TsType)]
-#[ts(inline)]
+#[ts(inline, variant_inline)]
 enum MixedEnum {
     A { hello: bool },
     B(String, bool),

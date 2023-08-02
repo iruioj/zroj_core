@@ -1,5 +1,4 @@
 mod context;
-mod legacy;
 mod serde_attr;
 mod ts_attr;
 
@@ -251,6 +250,7 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
     let ctxt = ContainerContext::from_attr(serde_attr::parse_container_attr(&input.attrs));
     let ts_ctxt = ts_attr::ContainerContext::from_attr(ts_attr::parse_container_attr(&input.attrs));
 
+    let enum_ty_name = ts_ctxt.name.clone().unwrap_or(enum_name.to_string());
     let mut tyctxts = Vec::new();
     let mut tydefs = Vec::new();
 
@@ -311,6 +311,16 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
                 tydef = quote!(serde_ts_typing::TypeExpr::Record([(#var_name.into(), #tydef)].into_iter().collect()));
             }
         }
+
+        if !ts_ctxt.variant_inline {
+            let var_ty_name = enum_ty_name.clone() + &var.ident.to_string();
+            tyctxts.push(quote!({
+                c.register_variant(#var_ty_name.into(), #tydef);
+            }));
+            tydef = quote!(
+                serde_ts_typing::TypeExpr::Ident(std::any::TypeId::of::<#enum_name>(), #var_ty_name.into())
+            );
+        }
         tydefs.push((var_name, tydef));
     }
     let mut tyctxt = tyctxts
@@ -335,13 +345,15 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
         unimplemented!()
     }
 
+    if ts_ctxt.inline && ts_ctxt.name.is_some() {
+        panic!("ts(inline) can't be used with ts(name = \"...\")")
+    }
     if !ts_ctxt.inline {
-        let ty_name = ts_ctxt.name.unwrap_or(enum_name.to_string());
         tyctxt = {
             let mut head = quote!({
                 let id = std::any::TypeId::of::<#enum_name>();
                 if !c.contains(id) {
-                    c.register(id, #ty_name.into(), #tydef);
+                    c.register(id, #enum_ty_name.into(), #tydef);
                 } else {
                     panic!("duplicate type")
                 }
@@ -350,7 +362,7 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
             head
         };
         tydef = quote!(
-            serde_ts_typing::TypeExpr::Ident(std::any::TypeId::of::<#enum_name>(), #ty_name.into())
+            serde_ts_typing::TypeExpr::Ident(std::any::TypeId::of::<#enum_name>(), #enum_ty_name.into())
         );
     }
 
