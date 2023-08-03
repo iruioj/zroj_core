@@ -3,7 +3,7 @@ use actix_web::{web, HttpServer};
 use server::{
     app,
     auth::{middleware::SessionAuth, SessionManager},
-    dev,
+    dev, manager::one_off::OneOffManager,
 };
 
 #[actix_web::main]
@@ -13,6 +13,8 @@ async fn main() -> std::io::Result<()> {
     let user_db = dev::test_userdb(dir.path()).await;
     let stmt_db = dev::test_stmtdb(dir.path()).await;
     let ojdata_db = dev::test_ojdata_db(dir.path()).await;
+    let custom_test = web::Data::new(OneOffManager::new("/Users/sshwy/zroj_core/oneoff_tmp"));
+    eprintln!("job thread id = {:?}", custom_test.handle.thread().id());
 
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     let session_key = actix_web::cookie::Key::generate();
@@ -33,6 +35,10 @@ async fn main() -> std::io::Result<()> {
                 )
                 .service(
                     app::problem::service(stmt_db.clone(), ojdata_db.clone())
+                        .wrap(SessionAuth::require_auth(session_container.clone())),
+                )
+                .service(
+                    app::one_off::service(custom_test.clone())
                         .wrap(SessionAuth::require_auth(session_container.clone())),
                 ),
         )

@@ -70,6 +70,7 @@ impl From<&str> for TruncStr {
         value.to_string().into()
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::TruncStr;

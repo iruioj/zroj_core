@@ -67,7 +67,7 @@ impl Singleton {
         c_write(b"start exec child\n");
         unistd::setpgid(unistd::Pid::from_raw(0), unistd::Pid::from_raw(0))
             .map_err(|errno| ChildError::SetPGID(errno.to_string()))?;
-        c_write(b"pgid set\n");
+        c_write(format!("pgid = {}\n", unistd::getpgid(None).unwrap()).as_bytes());
         // 提前计算好需要的东西
         let path = CString::new(self.exec_path.as_os_str().as_bytes())
             .expect("exec_path contains null char");
@@ -87,6 +87,7 @@ impl Singleton {
         if let Some(stderr) = &self.stderr {
             let fd = open_file(stderr, OFlag::O_WRONLY | OFlag::O_TRUNC | OFlag::O_CREAT)?;
             dup(fd, libc::STDERR_FILENO)?;
+            c_write(b"stderr redirected\n");
         } else {
             c_write(b"stderr not redirected\n");
         }
@@ -127,11 +128,12 @@ impl Singleton {
         setlim!(stack_memory, RLIMIT_STACK, byte);
         setlim!(output_memory, RLIMIT_FSIZE, byte);
         setlim!(fileno, RLIMIT_NOFILE, into);
-        if self.stderr.is_none() {
-            c_write(b"resource limited\n");
-        }
+        // if self.stderr.is_none() {
+        c_write(b"resource limited\n");
+        // }
         // todo: set syscall limit
         unistd::execve(&path, &args, &env).map_err(|errno| {
+            c_write(format!("execve error: {errno}").as_bytes());
             ChildError::Execve(
                 errno.to_string(),
                 self.exec_path.clone(),
@@ -167,7 +169,7 @@ impl Singleton {
                 }
                 match signal::killpg(child_inhandle, Signal::SIGKILL) {
                     Ok(_) => {
-                        println!("[计时线程] 成功杀死子进程组");
+                        println!("[计时线程] 成功杀死子进程组 {}", child_inhandle);
                     }
                     Err(err) => {
                         if err == Errno::ESRCH {
@@ -179,7 +181,12 @@ impl Singleton {
                 };
             })
         });
-        let waitres = waitpid(child, None).expect("wait child process error");
+        println!("等待子进程 {}", child);
+        let waitres = waitpid(child, None)
+            .map_err(|e| {
+                println!("wait error: {e}");
+            })
+            .unwrap();
         let duration = start.elapsed();
         let u = getrusage(UsageWho::RUSAGE_CHILDREN).expect("getrusage error");
         let real_time: Elapse = duration.into();

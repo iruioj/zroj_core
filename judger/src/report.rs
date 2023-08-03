@@ -13,7 +13,7 @@ pub enum Status {
     /// 通过
     Accepted,
     /// 编译错误
-    CompileError(sandbox::Status),
+    CompileError(Option<sandbox::Status>),
     /// 自定义的评测状态
     Custom(String),
     DangerousSyscall,

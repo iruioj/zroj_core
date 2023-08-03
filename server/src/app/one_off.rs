@@ -1,12 +1,9 @@
-use crate::{
-    manager::{
-        custom_test::{start_custom_test, CustomTestManager},
-        judge_queue::JudgeQueue,
-    },
-    UserID, marker::JsonResult,
-};
+use crate::{manager::one_off::OneOffManager, marker::*, UserID};
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
-use actix_web::{error::ErrorBadRequest, web};
+use actix_web::{
+    error::ErrorBadRequest,
+    web,
+};
 use judger::{StoreFile, TaskReport};
 use serde::Serialize;
 use serde_json::json;
@@ -33,29 +30,27 @@ pub struct CustomTestPayload {
 
 #[api(method = post, path = "")]
 async fn custom_test_post(
-    payload: MultipartForm<CustomTestPayload>,
-    manager: web::Data<CustomTestManager>,
-    queue: web::Data<JudgeQueue>,
+    payload: FormData<CustomTestPayload>,
+    oneoff: ServerData<OneOffManager>,
     uid: web::ReqData<UserID>,
 ) -> actix_web::Result<String> {
-    if let Some(file_name) = payload.source.file_name.clone() {
-        let lang = parse_source_name(file_name).expect("invalid file name");
-        let source = StoreFile {
-            file: payload.source.file.reopen()?,
-            file_type: lang,
-        };
-        let input = StoreFile {
-            file: payload.input.file.reopen()?,
-            file_type: judger::FileType::Plain,
-        };
-        start_custom_test(manager, queue, *uid, source, input)?;
-        Ok("Judge started".to_string())
-    } else {
-        Err(ErrorBadRequest(format!(
-            "missing source file name, source size = {}, input size = {}",
-            payload.source.size, payload.input.size
-        )))
+    let Some(file_name) = payload.source.file_name.clone() else {
+        return Err(ErrorBadRequest("missing source file name"))
+    };
+    let lang = parse_source_name(file_name).ok_or(ErrorBadRequest("invalid file name"))?;
+    if !lang.compileable() {
+        return Err(ErrorBadRequest("file not compilable"))
     }
+    let source = StoreFile {
+        file: payload.source.file.reopen()?,
+        file_type: lang,
+    };
+    let input = StoreFile {
+        file: payload.input.file.reopen()?,
+        file_type: judger::FileType::Plain,
+    };
+    oneoff.add_test(*uid, source, input)?;
+    Ok("Judge started".to_string())
 }
 
 #[derive(Debug, Serialize, TsType)]
@@ -66,22 +61,18 @@ pub struct CustomTestResult {
 
 #[api(method = get, path = "")]
 async fn custom_test_get(
-    manager: web::Data<CustomTestManager>,
+    oneoff: web::Data<OneOffManager>,
     uid: web::ReqData<UserID>,
 ) -> JsonResult<CustomTestResult> {
     Ok(web::Json(CustomTestResult {
-        result: manager.fetch_result(&uid)?,
+        result: oneoff.get_result(&uid)?,
     }))
 }
 
 /// 提供自定义测试服务
 #[scope_service(path = "/custom_test")]
-pub fn service(
-    custom_test_manager: web::Data<CustomTestManager>,
-    judge_queue: web::Data<JudgeQueue>,
-) {
+pub fn service(custom_test_manager: web::Data<OneOffManager>) {
     app_data(custom_test_manager);
-    app_data(judge_queue);
     service(custom_test_get);
     service(custom_test_post);
 }

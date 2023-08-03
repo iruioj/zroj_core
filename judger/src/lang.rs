@@ -120,6 +120,13 @@ impl FileType {
             FileType::Assembly => ".s",
         }
     }
+    pub fn compileable(&self) -> bool {
+        match self {
+            FileType::Plain => false,
+            FileType::Binary => false,
+            _ => true
+        }
+    }
 }
 
 impl ShaHash for FileType {
@@ -137,13 +144,13 @@ impl Compile for FileType {
     ) -> Box<dyn ExecSandBox> {
         match self {
             FileType::GnuCpp20O2 => {
-                GnuCpp::new(None, vec!["-std=c++2a", "-O2"]).compile_sandbox(source, dest, log)
+                GnuCpp::new(None, vec!["-std=c++2a", "-O2", "-Wall", "-Wextra"]).compile_sandbox(source, dest, log)
             }
             FileType::GnuCpp17O2 => {
-                GnuCpp::new(None, vec!["-std=c++17", "-O2"]).compile_sandbox(source, dest, log)
+                GnuCpp::new(None, vec!["-std=c++17", "-O2", "-Wall", "-Wextra"]).compile_sandbox(source, dest, log)
             }
             FileType::GnuCpp14O2 => {
-                GnuCpp::new(None, vec!["-std=c++14", "-O2"]).compile_sandbox(source, dest, log)
+                GnuCpp::new(None, vec!["-std=c++14", "-O2", "-Wall", "-Wextra"]).compile_sandbox(source, dest, log)
             }
             FileType::Plain => panic!("a plain file should never be compiled"),
             _ => todo!(),

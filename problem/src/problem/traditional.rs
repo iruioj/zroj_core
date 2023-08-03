@@ -64,7 +64,7 @@ impl JudgeTask for Traditional {
                 let mut r = judger::TaskReport {
                     meta: judger::TaskMeta {
                         score: 0.0,
-                        status: judger::Status::CompileError(term.status),
+                        status: judger::Status::CompileError(Some(term.status)),
                         time: term.cpu_time,
                         memory: term.memory,
                     },

@@ -1,18 +1,15 @@
 //! app 模块可以创建 OJ 后端的应用路由配置.
 pub mod auth;
+pub mod group;
 pub mod one_off;
 pub mod problem;
 pub mod user;
-pub mod group;
 
 use crate::{
     auth::{middleware::SessionAuth, SessionManager},
-    data::user::UserDB,
     data::group::AManager as GroupAManager,
-    // data::problem_config::AManager as ProblemConfigAManager,
-    manager::{self, custom_test::CustomTestManager, 
-        // _problem::ProblemManager
-    },
+    data::user::UserDB,
+    manager::one_off::OneOffManager,
 };
 use actix_web::{
     web::{self, ServiceConfig},
@@ -43,13 +40,12 @@ pub fn new(
     group_db: web::Data<GroupAManager>,
     // problem_config_mgr: web::Data<ProblemConfigAManager>,
     // problem_mgr: web::Data<ProblemManager>,
-    custom_test_mgr: web::Data<CustomTestManager>,
-    judge_queue: web::Data<manager::judge_queue::JudgeQueue>,
+    custom_test_mgr: web::Data<OneOffManager>,
 ) -> impl FnOnce(&mut ServiceConfig) {
     move |app: &mut ServiceConfig| {
         let session_auth = SessionAuth::require_auth(session_mgr.clone());
         app.service(auth::service(session_mgr, user_db.clone()))
-            .service(one_off::service(custom_test_mgr, judge_queue).wrap(session_auth.clone()))
+            .service(one_off::service(custom_test_mgr).wrap(session_auth.clone()))
             // .service(problem::service(problem_mgr, problem_config_mgr).wrap(session_auth.clone()))
             .service(user::service(user_db.clone()).wrap(session_auth.clone()))
             .service(group::service(group_db.clone()).wrap(session_auth))

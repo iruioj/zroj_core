@@ -13,8 +13,7 @@ use server::data::{
     types::*,
     user::{self, UserDB},
 };
-use server::manager::custom_test::CustomTestManager;
-use server::manager::judge_queue::JudgeQueue;
+use server::manager::one_off::OneOffManager;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -31,8 +30,7 @@ async fn main() -> std::io::Result<()> {
         .await
         .unwrap();
 
-    let custom_test = web::Data::new(CustomTestManager::new(dir.path().to_path_buf()));
-    let que = web::Data::new(JudgeQueue::new(8));
+    let custom_test = web::Data::new(OneOffManager::new(dir.path().to_path_buf()));
 
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     let session_key = actix_web::cookie::Key::generate();
@@ -82,7 +80,7 @@ async fn main() -> std::io::Result<()> {
                 user_db.clone(),
             ))
             .service(
-                app::one_off::service(custom_test.clone(), que.clone())
+                app::one_off::service(custom_test.clone())
                     .wrap(SessionAuth::require_auth(session_container.clone())),
             )
     })

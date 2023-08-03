@@ -55,6 +55,18 @@ impl OneOff {
         let clog = self.working_dir.join("compile.log");
         // compilation
         eprintln!("编译...");
+        if !self.file.file_type.compileable() {
+            let r = TaskReport {
+                meta: TaskMeta {
+                    score: 0.0,
+                    status: Status::CompileError(None),
+                    time: 0.into(),
+                    memory: 0.into(),
+                },
+                payload: Vec::new(),
+            };
+            return Ok(r)
+        }
         let term = self
             .file
             .file_type
@@ -65,7 +77,7 @@ impl OneOff {
             let mut r = TaskReport {
                 meta: TaskMeta {
                     score: 0.0,
-                    status: Status::CompileError(st),
+                    status: Status::CompileError(Some(st)),
                     time: term.cpu_time,
                     memory: term.memory,
                 },
@@ -98,7 +110,9 @@ impl OneOff {
             .stdin(input)
             .build()
             .unwrap();
+        eprintln!("开始运行选手程序");
         let term = s.exec_fork()?;
+        eprintln!("程序运行结束");
         let mut r: TaskReport = TaskReport {
             meta: TaskMeta {
                 score: 0.0,
