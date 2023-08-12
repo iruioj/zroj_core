@@ -5,10 +5,9 @@ use crate::{
     TimeLimitExceededKind,
 };
 use nix::{
-    errno::Errno,
     fcntl::{self, OFlag},
     libc,
-    sys::{resource::getrusage, stat::Mode, wait::waitpid},
+    sys::{resource::getrusage, stat::Mode, wait},
     sys::{
         resource::{setrlimit, Resource, UsageWho},
         signal::{self, Signal},
@@ -21,7 +20,6 @@ use std::{
     ffi::CString,
     os::{fd::RawFd, unix::prelude::OsStrExt},
     path::{Path, PathBuf},
-    thread,
     time::Instant,
 };
 
@@ -144,52 +142,29 @@ impl Singleton {
         unreachable!("execve returns infallible")
     }
     fn exec_parent(&self, child: unistd::Pid, start: Instant) -> Result<Termination, SandboxError> {
-        use std::sync::mpsc;
-        let (tx, rx) = mpsc::channel();
-        // 如果有实际运行时间限制，就开一个计时线程
-        let handle = self.limits.real_time.to_soft_option().map(|tl| {
-            let child_inhandle = child;
-            let st = start;
-            thread::spawn(move || {
-                loop {
-                    thread::sleep(std::time::Duration::from_millis(500));
-                    println!("beep...");
-                    match rx.try_recv() {
-                        Ok(_) | Err(mpsc::TryRecvError::Disconnected) => {
-                            println!("[计时线程] 子进程先结束");
-                            break;
-                        }
-                        Err(mpsc::TryRecvError::Empty) => {
-                            if tl < st.elapsed().into() {
-                                println!("[计时线程] 子进程超时");
-                                break;
-                            }
-                        }
-                    }
-                }
-                match signal::killpg(child_inhandle, Signal::SIGKILL) {
-                    Ok(_) => {
-                        println!("[计时线程] 成功杀死子进程组 {}", child_inhandle);
-                    }
-                    Err(err) => {
-                        if err == Errno::ESRCH {
-                            println!("[计时线程] 杀死子进程：子进程已经结束");
-                        } else {
-                            println!("[计时线程] 杀死子进程组出错（忽略）：{}", err);
-                        }
-                    }
+        eprintln!("等待子进程 {}", child);
+        let (waitres, real_time) = loop {
+            let waitres = wait::waitpid(child, Some(wait::WaitPidFlag::WNOHANG)).unwrap();
+            let real_time = start.elapsed().into();
+            // TLE
+            if waitres == WaitStatus::StillAlive && !self.limits.real_time.check(&real_time) {
+                match signal::killpg(child, Signal::SIGKILL) {
+                    Ok(_) => eprintln!("成功发送终止信号到子进程组 {}", child),
+                    // https://stackoverflow.com/questions/12521705/why-would-killpg-return-not-permitted-when-ownership-is-correct
+                    Err(nix::errno::Errno::EPERM) => {}
+                    Err(err) => eprintln!("杀死子进程组出错（忽略）：{}", err),
                 };
-            })
-        });
-        println!("等待子进程 {}", child);
-        let waitres = waitpid(child, None)
-            .map_err(|e| {
-                println!("wait error: {e}");
-            })
-            .unwrap();
-        let duration = start.elapsed();
+            }
+            // TLE 且 kill 不掉
+            if waitres == WaitStatus::StillAlive && !self.limits.real_time.check_hard(&real_time) {
+                eprintln!("cannot kill child process");
+                break (waitres, real_time);
+            }
+            if waitres != WaitStatus::StillAlive {
+                break (waitres, real_time);
+            }
+        };
         let u = getrusage(UsageWho::RUSAGE_CHILDREN).expect("getrusage error");
-        let real_time: Elapse = duration.into();
         let cpu_time = Elapse::from(
             (u.user_time().num_milliseconds() + u.system_time().num_milliseconds()) as u64,
         );
@@ -211,7 +186,7 @@ impl Singleton {
         }
         let status: Status = match waitres {
             WaitStatus::Exited(_, exit_code) => {
-                println!("子进程正常退出");
+                eprintln!("子进程正常退出");
                 if real_mle!() {
                     Status::MemoryLimitExceeded(MemoryLimitExceededKind::Real(memory))
                 } else if real_tle!() {
@@ -223,33 +198,18 @@ impl Singleton {
                 }
             }
             WaitStatus::Signaled(_, signal, _) => {
-                println!("子进程被信号终止");
+                eprintln!("子进程被信号终止");
                 if signal == signal::SIGKILL && real_tle!() {
-                    println!("子进程被计时线程终止");
+                    eprintln!("子进程被计时线程终止");
                     Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
                 } else {
                     Status::RuntimeError(0, Some(signal.to_string()))
                 }
             }
-            WaitStatus::Stopped(_, signal) => {
-                println!("未知子进程状态");
-                Status::RuntimeError(0, Some(signal.to_string()))
-            }
-            _ => panic!("未知状态"),
+            WaitStatus::StillAlive => panic!("cannot kill child process"),
+            s => panic!("未知状态 {:?}", s),
         };
-        if let Some(h) = handle {
-            if !h.is_finished() {
-                let _ = tx.send(()).map_err(|e| {
-                    println!("对计时线程发送终止信号出错：{e}, the corresponding receiver has already been deallocated");
-                }); // 终止计时的线程
-                println!("对计时线程发送终止信号");
-                let _ = h
-                    .join()
-                    .map_err(|e| format!("等待计时线程结束出错：{:?}", e)); // 等待线程结束
-                println!("计时线程正常结束");
-            }
-        }
-        println!("主进程正常结束");
+        eprintln!("主进程正常结束");
         Ok(Termination {
             status,
             real_time,
@@ -265,10 +225,11 @@ impl crate::ExecSandBox for Singleton {
         match unsafe { unistd::fork() } {
             Err(e) => Err(SandboxError::Fork(e.to_string())),
             Ok(unistd::ForkResult::Parent { child }) => self.exec_parent(child, start),
-            Ok(unistd::ForkResult::Child) => match self.exec_child() {
-                Ok(_) => unsafe { libc::_exit(0) },
-                Err(_) => unsafe { libc::_exit(1) },
-            },
+            Ok(unistd::ForkResult::Child) => {
+                let e = self.exec_child().unwrap_err();
+                c_write(e.to_string().as_bytes());
+                unsafe { libc::_exit(1) }
+            }
         }
     }
 }
@@ -353,72 +314,6 @@ pub struct SingletonBuilder {
     stdin: Option<PathBuf>,
     stdout: Option<PathBuf>,
     stderr: Option<PathBuf>,
-}
-
-impl SingletonBuilder {
-    #[deprecated]
-    #[doc(hidden)]
-    pub fn new_legacy() -> Self {
-        SingletonBuilder {
-            limits: Limitation::default(),
-            stdin: None,
-            stdout: None,
-            stderr: None,
-            exec_path: None,
-            arguments: Vec::new(),
-            envs: Vec::new(),
-        }
-    }
-    #[deprecated]
-    #[doc(hidden)]
-    pub fn exec_path_legacy<T: Into<Arg>>(&mut self, str: T) -> &mut Self {
-        match str.into() as Arg {
-            Arg::Str(s) => self.exec_path = Some(s.into()),
-            Arg::Vec(_) => panic!("invalid exec_path"),
-            Arg::Nothing => {}
-        };
-        self
-    }
-    #[deprecated]
-    #[doc(hidden)]
-    pub fn push_arg_legacy<T: Into<Arg>>(&mut self, arg: T) -> &mut Self {
-        match arg.into() as Arg {
-            Arg::Str(s) => self.arguments.push(s),
-            Arg::Vec(mut v) => self.arguments.append(&mut v),
-            Arg::Nothing => {}
-        };
-        self
-    }
-    #[deprecated]
-    #[doc(hidden)]
-    pub fn add_env<T: Into<Arg>>(&mut self, val: T) -> &mut Self {
-        match val.into() as Arg {
-            Arg::Str(s) => self.envs.push(s),
-            Arg::Vec(mut v) => self.envs.append(&mut v),
-            Arg::Nothing => {}
-        };
-        self
-    }
-    #[deprecated]
-    #[doc(hidden)]
-    pub fn set_stdin(&mut self, val: impl Into<Arg>) -> &mut Self {
-        self.stdin = match val.into() as Arg {
-            Arg::Str(s) => Some(s.into()),
-            Arg::Vec(_) => panic!("invalid args"),
-            Arg::Nothing => None,
-        };
-        self
-    }
-    #[deprecated]
-    #[doc(hidden)]
-    pub fn set_stdout(&mut self, val: impl Into<Arg>) -> &mut Self {
-        self.stdout = match val.into() as Arg {
-            Arg::Str(s) => Some(s.into()),
-            Arg::Vec(_) => panic!("invalid args"),
-            Arg::Nothing => None,
-        };
-        self
-    }
 }
 
 impl Builder for SingletonBuilder {
@@ -530,7 +425,7 @@ mod tests {
 
         let term = singleton.exec_fork()?;
         assert_eq!(term.status, Status::Ok);
-        println!("termination: {:?}", term);
+        eprintln!("termination: {:?}", term);
         Ok(())
     }
 
@@ -549,7 +444,7 @@ mod tests {
             .push_arg("2")
             .set_limits(|mut l| {
                 l.cpu_time = Lim::Double(1000.into(), 3000.into());
-                l.real_time = Lim::Single(1000.into());
+                l.real_time = Lim::Double(1000.into(), 2000.into());
                 l
             })
             .build()?;
@@ -559,7 +454,7 @@ mod tests {
             term.status,
             Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
         );
-        // println!("termination: {:?}", term);
+        // eprintln!("termination: {:?}", term);
         Ok(())
     }
 
@@ -576,7 +471,7 @@ mod tests {
 
         let term = singleton.exec_fork()?;
         assert_eq!(term.status, Status::Ok);
-        // println!("termination: {:?}", term);
+        // eprintln!("termination: {:?}", term);
         Ok(())
     }
 }

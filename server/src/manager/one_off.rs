@@ -13,7 +13,7 @@ pub struct OneOffManager {
     base_dir: Handle,
     state: Arc<RwLock<HashMap<UserID, TaskReport>>>,
     queue: Arc<RwLock<Vec<Job>>>,
-    sender: std::sync::mpsc::SyncSender<Job>,
+    sender: std::sync::mpsc::SyncSender<Option<Job>>,
     pub handle: std::thread::JoinHandle<()>,
 }
 impl OneOffManager {
@@ -22,14 +22,14 @@ impl OneOffManager {
         std::fs::create_dir_all(base_dir.as_ref()).unwrap();
         // let job_lock = Mutex::new(());
         let queue = Arc::new(RwLock::new(Vec::<Job>::new()));
-        let (sender, receiver) = std::sync::mpsc::sync_channel::<Job>(1);
+        let (sender, receiver) = std::sync::mpsc::sync_channel::<Option<Job>>(1);
 
         let que2 = queue.clone();
         let handle = std::thread::spawn(move || {
             eprintln!("[job] thread start");
             loop {
                 match receiver.recv() {
-                    Ok(job) => {
+                    Ok(Some(job)) => {
                         eprintln!("[job] receive new job");
                         job();
                         while !que2.read().unwrap().is_empty() {
@@ -38,7 +38,7 @@ impl OneOffManager {
                             job();
                         }
                     }
-                    Err(_) => {
+                    Ok(None) | Err(_) => {
                         // closed
                         eprintln!("[job] close job thread");
                         return;
@@ -69,16 +69,17 @@ impl OneOffManager {
         F: FnOnce() + Send + Sync + 'static,
     {
         let job = Box::new(f);
-        if let Err(e) = self.sender.try_send(job) {
+        if let Err(e) = self.sender.try_send(Some(job)) {
             match e {
                 // 缓存已满
-                std::sync::mpsc::TrySendError::Full(job) => {
+                std::sync::mpsc::TrySendError::Full(Some(job)) => {
                     self.queue
                         .write()
                         .map_err(|e| error::ErrorInternalServerError(e.to_string()))?
                         .push(job);
                 }
-                std::sync::mpsc::TrySendError::Disconnected(_) => {}
+                std::sync::mpsc::TrySendError::Full(None)
+                | std::sync::mpsc::TrySendError::Disconnected(_) => {}
             }
         }
         Ok(())
@@ -103,6 +104,11 @@ impl OneOffManager {
             eprintln!("[job] test done.")
         })?;
         Ok(())
+    }
+    pub fn terminate(self) {
+        eprintln!("terminate oneoff manager");
+        self.sender.send(None).unwrap();
+        self.handle.join().unwrap();
     }
 }
 
@@ -129,8 +135,7 @@ int main() {
 
         let h = std::thread::spawn(move || {
             oneoff.add_test(0, source, input).unwrap();
-
-            oneoff.handle.join().unwrap();
+            oneoff.terminate();
         });
         h.join().unwrap();
         drop(dir)

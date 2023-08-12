@@ -5,7 +5,7 @@ use crate::{
     Checker, RuntimeError,
 };
 use judger::{
-    sandbox::{unix::SingletonBuilder, Builder, Elapse, ExecSandBox, Memory},
+    sandbox::{unix::{SingletonBuilder, Lim}, Builder, Elapse, ExecSandBox, Memory},
     truncstr::{TruncStr, TRUNCATE_LEN},
 };
 use store::FsStore;
@@ -85,7 +85,7 @@ impl JudgeTask for Traditional {
             .stdout(wd.join("output"))
             .stderr(wd.join("log"))
             .set_limits(|_| judger::sandbox::unix::Limitation {
-                real_time: meta.time_limit.into(),
+                real_time: Lim::Double(meta.time_limit, Elapse::from(meta.time_limit.ms() * 2)),
                 cpu_time: meta.time_limit.into(),
                 virtual_memory: meta.memory_limit.into(),
                 real_memory: meta.memory_limit.into(),

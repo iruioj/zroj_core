@@ -1,4 +1,4 @@
-use sandbox::unix::{Limitation, SingletonBuilder};
+use sandbox::unix::{Limitation, SingletonBuilder, Lim};
 use sandbox::{mem, time, Builder, Elapse, ExecSandBox, Memory};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -70,7 +70,7 @@ impl Compile for GnuCpp {
                 .push_arg(dest.as_ref())
                 .push_env(envs)
                 .set_limits(|_| Limitation {
-                    real_time: time!(10s).into(),
+                    real_time: Lim::Double(time!(10s), time!(20s)),
                     cpu_time: time!(10s).into(),
                     virtual_memory: mem!(4gb).into(),
                     real_memory: mem!(4gb).into(),

@@ -44,6 +44,8 @@ impl OneOff {
     }
     #[cfg(all(unix))]
     pub fn exec(&mut self) -> Result<TaskReport, Error> {
+        use sandbox::unix::Lim;
+
         use crate::TaskMeta;
 
         let src = self
@@ -97,7 +99,7 @@ impl OneOff {
         assert!(dest.as_ref().exists());
         let s = SingletonBuilder::new(dest)
             .set_limits(|_| Limitation {
-                real_time: self.time_limit.into(),
+                real_time: Lim::Double(self.time_limit, Elapse::from(self.time_limit.ms() * 2)),
                 cpu_time: self.time_limit.into(),
                 virtual_memory: self.memory_limit.into(),
                 real_memory: self.memory_limit.into(),

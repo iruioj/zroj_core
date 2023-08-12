@@ -178,7 +178,9 @@ pub trait Builder {
 }
 
 /// 时间表示，数值单位为 ms
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord, TsType)]
+#[derive(
+    Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord, TsType,
+)]
 pub struct Elapse(u64);
 
 impl Elapse {
@@ -193,6 +195,7 @@ impl Elapse {
 }
 
 impl From<u64> for Elapse {
+    /// 单位：ms
     fn from(value: u64) -> Self {
         Self(value)
     }
@@ -204,7 +207,9 @@ impl From<Duration> for Elapse {
 }
 
 /// 内存空间表示，数值单位为 byte
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord, TsType)]
+#[derive(
+    Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord, TsType,
+)]
 pub struct Memory(u64);
 
 impl From<u64> for Memory {

@@ -24,6 +24,8 @@ where
 
 impl<T: PartialOrd + Copy> Lim<T> {
     /// 判断是否超过限制
+    ///
+    /// true 表示没有超过限制
     pub fn check(&self, usage: &T) -> bool {
         match self {
             Lim::None => true,
@@ -31,12 +33,14 @@ impl<T: PartialOrd + Copy> Lim<T> {
             Lim::Double(s, _) => usage <= s,
         }
     }
-    /// 将更低的限制作为值
-    fn to_soft_option(&self) -> Option<T> {
+    /// 判断是否超过硬限制
+    ///
+    /// true 表示没有超过限制
+    pub fn check_hard(&self, usage: &T) -> bool {
         match self {
-            Lim::None => None,
-            Lim::Single(s) => Some(*s),
-            Lim::Double(s, _) => Some(*s),
+            Lim::None => true,
+            Lim::Single(l) => usage <= l,
+            Lim::Double(_, h) => usage <= h,
         }
     }
 }
@@ -50,6 +54,7 @@ impl<T: PartialOrd + Copy> From<T> for Lim<T> {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Limitation {
     /// 限制实际运行时间，一般是用来做一个大保底
+    /// 最好赋予 soft limit 和 hard limit 不同的值，详见 singleton 的实现
     pub real_time: Lim<Elapse>,
     /// 限制 CPU 的运行时间，一般用来衡量程序的运行时间
     ///
@@ -75,7 +80,7 @@ pub struct Limitation {
 impl Default for Limitation {
     fn default() -> Self {
         Self {
-            real_time: Lim::Single(60000.into()),
+            real_time: Lim::Double(60000.into(), 120000.into()),
             cpu_time: Lim::Single(60000.into()),
             virtual_memory: Lim::Single((1 << 30).into()),
             real_memory: Lim::Single((1 << 30).into()),
