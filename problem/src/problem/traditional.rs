@@ -5,7 +5,7 @@ use crate::{
     Checker, RuntimeError,
 };
 use judger::{
-    sandbox::{unix::{SingletonBuilder, Lim}, Builder, Elapse, ExecSandBox, Memory},
+    sandbox::{unix::{Singleton, Lim}, Elapse, ExecSandBox, Memory},
     truncstr::{TruncStr, TRUNCATE_LEN},
 };
 use store::FsStore;
@@ -80,7 +80,7 @@ impl JudgeTask for Traditional {
         copy_in_wd(&mut task.input, &wd, "input")?;
         copy_in_wd(&mut task.output, &wd, "answer")?;
 
-        let s = SingletonBuilder::new(wd.join("main"))
+        let s = Singleton::new(wd.join("main"))
             .stdin(wd.join("input"))
             .stdout(wd.join("output"))
             .stderr(wd.join("log"))
@@ -92,9 +92,7 @@ impl JudgeTask for Traditional {
                 stack_memory: meta.memory_limit.into(),
                 output_memory: meta.output_limit.into(),
                 fileno: 5.into(),
-            })
-            .build()
-            .unwrap();
+            });
 
         let term = s.exec_fork().unwrap();
         let term_status = term.status.clone();

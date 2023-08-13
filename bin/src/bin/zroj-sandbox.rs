@@ -1,7 +1,7 @@
 use std::{path::PathBuf, str::FromStr};
 
 use clap::{error::ErrorKind, CommandFactory, Parser};
-use sandbox::{unix::Limitation, Builder, ExecSandBox};
+use sandbox::{unix::Limitation, ExecSandBox};
 use shadow_rs::shadow;
 
 shadow!(build);
@@ -122,7 +122,7 @@ fn main() {
             .unwrap()
     });
 
-    let mut s = sandbox::unix::SingletonBuilder::new(cli.exec.unwrap())
+    let mut s = sandbox::unix::Singleton::new(cli.exec.unwrap())
         .push_arg(args)
         .push_env(envs);
     if let Some(stdin) = cli.stdin {
@@ -137,8 +137,6 @@ fn main() {
     if let Some(lim) = lim {
         s = s.set_limits(|_| lim)
     }
-
-    let s = s.build().unwrap();
 
     let term = s.exec_fork().unwrap();
 

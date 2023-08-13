@@ -46,8 +46,8 @@ impl OneOff {
     pub fn exec(&mut self) -> Result<TaskReport, Error> {
         use crate::TaskMeta;
         use sandbox::{
-            unix::{Lim, SingletonBuilder},
-            Builder, ExecSandBox,
+            unix::{Lim, Singleton},
+            ExecSandBox,
         };
         use std::process::Command;
 
@@ -137,7 +137,7 @@ impl OneOff {
             let term_file = term_f.open_file().unwrap();
             serde_json::from_reader(&term_file).unwrap()
         } else {
-            let s = SingletonBuilder::new(dest)
+            let s = Singleton::new(dest)
                 .set_limits(|_| Limitation {
                     real_time: Lim::Double(self.time_limit, Elapse::from(self.time_limit.ms() * 2)),
                     cpu_time: self.time_limit.into(),
@@ -149,9 +149,7 @@ impl OneOff {
                 })
                 .stdout(&out)
                 .stderr(&log)
-                .stdin(input)
-                .build()
-                .unwrap();
+                .stdin(input);
             eprintln!("开始运行选手程序");
             let term = s.exec_fork()?;
             eprintln!("程序运行结束");

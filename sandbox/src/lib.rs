@@ -169,14 +169,6 @@ pub trait ExecSandBox {
     }
 }
 
-/// Builder trait indicates something can be transform into an [`ExecSandBox`].
-pub trait Builder {
-    #[allow(missing_docs)]
-    type Target: ExecSandBox;
-    /// Consume self to build the target.
-    fn build(self) -> Result<Self::Target, SandboxError>;
-}
-
 /// 时间表示，数值单位为 ms
 #[derive(
     Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord, TsType,

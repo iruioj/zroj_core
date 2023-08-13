@@ -1,7 +1,7 @@
 use crate::{
     error::{ChildError, SandboxError},
     unix::Limitation,
-    vec_str_to_vec_cstr, Builder, Elapse, Memory, MemoryLimitExceededKind, Status, Termination,
+    vec_str_to_vec_cstr, Elapse, Memory, MemoryLimitExceededKind, Status, Termination,
     TimeLimitExceededKind,
 };
 use nix::{
@@ -85,7 +85,6 @@ impl Singleton {
         if let Some(stderr) = &self.stderr {
             let fd = open_file(stderr, OFlag::O_WRONLY | OFlag::O_TRUNC | OFlag::O_CREAT)?;
             dup(fd, libc::STDERR_FILENO)?;
-            c_write(b"stderr redirected\n");
         } else {
             c_write(b"stderr not redirected\n");
         }
@@ -126,9 +125,9 @@ impl Singleton {
         setlim!(stack_memory, RLIMIT_STACK, byte);
         setlim!(output_memory, RLIMIT_FSIZE, byte);
         setlim!(fileno, RLIMIT_NOFILE, into);
-        // if self.stderr.is_none() {
-        c_write(b"resource limited\n");
-        // }
+        if self.stderr.is_none() {
+            c_write(b"resource limited\n");
+        }
         // todo: set syscall limit
         unistd::execve(&path, &args, &env).map_err(|errno| {
             c_write(format!("execve error: {errno}").as_bytes());
@@ -305,45 +304,16 @@ impl_option!(&str);
 impl_option!(PathBuf);
 impl_option!(&PathBuf);
 
-/// 创建一个 Singleton，请使用对应的 macro [`crate::sigton`].
-pub struct SingletonBuilder {
-    limits: Limitation,
-    exec_path: Option<PathBuf>,
-    arguments: Vec<String>,
-    envs: Vec<String>,
-    stdin: Option<PathBuf>,
-    stdout: Option<PathBuf>,
-    stderr: Option<PathBuf>,
-}
-
-impl Builder for SingletonBuilder {
-    type Target = Singleton;
-
-    fn build(self) -> Result<Self::Target, SandboxError> {
-        dbg!(&self.exec_path);
-        dbg!(&self.arguments);
-        Ok(Singleton {
-            limits: self.limits,
-            exec_path: self.exec_path.unwrap(),
-            stdin: self.stdin,
-            stdout: self.stdout,
-            stderr: self.stderr,
-            arguments: self.arguments,
-            envs: self.envs,
-        })
-    }
-}
-
 // new API
-impl SingletonBuilder {
+impl Singleton {
     /// Create a new builder with the path of executable
     pub fn new(exec: impl AsRef<Path>) -> Self {
-        SingletonBuilder {
+        Singleton {
             limits: Limitation::default(),
             stdin: None,
             stdout: None,
             stderr: None,
-            exec_path: Some(exec.as_ref().to_path_buf()),
+            exec_path: exec.as_ref().to_path_buf(),
             arguments: Vec::new(),
             envs: Vec::new(),
         }
@@ -398,12 +368,8 @@ impl SingletonBuilder {
 
 #[cfg(test)]
 mod tests {
-    use singleton::SingletonBuilder;
-
-    use super::Status;
-    use crate::unix::singleton;
+    use super::*;
     use crate::unix::Lim;
-    use crate::Builder;
     use crate::ExecSandBox;
     use crate::TimeLimitExceededKind;
     // use super::un
@@ -417,11 +383,10 @@ mod tests {
             "/bin/ls"
         };
 
-        let singleton = SingletonBuilder::new(ls_path)
+        let singleton = Singleton::new(ls_path)
             .push_arg("ls")
             .push_arg("-l")
-            .push_arg(".")
-            .build()?;
+            .push_arg(".");
 
         let term = singleton.exec_fork()?;
         assert_eq!(term.status, Status::Ok);
@@ -439,15 +404,14 @@ mod tests {
         };
         // sleep 5 秒，触发 TLE
         // sleep 不会占用 CPU，因此触发 real time tle
-        let singleton = SingletonBuilder::new(sleep_path)
+        let singleton = Singleton::new(sleep_path)
             .push_arg("sleep")
             .push_arg("2")
             .set_limits(|mut l| {
                 l.cpu_time = Lim::Double(1000.into(), 3000.into());
                 l.real_time = Lim::Double(1000.into(), 2000.into());
                 l
-            })
-            .build()?;
+            });
 
         let term = singleton.exec_fork()?;
         assert_eq!(
@@ -463,11 +427,10 @@ mod tests {
     fn singleton_env() -> Result<(), super::SandboxError> {
         let env_path = "/usr/bin/env";
 
-        let singleton = SingletonBuilder::new(env_path)
+        let singleton = Singleton::new(env_path)
             .push_arg("env")
             .push_env("DIR=/usr")
-            .push_env("A=b")
-            .build()?;
+            .push_env("A=b");
 
         let term = singleton.exec_fork()?;
         assert_eq!(term.status, Status::Ok);

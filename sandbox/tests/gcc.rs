@@ -6,8 +6,8 @@ use tempfile::tempdir;
 #[cfg_attr(not(target_os = "linux"), ignore = "not linux")]
 fn test_gcc_linux() -> Result<(), sandbox::SandboxError> {
     use sandbox::{
-        unix::{Limitation, SingletonBuilder, Lim},
-        Builder, ExecSandBox, Status,
+        unix::{Limitation, Singleton, Lim},
+        ExecSandBox, Status,
     };
 
     let dir = tempdir().unwrap();
@@ -16,7 +16,7 @@ fn test_gcc_linux() -> Result<(), sandbox::SandboxError> {
     let mut file = std::fs::File::create(filepath).unwrap();
     let source = include_str!("asserts/stress.txt");
     file.write_all(source.as_bytes()).unwrap();
-    let s = SingletonBuilder::new("/usr/bin/g++")
+    let s = Singleton::new("/usr/bin/g++")
         .push_arg("g++")
         .push_arg(filepath)
         .push_arg("-o")
@@ -31,8 +31,7 @@ fn test_gcc_linux() -> Result<(), sandbox::SandboxError> {
             stack_memory: Lim::Single((2 << 30).into()),
             output_memory: Lim::Single((64 << 20).into()),
             fileno: Lim::Single(30),
-        })
-        .build()?;
+        });
     let term = s.exec_fork()?;
     assert_eq!(term.status, Status::Ok);
     dbg!(&term);

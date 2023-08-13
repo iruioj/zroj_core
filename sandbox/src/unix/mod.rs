@@ -4,7 +4,6 @@ use std::str::FromStr;
 
 pub use singleton::Arg;
 pub use singleton::Singleton;
-pub use singleton::SingletonBuilder;
 
 use serde::{Deserialize, Serialize};
 

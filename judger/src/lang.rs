@@ -1,5 +1,5 @@
-use sandbox::unix::{Limitation, SingletonBuilder, Lim};
-use sandbox::{mem, time, Builder, Elapse, ExecSandBox, Memory};
+use sandbox::unix::{Limitation, Lim, Singleton};
+use sandbox::{mem, time, Elapse, ExecSandBox, Memory};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::path::PathBuf;
@@ -62,7 +62,7 @@ impl Compile for GnuCpp {
             envs.push(format!("{}={}", key, value));
         }
         Box::new(
-            SingletonBuilder::new(&self.gpp_path)
+            Singleton::new(&self.gpp_path)
                 .push_arg("g++")
                 .push_arg(&self.extra_args)
                 .push_arg(source.as_ref())
@@ -79,8 +79,6 @@ impl Compile for GnuCpp {
                     fileno: 50.into(),
                 })
                 .stderr(log)
-                .build()
-                .unwrap(),
         )
     }
 }
