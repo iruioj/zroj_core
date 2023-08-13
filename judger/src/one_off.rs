@@ -133,7 +133,9 @@ impl OneOff {
                 .spawn()
                 .unwrap();
             let status = p.wait().unwrap();
-            assert!(status.success());
+            if !status.success() {
+                return Err(Error::SandboxExit(status));
+            }
             let term_file = term_f.open_file().unwrap();
             serde_json::from_reader(&term_file).unwrap()
         } else {

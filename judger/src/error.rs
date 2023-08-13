@@ -1,6 +1,6 @@
 //! Error type.
 
-use std::fmt::Display;
+use std::{fmt::Display, process::ExitStatus};
 
 /// Judger error
 #[derive(Debug)]
@@ -11,6 +11,7 @@ pub enum Error {
     Sandbox(sandbox::SandboxError),
     IOError(std::io::Error),
     CacheCE(sandbox::Status),
+    SandboxExit(ExitStatus),
 }
 
 impl From<sandbox::SandboxError> for Error {
@@ -33,6 +34,7 @@ impl Display for Error {
             Error::Sandbox(e) => write!(f, "sandbox error: {}", e),
             Error::IOError(e) => write!(f, "io error: {}", e),
 			Error::CacheCE(e) => write!(f, "compile error: {:?}", e),
+            Error::SandboxExit(s) => write!(f, "sandbox exit error: {s}"),
         }
     }
 }

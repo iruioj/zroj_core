@@ -138,7 +138,13 @@ fn main() {
         s = s.set_limits(|_| lim)
     }
 
-    let term = s.exec_fork().unwrap();
+    let term = match s.exec_sandbox() {
+        Ok(r) => r,
+        Err(e) => {
+            println!("error: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     if let Some(path) = cli.save {
         let file = std::fs::File::create(path).unwrap();

@@ -148,9 +148,8 @@ impl Singleton {
             // TLE
             if waitres == WaitStatus::StillAlive && !self.limits.real_time.check(&real_time) {
                 match signal::killpg(child, Signal::SIGKILL) {
-                    Ok(_) => eprintln!("成功发送终止信号到子进程组 {}", child),
                     // https://stackoverflow.com/questions/12521705/why-would-killpg-return-not-permitted-when-ownership-is-correct
-                    Err(nix::errno::Errno::EPERM) => {}
+                    Ok(_) | Err(nix::errno::Errno::EPERM) => {}
                     Err(err) => eprintln!("杀死子进程组出错（忽略）：{}", err),
                 };
             }
@@ -205,7 +204,7 @@ impl Singleton {
                     Status::RuntimeError(0, Some(signal.to_string()))
                 }
             }
-            WaitStatus::StillAlive => panic!("cannot kill child process"),
+            WaitStatus::StillAlive => return Err(SandboxError::Unstoppable),
             s => panic!("未知状态 {:?}", s),
         };
         eprintln!("主进程正常结束");

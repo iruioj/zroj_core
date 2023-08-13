@@ -11,7 +11,7 @@ type Job = Box<dyn FnOnce() + Send + Sync + 'static>;
 // #[derive(Debug)]
 pub struct OneOffManager {
     base_dir: Handle,
-    state: Arc<RwLock<HashMap<UserID, TaskReport>>>,
+    state: Arc<RwLock<HashMap<UserID, Result<TaskReport, String>>>>,
     queue: Arc<RwLock<Vec<Job>>>,
     sender: std::sync::mpsc::SyncSender<Option<Job>>,
     pub handle: std::thread::JoinHandle<()>,
@@ -59,7 +59,13 @@ impl OneOffManager {
             .state
             .read()
             .map_err(|_| error::ErrorInternalServerError("Poisoned lock"))?;
-        Ok(guard.get(uid).cloned())
+        match guard.get(uid) {
+            Some(r) => match r {
+                Ok(r) => Ok(Some(r.clone())),
+                Err(e) => Err(error::ErrorInternalServerError(e.to_string())),
+            },
+            None => Ok(None)
+        }
     }
     fn get_user_folder(&self, uid: &UserID) -> Handle {
         self.base_dir.join(uid.to_string())
@@ -103,7 +109,7 @@ impl OneOffManager {
                 Some("/Users/sshwy/zroj_core/target/debug/zroj-sandbox".into()),
             );
             one.set_wd(base);
-            let result = one.exec().unwrap();
+            let result = one.exec().map_err(|e| e.to_string());
             eprintln!("[job] oneoff exec done.");
             dbg!(&result);
             state.write().unwrap().insert(uid, result);

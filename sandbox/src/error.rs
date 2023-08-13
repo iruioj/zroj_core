@@ -50,6 +50,8 @@ pub enum SandboxError {
     Child(ChildError),
     /// fork failed
     Fork(String),
+    /// can't be killed
+    Unstoppable,
     /// not encouraged
     Custom(String)
 }
@@ -60,6 +62,7 @@ impl Display for SandboxError {
             SandboxError::Child(err) => write!(f, "child process: {err}"),
             SandboxError::Fork(e) => write!(f, "fork failed: {e}"),
             SandboxError::Custom(e) => write!(f, "custom: {e}"),
+            SandboxError::Unstoppable => write!(f, "can not stop"),
         }
     }
 }
