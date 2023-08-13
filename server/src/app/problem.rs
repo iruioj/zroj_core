@@ -103,7 +103,7 @@ async fn fulldata(
 ) -> JsonResult<PostDataReturn> {
     let payload = payload.into_inner();
     let file = payload.data.file.into_file();
-    let dir = tempdir_unzip(file).map_err(|e| error::ErrorBadRequest(e))?;
+    let dir = tempdir_unzip(file).map_err(error::ErrorBadRequest)?;
     let id = payload.id.map(|x| x.0).unwrap_or(
         stmt_db
             .max_id()
@@ -111,7 +111,7 @@ async fn fulldata(
             .map_err(|e| error::ErrorInternalServerError(format!("get max_id: {e}")))?,
     );
     let fulldata =
-        ProblemFullData::open(&Handle::new(dir.path())).map_err(|e| error::ErrorBadRequest(e))?;
+        ProblemFullData::open(&Handle::new(dir.path())).map_err(error::ErrorBadRequest)?;
 
     db.insert(id, fulldata.data)
         .await
@@ -137,7 +137,7 @@ async fn fulldata_meta(
 ) -> AnyResult<String> {
     db.get_meta(query.id)
         .await
-        .map_err(|e| error::ErrorInternalServerError(e))
+        .map_err(error::ErrorInternalServerError)
 }
 
 /// 提供 problem 相关服务

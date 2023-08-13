@@ -90,7 +90,7 @@ fn gen_field(
     let ty = field.ty;
     let tyctxt = quote!(<#ty as serde_ts_typing::TsType>::register_self_context(c););
     let tydef = quote!(<#ty as serde_ts_typing::TsType>::type_def());
-    return Some((field_name, (tyctxt, tydef)));
+    Some((field_name, (tyctxt, tydef)))
 }
 
 // 返回 context 的构造代码和当前结构本身的类型构造代码

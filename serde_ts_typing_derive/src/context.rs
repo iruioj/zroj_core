@@ -43,7 +43,7 @@ impl FieldContext {
                 FieldAttr::Rename(i) => match i {
                     SeperableMeta::Consistent(s) => r.rename = Some(RenameOption::Specify(s)),
                     SeperableMeta::Seperate { serialize, .. } => {
-                        r.rename = serialize.map(|s| RenameOption::Specify(s))
+                        r.rename = serialize.map(RenameOption::Specify)
                     }
                 },
                 FieldAttr::Flatten => r.flatten = true,
@@ -86,7 +86,7 @@ impl VariantContext {
                 VariantAttr::Rename(i) => match i {
                     SeperableMeta::Consistent(s) => r.rename = Some(RenameOption::Specify(s)),
                     SeperableMeta::Seperate { serialize, .. } => {
-                        r.rename = serialize.map(|s| RenameOption::Specify(s))
+                        r.rename = serialize.map(RenameOption::Specify)
                     },
                 },
                 VariantAttr::RenameAll(i) => match i {

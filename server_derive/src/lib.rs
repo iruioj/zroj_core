@@ -238,13 +238,13 @@ pub fn api(
 
     let mut res_type_stmt = quote!(let res_type = None;);
     if let ReturnType::Type(_, ty) = &func.sig.output {
-        if let Some(v) = parse_marker_type("JsonResult", &ty) {
+        if let Some(v) = parse_marker_type("JsonResult", ty) {
             res_type_stmt =
                 quote!(let res_type = Some(<#v as serde_ts_typing::TsType>::type_def()););
             ctxt_stmt.extend(quote!(
                 <#v as serde_ts_typing::TsType>::register_context(&mut c);
             ))
-        } else if let Some(_) = parse_marker_type("AnyResult", &ty) {
+        } else if let Some(_) = parse_marker_type("AnyResult", ty) {
             res_type_stmt = quote!(let res_type = Some(serde_ts_typing::TypeExpr::Any););
         }
     }

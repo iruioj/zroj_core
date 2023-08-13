@@ -64,7 +64,7 @@ impl OneOffManager {
                 Ok(r) => Ok(Some(r.clone())),
                 Err(e) => Err(error::ErrorInternalServerError(e.to_string())),
             },
-            None => Ok(None)
+            None => Ok(None),
         }
     }
     fn get_user_folder(&self, uid: &UserID) -> Handle {
@@ -91,7 +91,7 @@ impl OneOffManager {
         Ok(())
     }
     pub fn add_test(&self, uid: UserID, source: StoreFile, input: StoreFile) -> Result<()> {
-        let base = self.get_user_folder(&uid).clone();
+        let base = self.get_user_folder(&uid);
         let state = self.state.clone();
         self.add_job(move || {
             eprintln!(
@@ -102,6 +102,11 @@ impl OneOffManager {
                 state.write().unwrap().remove(&uid);
             }
             std::fs::create_dir_all(&base).unwrap();
+            #[cfg(target_os = "linux")]
+            let mut one = OneOff::new(source, input, None);
+
+            // 目前 macos 会出现无法杀死子进程导致评测失败的情况，尚未得到有效解决
+            #[cfg(target_os = "macos")]
             let mut one = OneOff::new(
                 source,
                 input,

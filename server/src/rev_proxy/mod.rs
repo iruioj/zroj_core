@@ -193,7 +193,7 @@ fn _remove_connection_headers(headers: &mut HeaderMap) {
 fn _remove_request_hop_by_hop_headers(headers: &mut HeaderMap) {
     for h in HOP_BY_HOP_HEADERS.iter() {
         if let Some(v) = headers.get(h) {
-            if v == "" || (h == *HEADER_TE && v == "trailers") {
+            if v.is_empty() || (h == *HEADER_TE && v == "trailers") {
                 continue;
             }
         }

@@ -123,7 +123,7 @@ impl Context {
         self.1.insert(ty, name);
     }
     pub fn register_variant(&mut self, name: String, tydef: TypeExpr) {
-        self.0.insert(name.clone(), tydef);
+        self.0.insert(name, tydef);
     }
     pub fn contains(&self, id: TypeId) -> bool {
         self.1.contains_key(&id)

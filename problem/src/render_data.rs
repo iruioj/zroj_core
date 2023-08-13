@@ -112,10 +112,10 @@ pub mod statement {
                     notes,
                     samples,
                 } => {
-                    let leg = md::parse_ast(&legend).expect("parse legend error");
-                    let inp = md::parse_ast(&input_format).expect("parse input format error");
-                    let oup = md::parse_ast(&output_format).expect("parse output format error");
-                    let notes = md::parse_ast(&notes).expect("parse notes error");
+                    let leg = md::parse_ast(legend).expect("parse legend error");
+                    let inp = md::parse_ast(input_format).expect("parse input format error");
+                    let oup = md::parse_ast(output_format).expect("parse output format error");
+                    let notes = md::parse_ast(notes).expect("parse notes error");
                     let mut nodes = Vec::new();
                     if let md::Node::Root(mut r) = leg {
                         nodes.push(create_heading("题目背景", 2));

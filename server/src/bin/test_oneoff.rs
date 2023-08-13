@@ -30,7 +30,7 @@ async fn main() -> std::io::Result<()> {
         .await
         .unwrap();
 
-    let custom_test = web::Data::new(OneOffManager::new(dir.path().to_path_buf()));
+    let custom_test = web::Data::new(OneOffManager::new(dir.path()));
 
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     let session_key = actix_web::cookie::Key::generate();

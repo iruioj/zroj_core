@@ -2,8 +2,8 @@ use server::app;
 use std::collections::BTreeMap;
 
 fn to_typename(path: String) -> String {
-    path.split("/").fold(String::new(), |acc, s| {
-        acc + &s.split("_").fold(String::new(), |acc, s| {
+    path.split('/').fold(String::new(), |acc, s| {
+        acc + &s.split('_').fold(String::new(), |acc, s| {
             let mut c = s.chars();
             acc + &match c.next() {
                 None => String::new(),
@@ -102,7 +102,7 @@ impl EntryNode {
                 let mut ty = BTreeMap::new();
                 let ret_ty = returns.clone().map(|ret| {
                     let ret_ty = to_typename(path.clone() + "/" + method + "/return");
-                    ty.insert(ret_ty.clone(), ret.clone());
+                    ty.insert(ret_ty.clone(), ret);
                     ret_ty
                 });
                 if let Some(payload) = payload {

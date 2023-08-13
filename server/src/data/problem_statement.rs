@@ -65,7 +65,7 @@ mod default {
     #[async_trait]
     impl Manager for DefaultDB {
         async fn get(&self, id: ProblemID) -> Result<Option<Statement>, Error> {
-            Ok(self.data.read()?.get(&id).map(|s| From::from(s)))
+            Ok(self.data.read()?.get(&id).map(From::from))
         }
         async fn insert(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), Error> {
             self.data.write()?.insert(id, stmt);

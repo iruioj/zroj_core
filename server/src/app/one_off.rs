@@ -13,7 +13,7 @@ use std::fmt::Debug;
 
 /// warning: this funtion contains probable leak
 fn parse_source_name(s: String) -> Option<judger::FileType> {
-    let lang = s.trim().split('.').skip(1).next().unwrap();
+    let lang = s.trim().split('.').nth(1).unwrap();
     serde_json::from_value(json!(lang)).ok()
 }
 

@@ -59,7 +59,7 @@ impl<T: PartialOrd + FromStr> FromStr for Lim<T> {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let a: Vec<&str> = s.split(",").collect();
+        let a: Vec<&str> = s.split(',').collect();
         match a.as_slice() {
             [s, h] => {
                 let Ok(s) = s.parse() else {
@@ -126,7 +126,7 @@ impl FromStr for Limitation {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let r: Vec<&str> = s.split(":").collect();
+        let r: Vec<&str> = s.split(':').collect();
         match r.as_slice() {
             [rt, ct, vm, rm, sm, om, fo] => Ok(Self {
                 real_time: rt.parse()?,

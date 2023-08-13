@@ -4,8 +4,8 @@ fn test_cat_stdio() -> Result<(), sandbox::SandboxError> {
     use std::io::Write;
 
     use sandbox::{
-        unix::{Limitation, SingletonBuilder, Lim},
-        Builder, ExecSandBox,
+        unix::{Limitation, Singleton, Lim},
+        ExecSandBox,
     };
     use tempfile::tempdir;
 
@@ -18,7 +18,7 @@ fn test_cat_stdio() -> Result<(), sandbox::SandboxError> {
     fin.write_all(content.as_bytes()).unwrap();
     drop(fin);
 
-    let s = SingletonBuilder::new("/usr/bin/cat")
+    let s = Singleton::new("/usr/bin/cat")
         .stdin(filepath)
         .stdout(outputpath)
         .set_limits(|_| Limitation {
@@ -29,8 +29,7 @@ fn test_cat_stdio() -> Result<(), sandbox::SandboxError> {
             stack_memory: Lim::Single((2 << 30).into()),
             output_memory: Lim::Single((64 << 20).into()),
             fileno: Lim::Single(10),
-        })
-        .build()?;
+        });
 
     let term = s.exec_sandbox()?;
 
