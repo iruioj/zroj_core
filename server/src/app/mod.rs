@@ -8,7 +8,7 @@ pub mod user;
 use crate::{
     auth::{middleware::SessionAuth, SessionManager},
     data::group::AManager as GroupAManager,
-    data::user::UserDB,
+    data::{user::UserDB, gravatar::GravatarDB},
     manager::one_off::OneOffManager,
 };
 use actix_web::{
@@ -38,6 +38,7 @@ pub fn new(
     session_mgr: SessionManager,
     user_db: web::Data<UserDB>,
     group_db: web::Data<GroupAManager>,
+    gravatar_db: web::Data<GravatarDB>,
     // problem_config_mgr: web::Data<ProblemConfigAManager>,
     // problem_mgr: web::Data<ProblemManager>,
     custom_test_mgr: web::Data<OneOffManager>,
@@ -47,7 +48,7 @@ pub fn new(
         app.service(auth::service(session_mgr, user_db.clone()))
             .service(one_off::service(custom_test_mgr).wrap(session_auth.clone()))
             // .service(problem::service(problem_mgr, problem_config_mgr).wrap(session_auth.clone()))
-            .service(user::service(user_db.clone()).wrap(session_auth.clone()))
+            .service(user::service(user_db.clone(), gravatar_db).wrap(session_auth.clone()))
             .service(group::service(group_db.clone()).wrap(session_auth))
             .default_service(web::route().to(default_route));
     }

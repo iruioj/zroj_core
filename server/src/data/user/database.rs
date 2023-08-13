@@ -87,7 +87,7 @@ impl DbManager {
         }
     }
 }
-#[async_trait]
+#[async_trait(?Send)]
 impl Manager for DbManager {
     async fn query_by_username(&self, username: &Username) -> Result<Option<User>, Error> {
         self._query_by_username(&mut self.get_conn().await?, username.as_ref())

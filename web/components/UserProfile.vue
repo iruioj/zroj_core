@@ -8,6 +8,7 @@ const { data: profile } = await useAPI().user.get({ username: props.username });
 
 <template>
   <div>
+    <img v-if="profile" :src="'/api/user/gravatar?email=' + profile.email" />
     <pre>{{ profile }}</pre>
   </div>
 </template>

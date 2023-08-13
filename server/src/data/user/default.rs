@@ -45,7 +45,7 @@ impl DefaultDB {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl super::Manager for DefaultDB {
     async fn query_by_username(&self, username: &Username) -> Result<Option<User>, Error> {
         let data = self.data.read()?;

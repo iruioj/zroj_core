@@ -1,5 +1,6 @@
 use crate::{
     data::{
+        gravatar::GravatarDB,
         types::*,
         user::{User, UserDB},
     },
@@ -7,15 +8,10 @@ use crate::{
     UserID,
 };
 use actix_files::NamedFile;
-use actix_web::{
-    error::{self, ErrorInternalServerError, Result},
-    web,
-};
-use md5::{Digest, Md5};
+use actix_web::{error, web};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
-use std::{io::Write, path::PathBuf};
 
 #[derive(Serialize, TsType)]
 struct UserDisplayInfo {
@@ -127,7 +123,7 @@ async fn edit_post(
     uid: web::ReqData<UserID>,
     info: JsonBody<UserUpdateInfo>,
     manager: ServerData<UserDB>,
-) -> Result<String> {
+) -> actix_web::Result<String> {
     manager.update(*uid, info.into_inner()).await?;
     Ok("ok".to_string())
 }
@@ -139,69 +135,25 @@ pub struct GravatarInfo {
 }
 
 #[api(method = get, path = "/gravatar")]
-async fn gravatar(info: QueryParam<GravatarInfo>) -> Result<NamedFile> {
-    todo!()
-    /*let mut md5 = Md5::new();
-    md5.update(info.email.to_string().to_lowercase());
-    let hash = hex::encode(md5.finalize().as_slice());
-    let mut path = PathBuf::from("./gravatar");
-    if !path.exists() {
-        std::fs::create_dir(&path).map_err(|e| {
-            ErrorInternalServerError(format!(
-                "Failed to create gravatar storage dir: {}, error: {}",
-                path.to_string_lossy(),
-                e.to_string()
-            ))
-        })?;
+async fn gravatar(
+    info: QueryParam<GravatarInfo>,
+    db: ServerData<GravatarDB>,
+) -> actix_web::Result<NamedFile> {
+    if info.no_cache.unwrap_or(false) {
+        db.fetch(&info.email)
+            .await
+            .map_err(error::ErrorInternalServerError)
+    } else {
+        db.get(&info.email)
+            .await
+            .map_err(error::ErrorInternalServerError)
     }
-    if path.is_file() {
-        return Err(ErrorInternalServerError(format!(
-            "gravatar storage dir \"{}\" taken up by another file",
-            path.to_string_lossy()
-        )));
-    }
-    path = path.join(&hash);
-    if !path.exists() || info.no_cache == Some(true) {
-        let url = String::from("http://www.gravatar.com/avatar/") + &hash;
-        let client = awc::Client::default();
-        let req = client.get(&url);
-        let mut res = req.send().await.map_err(|e| {
-            ErrorInternalServerError(format!(
-                "Failed to send request to gravatar.com,\n- error: {},\n- url: {}",
-                e, url
-            ))
-        })?;
-        if !res.status().is_success() {
-            return Err(ErrorInternalServerError(format!(
-                "Failed to connect to gravatar,\n- status_code:{},\n- url={}",
-                res.status(),
-                url
-            )));
-        }
-        let img = res.body().await.map_err(|e| {
-            ErrorInternalServerError(format!(
-                "Failed to get image from gravatar, {}, url={}",
-                e, url
-            ))
-        })?;
-        let mut f = std::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .open(&path)?;
-        f.write_all(&img)?;
-    }
-    NamedFile::open_async(&path).await.map_err(|e| {
-        ErrorInternalServerError(format!(
-            "Failed to open {}, {}",
-            path.to_string_lossy(),
-            e.to_string()
-        ))
-    })*/
 }
 
 #[scope_service(path = "/user")]
-pub fn service(user_database: web::Data<UserDB>) {
+pub fn service(user_database: ServerData<UserDB>, gravatar_db: ServerData<GravatarDB>) {
     app_data(user_database);
+    app_data(gravatar_db);
     service(profile);
     service(edit_get);
     service(edit_post);

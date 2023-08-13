@@ -3,8 +3,10 @@ use actix_web::{web, HttpServer};
 use server::{
     app,
     auth::{middleware::SessionAuth, SessionManager},
+    data::gravatar::GravatarDB,
     dev,
     manager::one_off::OneOffManager,
+    mkdata,
 };
 
 #[actix_web::main]
@@ -15,6 +17,13 @@ async fn main() -> std::io::Result<()> {
     let stmt_db = dev::test_stmtdb(dir.path()).await;
     let ojdata_db = dev::test_ojdata_db(dir.path()).await;
     let custom_test = web::Data::new(OneOffManager::new(dir.path().join("oneoff")));
+    let gravatar = mkdata!(
+        GravatarDB,
+        server::data::gravatar::DefaultDB::new(
+            dir.path().join("gravatar"),
+            "http://sdn.geekzu.org/avatar/".into()
+        )
+    );
     eprintln!("job thread id = {:?}", custom_test.handle.thread().id());
 
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
@@ -31,7 +40,7 @@ async fn main() -> std::io::Result<()> {
                     user_db.clone(),
                 ))
                 .service(
-                    app::user::service(user_db.clone())
+                    app::user::service(user_db.clone(), gravatar.clone())
                         .wrap(SessionAuth::require_auth(session_container.clone())),
                 )
                 .service(

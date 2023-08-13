@@ -13,6 +13,7 @@ pub enum Error {
     SerdeJson(serde_json::Error),
     Regex(regex::Error),
     Store(store::Error),
+    FetchError(awc::error::SendRequestError),
 }
 
 impl From<Error> for actix_web::Error {
@@ -48,20 +49,21 @@ impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             #[cfg(feature = "mysql")]
-            Self::ConnectionError(e) => write!(f, "Database connection error: {}", e),
+            Error::ConnectionError(e) => write!(f, "Database connection error: {}", e),
             #[cfg(feature = "mysql")]
-            Self::DbError(e) => write!(f, "Database error: {}", e),
-            Self::LockError => write!(
+            Error::DbError(e) => write!(f, "Database error: {}", e),
+            Error::LockError => write!(
                 f,
                 "Lock returned poisoned, which can be caused by a panicked thread"
             ),
 
-            Self::InvalidArgument(s) => write!(f, "Invalid argument: {}", s),
-            Self::Forbidden(s) => write!(f, "Forbidden operation: {}", s),
-            Self::DuplicatedGroupName(s) => write!(f, "duplicated group name {s}"),
-            Self::SerdeJson(e) => write!(f, "serialize or deserializing data: {e}"),
-            Self::Regex(e) => write!(f, "creating regex: {e}"),
-            Self::Store(e) => write!(f, "store error: {e}")
+            Error::InvalidArgument(s) => write!(f, "Invalid argument: {}", s),
+            Error::Forbidden(s) => write!(f, "Forbidden operation: {}", s),
+            Error::DuplicatedGroupName(s) => write!(f, "duplicated group name {s}"),
+            Error::SerdeJson(e) => write!(f, "serialize or deserializing data: {e}"),
+            Error::Regex(e) => write!(f, "creating regex: {e}"),
+            Error::Store(e) => write!(f, "store error: {e}"),
+            Error::FetchError(e) => write!(f, "fetch error: {e}"),
         }
     }
 }

@@ -34,7 +34,7 @@ pub struct User {
 }
 
 // Result<Option<...>> pattern: Err 表示出错， None 表示未查到，Some 表示查到的值
-#[async_trait]
+#[async_trait(?Send)]
 pub trait Manager {
     async fn query_by_username(&self, username: &Username) -> Result<Option<User>, Error>;
     async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>, Error>;
