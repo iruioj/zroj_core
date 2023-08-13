@@ -1,10 +1,8 @@
 //! Experimental. one off mode: 自定义评测
 
-use sandbox::{
-    mem, time,
-    unix::{Limitation, SingletonBuilder},
-    Builder, Elapse, ExecSandBox, Memory,
-};
+use std::path::PathBuf;
+
+use sandbox::{mem, time, unix::Limitation, Elapse, Memory};
 use store::Handle;
 
 use crate::{lang::Compile, Error, Status, StoreFile, TaskReport};
@@ -23,11 +21,12 @@ pub struct OneOff {
     memory_limit: Memory,
     output_limit: Memory,
     fileno_limit: u64,
+    sandbox_exec: Option<PathBuf>,
 }
 
 impl OneOff {
     /// 新建一个 OneOff 评测环境，工作目录默认为 cwd（生成可执行文件的路径），编译语言为 lang
-    pub fn new(file: StoreFile, stdin: StoreFile) -> Self {
+    pub fn new(file: StoreFile, stdin: StoreFile, sandbox_exec: Option<PathBuf>) -> Self {
         Self {
             file,
             stdin,
@@ -36,6 +35,7 @@ impl OneOff {
             memory_limit: mem!(512mb),
             output_limit: mem!(64mb),
             fileno_limit: 6,
+            sandbox_exec,
         }
     }
     pub fn set_wd(&mut self, dir: Handle) -> &mut Self {
@@ -44,9 +44,12 @@ impl OneOff {
     }
     #[cfg(all(unix))]
     pub fn exec(&mut self) -> Result<TaskReport, Error> {
-        use sandbox::unix::Lim;
-
         use crate::TaskMeta;
+        use sandbox::{
+            unix::{Lim, SingletonBuilder},
+            Builder, ExecSandBox,
+        };
+        use std::process::Command;
 
         let src = self
             .working_dir
@@ -67,7 +70,7 @@ impl OneOff {
                 },
                 payload: Vec::new(),
             };
-            return Ok(r)
+            return Ok(r);
         }
         let term = self
             .file
@@ -90,6 +93,7 @@ impl OneOff {
             dbg!(&self.working_dir);
             return Ok(r);
         }
+        drop(term);
         eprintln!("编译成功");
         // execution
         let out = self.working_dir.join("main.out");
@@ -97,24 +101,63 @@ impl OneOff {
         let input = self.working_dir.join("main.in");
         self.stdin.copy_to(&input).expect("cannot copy input file");
         assert!(dest.as_ref().exists());
-        let s = SingletonBuilder::new(dest)
-            .set_limits(|_| Limitation {
-                real_time: Lim::Double(self.time_limit, Elapse::from(self.time_limit.ms() * 2)),
-                cpu_time: self.time_limit.into(),
-                virtual_memory: self.memory_limit.into(),
-                real_memory: self.memory_limit.into(),
-                stack_memory: self.memory_limit.into(),
-                output_memory: self.output_limit.into(),
-                fileno: self.fileno_limit.into(),
-            })
-            .stdout(&out)
-            .stderr(&log)
-            .stdin(input)
-            .build()
-            .unwrap();
-        eprintln!("开始运行选手程序");
-        let term = s.exec_fork()?;
-        eprintln!("程序运行结束");
+        let term: sandbox::Termination = if let Some(sandbox_exec) = &self.sandbox_exec {
+            eprintln!("sandbox executable path: {}", sandbox_exec.display());
+            let term_f = self.working_dir.join("term.json");
+            let mut p = Command::new(sandbox_exec)
+                .arg(dest.path())
+                .arg("--stdin")
+                .arg(input.path())
+                .arg("--stdout")
+                .arg(out.path())
+                .arg("--stderr")
+                .arg(log.path())
+                .arg("--lim")
+                .arg(
+                    Limitation {
+                        real_time: Lim::Double(
+                            self.time_limit,
+                            Elapse::from(self.time_limit.ms() * 2),
+                        ),
+                        cpu_time: self.time_limit.into(),
+                        virtual_memory: self.memory_limit.into(),
+                        real_memory: self.memory_limit.into(),
+                        stack_memory: self.memory_limit.into(),
+                        output_memory: self.output_limit.into(),
+                        fileno: self.fileno_limit.into(),
+                    }
+                    .to_string(),
+                )
+                .arg("--save")
+                .arg(term_f.path())
+                .spawn()
+                .unwrap();
+            let status = p.wait().unwrap();
+            assert!(status.success());
+            let term_file = term_f.open_file().unwrap();
+            serde_json::from_reader(&term_file).unwrap()
+        } else {
+            let s = SingletonBuilder::new(dest)
+                .set_limits(|_| Limitation {
+                    real_time: Lim::Double(self.time_limit, Elapse::from(self.time_limit.ms() * 2)),
+                    cpu_time: self.time_limit.into(),
+                    virtual_memory: self.memory_limit.into(),
+                    real_memory: self.memory_limit.into(),
+                    stack_memory: self.memory_limit.into(),
+                    output_memory: self.output_limit.into(),
+                    fileno: self.fileno_limit.into(),
+                })
+                .stdout(&out)
+                .stderr(&log)
+                .stdin(input)
+                .build()
+                .unwrap();
+            eprintln!("开始运行选手程序");
+            let term = s.exec_fork()?;
+            eprintln!("程序运行结束");
+            term
+        };
+
         let mut r: TaskReport = TaskReport {
             meta: TaskMeta {
                 score: 0.0,

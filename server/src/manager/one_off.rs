@@ -61,7 +61,7 @@ impl OneOffManager {
             .map_err(|_| error::ErrorInternalServerError("Poisoned lock"))?;
         Ok(guard.get(uid).cloned())
     }
-    pub fn get_user_folder(&self, uid: &UserID) -> Handle {
+    fn get_user_folder(&self, uid: &UserID) -> Handle {
         self.base_dir.join(uid.to_string())
     }
     fn add_job<F>(&self, f: F) -> Result<()>
@@ -85,7 +85,7 @@ impl OneOffManager {
         Ok(())
     }
     pub fn add_test(&self, uid: UserID, source: StoreFile, input: StoreFile) -> Result<()> {
-        let base = self.base_dir.clone();
+        let base = self.get_user_folder(&uid).clone();
         let state = self.state.clone();
         self.add_job(move || {
             eprintln!(
@@ -95,7 +95,13 @@ impl OneOffManager {
             {
                 state.write().unwrap().remove(&uid);
             }
-            let mut one = OneOff::new(source, input);
+            std::fs::create_dir_all(&base).unwrap();
+            let mut one = OneOff::new(
+                source,
+                input,
+                // TODO make configurable
+                Some("/Users/sshwy/zroj_core/target/debug/zroj-sandbox".into()),
+            );
             one.set_wd(base);
             let result = one.exec().unwrap();
             eprintln!("[job] oneoff exec done.");
@@ -123,9 +129,12 @@ mod tests {
 
         let source = StoreFile::from_str(
             r"
-#include<unistd.h>
+#include<iostream>
+using namespace std;
 int main() {
-    sleep(5);
+    int a, b;
+    cin >> a >> b;
+    cout << a + b << endl;
     return 0;
 }
 ",

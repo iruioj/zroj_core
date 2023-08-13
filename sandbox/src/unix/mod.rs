@@ -1,4 +1,7 @@
 pub(crate) mod singleton;
+use std::fmt::Display;
+use std::str::FromStr;
+
 pub use singleton::Arg;
 pub use singleton::Singleton;
 pub use singleton::SingletonBuilder;
@@ -44,6 +47,34 @@ impl<T: PartialOrd + Copy> Lim<T> {
         }
     }
 }
+impl<T: PartialOrd + Display> Display for Lim<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Lim::None => write!(f, "-,-"),
+            Lim::Single(l) => write!(f, "{l},-"),
+            Lim::Double(s, h) => write!(f, "{s},{h}"),
+        }
+    }
+}
+impl<T: PartialOrd + FromStr> FromStr for Lim<T> {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let a: Vec<&str> = s.split(",").collect();
+        match a.as_slice() {
+            [s, h] => {
+                let Ok(s) = s.parse() else {
+                    return Ok(Self::None)
+                };
+                let Ok(h) = h.parse() else {
+                    return Ok(Self::Single(s))
+                };
+                Ok(Self::Double(s, h))
+            }
+            _ => Err("invalid str"),
+        }
+    }
+}
 impl<T: PartialOrd + Copy> From<T> for Lim<T> {
     fn from(value: T) -> Self {
         Lim::Single(value)
@@ -76,6 +107,42 @@ pub struct Limitation {
     pub fileno: Lim<u64>,
 }
 
+impl Display for Limitation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}:{}:{}:{}:{}:{}:{}",
+            self.real_time,
+            self.cpu_time,
+            self.virtual_memory,
+            self.real_memory,
+            self.stack_memory,
+            self.output_memory,
+            self.fileno
+        )
+    }
+}
+
+impl FromStr for Limitation {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let r: Vec<&str> = s.split(":").collect();
+        match r.as_slice() {
+            [rt, ct, vm, rm, sm, om, fo] => Ok(Self {
+                real_time: rt.parse()?,
+                cpu_time: ct.parse()?,
+                virtual_memory: vm.parse()?,
+                real_memory: rm.parse()?,
+                stack_memory: sm.parse()?,
+                output_memory: om.parse()?,
+                fileno: fo.parse()?,
+            }),
+            _ => Err("invalid limitation format"),
+        }
+    }
+}
+
 /// 考虑安全性的默认限制，简单来说时间限制 1 分钟，空间限制 1 GB，最多同时打开 100 个文件
 impl Default for Limitation {
     fn default() -> Self {
@@ -90,3 +157,15 @@ impl Default for Limitation {
         }
     }
 }
+
+#[cfg(test)]
+mod tests{
+    use super::*;
+
+    #[test]
+    fn test_display() {
+        let d = Limitation::default();
+        let d2: Limitation = d.to_string().parse().unwrap();
+        dbg!(d.to_string(), d2);
+    }
+} 

@@ -24,7 +24,7 @@ int main() {
         let src = StoreFile::from_str(a_plus_b_raw, FileType::GnuCpp17O2);
         let inp = StoreFile::from_str(input_content, FileType::Plain);
 
-        let mut one = OneOff::new(src, inp);
+        let mut one = OneOff::new(src, inp, None);
         one.set_wd(Handle::new(&dir));
 
         let res = one.exec()?;

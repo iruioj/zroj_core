@@ -1,7 +1,7 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
-use clap::{Parser, CommandFactory, error::ErrorKind};
-use sandbox::{Builder, ExecSandBox};
+use clap::{error::ErrorKind, CommandFactory, Parser};
+use sandbox::{unix::Limitation, Builder, ExecSandBox};
 use shadow_rs::shadow;
 
 shadow!(build);
@@ -54,11 +54,11 @@ struct Cli {
     full_args: bool,
 
     /// environment variables
-    #[arg(short, long, group="env")]
+    #[arg(short, long, group = "env")]
     envs: Vec<String>,
 
     /// inherit current environment variables
-    #[arg(long, group="env")]
+    #[arg(long, group = "env")]
     pass_env: bool,
 
     /// redirect stdin from file
@@ -72,6 +72,10 @@ struct Cli {
     /// redirect stderr to file
     #[arg(long)]
     stderr: Option<PathBuf>,
+
+    /// resource limitation
+    #[arg(long)]
+    lim: Option<String>,
 
     /// save termination status to file, otherwise ignored
     #[arg(short, long, value_name = "FILE")]
@@ -87,10 +91,10 @@ fn main() {
 
     if cli.version {
         print_build();
-        return
+        return;
     }
+    let mut cmd = Cli::command();
     if cli.exec.is_none() {
-        let mut cmd = Cli::command();
         cmd.error(
             ErrorKind::MissingRequiredArgument,
             "missing executable path",
@@ -109,6 +113,14 @@ fn main() {
     if !cli.full_args {
         args.insert(0, cli.exec.clone().unwrap().to_str().unwrap().to_string())
     }
+    let lim = cli.lim.map(|s| {
+        Limitation::from_str(&s)
+            .map_err(|e| {
+                cmd.error(ErrorKind::InvalidValue, format!("invalid limitation value: {e}"))
+                    .exit();
+            })
+            .unwrap()
+    });
 
     let mut s = sandbox::unix::SingletonBuilder::new(cli.exec.unwrap())
         .push_arg(args)
@@ -121,6 +133,9 @@ fn main() {
     }
     if let Some(stderr) = cli.stderr {
         s = s.stderr(stderr);
+    }
+    if let Some(lim) = lim {
+        s = s.set_limits(|_| lim)
     }
 
     let s = s.build().unwrap();

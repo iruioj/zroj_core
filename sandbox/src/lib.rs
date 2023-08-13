@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use std::{
     ffi::{CString, NulError},
-    fmt::Debug,
-    time::Duration,
+    fmt::{Debug, Display},
+    time::Duration, str::FromStr
 };
 
 /// 沙盒运行过程中产生的错误（系统错误）
@@ -194,6 +194,20 @@ impl Elapse {
     }
 }
 
+impl Display for Elapse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl FromStr for Elapse {
+    type Err = <u64 as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
+    }
+}
+
 impl From<u64> for Elapse {
     /// 单位：ms
     fn from(value: u64) -> Self {
@@ -211,6 +225,20 @@ impl From<Duration> for Elapse {
     Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord, TsType,
 )]
 pub struct Memory(u64);
+
+impl Display for Memory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl FromStr for Memory {
+    type Err = <u64 as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
+    }
+}
 
 impl From<u64> for Memory {
     fn from(value: u64) -> Self {
