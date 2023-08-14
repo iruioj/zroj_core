@@ -1,4 +1,4 @@
-use std::{fmt::Debug, path::PathBuf};
+use std::fmt::Debug;
 
 use nix::errno::Errno;
 use serde::{Deserialize, Serialize};
@@ -42,14 +42,14 @@ mod errno_serde {
 #[derive(thiserror::Error, Debug, Clone, Serialize, Deserialize)]
 #[allow(missing_docs)]
 pub enum ChildError {
-    #[error("opening file: errno = {0}, path = {1:?}, mode = {2}")]
-    OpenFile(#[serde(with = "errno_serde")] Errno, PathBuf, i32),
+    #[error("opening file: errno = {0}, mode = {1}")]
+    OpenFile(#[serde(with = "errno_serde")] Errno, i32),
     #[error("redirect file: errno = {0}, to = {1}, from = {2}")]
     Dup(#[serde(with = "errno_serde")] Errno, i32, i32),
     #[error("setpgid: errno = {0}")]
     SetPGID(#[serde(with = "errno_serde")] Errno),
     #[error("setrlimit: errno = {0}, rsc = {1}, lim = {2}, {3}")]
-    SetRlimit(#[serde(with = "errno_serde")] Errno, String, u64, u64),
+    SetRlimit(#[serde(with = "errno_serde")] Errno, &'static str, u64, u64),
     #[error("execve: errno = {0}")]
     Execve(#[serde(with = "errno_serde")] Errno),
 }

@@ -77,6 +77,17 @@ pub struct TaskMeta {
     pub memory: Memory,
 }
 
+impl TaskMeta {
+    pub fn error_status(status: Status) -> Self {
+        Self {
+            score: 0.0,
+            status,
+            time: 0.into(),
+            memory: 0.into(),
+        }
+    }
+}
+
 /// 一个测试点的测试结果
 #[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub struct TaskReport {
@@ -84,6 +95,15 @@ pub struct TaskReport {
     pub meta: TaskMeta,
     /// 相关载荷（stdin, stdout, answer ...)
     pub payload: Vec<(String, TruncStr)>,
+}
+
+impl TaskReport {
+    pub fn new(meta: TaskMeta) -> Self {
+        Self {
+            meta,
+            payload: Vec::new(),
+        }
+    }
 }
 
 impl TaskReport {
@@ -100,6 +120,10 @@ impl TaskReport {
                 .into(),
         ));
         Ok(())
+    }
+    pub fn try_add_payload(mut self, name: impl AsRef<str>, path: impl AsRef<std::path::Path>) -> Self {
+        let _ = self.add_payload(name, path);
+        self
     }
 }
 

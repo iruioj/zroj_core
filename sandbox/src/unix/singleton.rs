@@ -7,15 +7,16 @@ use crate::{
 use nix::{
     fcntl::{self, OFlag},
     libc,
-    sys::{resource::getrusage, stat::Mode, wait},
     sys::{
-        resource::{setrlimit, Resource, UsageWho},
+        resource::{getrusage, setrlimit, Resource, UsageWho},
         signal::{self, Signal},
+        stat::Mode,
         time::TimeValLike,
-        wait::WaitStatus,
+        wait::{self, WaitStatus},
     },
     unistd,
 };
+use serde::{Serialize, Deserialize};
 use std::{
     ffi::CString,
     os::{fd::RawFd, unix::prelude::OsStrExt},
@@ -24,7 +25,7 @@ use std::{
 };
 
 /// 执行单个可执行文件
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Singleton {
     limits: Limitation,
     exec_path: PathBuf,
@@ -46,29 +47,29 @@ fn c_write(s: &[u8]) {
         );
     }
 }
-fn open_file(path: impl AsRef<std::path::Path>, flag: OFlag) -> Result<RawFd, ChildError> {
+fn open_file(path: &PathBuf, flag: OFlag) -> Result<RawFd, ChildError> {
     fcntl::open(
-        path.as_ref().as_os_str(),
+        path.as_os_str(),
         flag,
         // mode is for creating new file
         Mode::S_IRUSR | Mode::S_IWUSR | Mode::S_IRGRP | Mode::S_IROTH,
     )
-    .map_err(|errno| ChildError::OpenFile(errno, path.as_ref().to_path_buf(), flag.bits()))
+    .map_err(|errno| ChildError::OpenFile(errno, flag.bits()))
 }
 fn dup(to: RawFd, from: RawFd) -> Result<RawFd, ChildError> {
     nix::unistd::dup2(to, from).map_err(|errno| ChildError::Dup(errno, to, from))
 }
 impl Singleton {
-    fn exec_child(&self) -> Result<(), ChildError> {
+    fn exec_child(
+        &self,
+        path: CString,
+        args: Vec<CString>,
+        env: Vec<CString>,
+    ) -> Result<(), ChildError> {
         c_write(b"start exec child\n");
         unistd::setpgid(unistd::Pid::from_raw(0), unistd::Pid::from_raw(0))
             .map_err(ChildError::SetPGID)?;
         c_write(format!("pgid = {}\n", unistd::getpgid(None).unwrap()).as_bytes());
-        // 提前计算好需要的东西
-        let path = CString::new(self.exec_path.as_os_str().as_bytes())
-            .expect("exec_path contains null char");
-        let args = vec_str_to_vec_cstr(&self.arguments).expect("arguments contains null char");
-        let env = vec_str_to_vec_cstr(&self.envs).expect("enviroment arguments contains null char");
         // redirect standard IO
         if let Some(stdin) = &self.stdin {
             let fd = open_file(stdin, OFlag::O_RDONLY)?;
@@ -93,12 +94,12 @@ impl Singleton {
                     crate::unix::Lim::None => {}
                     crate::unix::Lim::Single(s) => {
                         setrlimit(Resource::$r, s.$f(), s.$f()).map_err(|errno| {
-                            ChildError::SetRlimit(errno, stringify!($r).into(), s.$f(), s.$f())
+                            ChildError::SetRlimit(errno, stringify!($r), s.$f(), s.$f())
                         })?;
                     }
                     crate::unix::Lim::Double(s, h) => {
                         setrlimit(Resource::$r, s.$f(), h.$f()).map_err(|errno| {
-                            ChildError::SetRlimit(errno, stringify!($r).into(), s.$f(), s.$f())
+                            ChildError::SetRlimit(errno, stringify!($r), s.$f(), s.$f())
                         })?;
                     }
                 }
@@ -118,7 +119,8 @@ impl Singleton {
         }
         // todo: set syscall limit
         unistd::execve(&path, &args, &env).map_err(|errno| {
-            c_write(format!("execve error: {errno}").as_bytes());
+            c_write(b"execve error: ");
+            c_write(errno.desc().as_bytes());
             ChildError::Execve(errno)
         })?;
         unreachable!("execve returns infallible")
@@ -203,11 +205,17 @@ impl Singleton {
 impl crate::ExecSandBox for Singleton {
     fn exec_sandbox(&self) -> Result<crate::Termination, SandboxError> {
         let start = Instant::now();
+        // 提前计算好需要的东西
+        let path = CString::new(self.exec_path.as_os_str().as_bytes())
+            .expect("exec_path contains null char");
+        let args = vec_str_to_vec_cstr(&self.arguments).expect("arguments contains null char");
+        let env = vec_str_to_vec_cstr(&self.envs).expect("enviroment arguments contains null char");
+
         match unsafe { unistd::fork() } {
             Err(e) => Err(SandboxError::Fork(e)),
             Ok(unistd::ForkResult::Parent { child }) => self.exec_parent(child, start),
             Ok(unistd::ForkResult::Child) => {
-                let e = self.exec_child().unwrap_err();
+                let e = self.exec_child(path, args, env).unwrap_err();
                 c_write(e.to_string().as_bytes());
                 unsafe { libc::_exit(1) }
             }
@@ -350,6 +358,8 @@ impl Singleton {
 
 #[cfg(test)]
 mod tests {
+    use std::process::Command;
+
     use super::*;
     use crate::unix::Lim;
     use crate::ExecSandBox;
@@ -417,6 +427,59 @@ mod tests {
         let term = singleton.exec_fork()?;
         assert_eq!(term.status, Status::Ok);
         // eprintln!("termination: {:?}", term);
+        Ok(())
+    }
+
+    #[test]
+    fn singleton_loop() -> Result<(), super::SandboxError> {
+        let dir = tempfile::TempDir::new().unwrap();
+        let main_path = dir.path().join("main.cpp");
+        let exec_path = dir.path().join("main");
+        std::fs::write(
+            &main_path,
+            r"
+#include<iostream>
+using namespace std;
+int main() {
+    for(;;);
+}
+",
+        )
+        .unwrap();
+        let mut p = Command::new("g++")
+            .arg(&main_path)
+            .arg("-o")
+            .arg(&exec_path)
+            .spawn()
+            .unwrap();
+        let r = p.wait().unwrap();
+        assert!(exec_path.is_file());
+        assert!(r.success());
+
+        let term = Singleton::new(&exec_path)
+            .set_limits(|mut l| {
+                l.cpu_time = Lim::Double(1000.into(), 3000.into());
+                l.real_time = Lim::Double(1000.into(), 2000.into());
+                l
+            })
+            .exec_fork()?;
+        assert_eq!(
+            term.status,
+            Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
+        );
+        let term = Singleton::new(&exec_path)
+            .set_limits(|mut l| {
+                l.cpu_time = Lim::Double(1000.into(), 3000.into());
+                l.real_time = Lim::Double(1000.into(), 2000.into());
+                l
+            })
+            .exec_fork()?;
+        assert_eq!(
+            term.status,
+            Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
+        );
+
+        drop(dir);
         Ok(())
     }
 }

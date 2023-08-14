@@ -32,8 +32,8 @@ impl OneOff {
             stdin,
             working_dir: Handle::new(std::env::current_dir().unwrap()),
             time_limit: time!(1s),
-            memory_limit: mem!(512mb),
-            output_limit: mem!(64mb),
+            memory_limit: mem!(1024mb),
+            output_limit: mem!(128mb),
             fileno_limit: 6,
             sandbox_exec,
         }
@@ -58,43 +58,49 @@ impl OneOff {
         // 可执行文件名
         let dest = self.working_dir.join("main");
         let clog = self.working_dir.join("compile.log");
-        // compilation
-        eprintln!("编译...");
-        if !self.file.file_type.compileable() {
-            let r = TaskReport {
-                meta: TaskMeta {
-                    score: 0.0,
-                    status: Status::CompileError(None),
-                    time: 0.into(),
-                    memory: 0.into(),
-                },
-                payload: Vec::new(),
-            };
-            return Ok(r);
-        }
-        let term = self
-            .file
-            .file_type
-            .compile_sandbox(&src, &dest, &clog)
-            .exec_fork()?;
-        let st = term.status.clone();
-        if st != sandbox::Status::Ok {
-            let mut r = TaskReport {
-                meta: TaskMeta {
+
+        // FIXME
+        // #[cfg(target_os = "macos")]
+        // {
+        //     let mut p = Command::new("g++")
+        //         .arg(src.path())
+        //         .arg("-o")
+        //         .arg(dest.path())
+        //         .spawn()
+        //         .unwrap();
+        //     let r = p.wait().unwrap();
+        //     assert!(dest.path().is_file());
+        //     assert!(r.success());
+        // }
+
+        // #[cfg(not(target_os = "macos"))]
+        {
+            // compilation
+            eprintln!("编译...");
+            if !self.file.file_type.compileable() {
+                let r = TaskReport::new(TaskMeta::error_status(Status::CompileError(None)));
+                return Ok(r);
+            }
+            let term = self
+                .file
+                .file_type
+                .compile_sandbox(&src, &dest, &clog)
+                .exec_fork()?;
+            let st = term.status.clone();
+            if st != sandbox::Status::Ok {
+                let r = TaskReport::new(TaskMeta {
                     score: 0.0,
                     status: Status::CompileError(Some(st)),
                     time: term.cpu_time,
                     memory: term.memory,
-                },
-                payload: Vec::new(),
-            };
-            let _ = r.add_payload("compile log", clog);
-            eprintln!("编译失败");
-            dbg!(&self.working_dir);
-            return Ok(r);
+                })
+                .try_add_payload("compile log", clog);
+                return Ok(r);
+            }
+            drop(term);
         }
-        drop(term);
         eprintln!("编译成功");
+
         // execution
         let out = self.working_dir.join("main.out");
         let log = self.working_dir.join("main.log");
@@ -153,29 +159,52 @@ impl OneOff {
                 .stderr(&log)
                 .stdin(input);
             eprintln!("开始运行选手程序");
-            let term = s.exec_fork()?;
+            let term = s.exec_sandbox()?;
             eprintln!("程序运行结束");
             term
         };
+        let status: crate::Status = term.status.into();
 
-        let mut r: TaskReport = TaskReport {
-            meta: TaskMeta {
-                score: 0.0,
-                status: term.status.into(),
-                time: term.cpu_time,
-                memory: term.memory,
-            },
-            payload: Vec::new(),
-        };
-        r.meta.score = r.meta.status.score_rate();
-        // ignore error
-        let _ = r.add_payload("compile log", clog).map_err(|e| dbg!(e));
-        let _ = r.add_payload("stdout", out).map_err(|e| dbg!(e));
-        let _ = r.add_payload("stderr", log).map_err(|e| dbg!(e));
-        Ok(r)
+        Ok(TaskReport::new(TaskMeta {
+            score: status.score_rate(),
+            status,
+            time: term.cpu_time,
+            memory: term.memory,
+        })
+        .try_add_payload("compile log", clog)
+        .try_add_payload("stdout", out)
+        .try_add_payload("stderr", log))
     }
     #[cfg(not(unix))]
     pub fn exec(&mut self) -> Result<TaskReport, Error> {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::FileType;
+
+    use super::*;
+
+    #[test]
+    fn test_it() {
+        let source = StoreFile::from_str(
+            r"
+#include<iostream>
+using namespace std;
+int main() {
+    for(;;);
+}
+",
+            FileType::GnuCpp17O2,
+        );
+        let input = StoreFile::from_str(r"1 2", FileType::Plain);
+        // let mut oneoff = OneOff::new(source, input, Some("/Users/sshwy/zroj_core/target/debug/zroj-sandbox".into()));
+        let mut oneoff = OneOff::new(source, input, None);
+        let dir = tempfile::TempDir::new().unwrap();
+        oneoff.set_wd(Handle::new(dir.path()));
+        oneoff.exec().unwrap();
+        drop(dir);
     }
 }
