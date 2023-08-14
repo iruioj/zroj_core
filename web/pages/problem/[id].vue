@@ -1,7 +1,7 @@
 <!-- 题目描述页面 -->
 <script setup lang="ts">
 const id = computed(() => parseInt(useRoute().params.id as string));
-const { data } = await useAPI().problem.statement.get({ id: id.value });
+const { data } = await useAPI().problem.statement.get.use({ id: id.value });
 
 watch(data, (val) => {
   if (val) {

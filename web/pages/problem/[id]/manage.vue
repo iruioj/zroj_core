@@ -5,7 +5,7 @@ const props = defineProps<{
 const { error, info } = useMsgStore();
 
 const file = ref<File | null>(null);
-const { data: fulldata_meta } = await useAPI().problem.fulldata_meta.get({
+const { data: fulldata_meta } = await useAPI().problem.fulldata_meta.get.use({
   id: props.pid,
 });
 
@@ -22,7 +22,7 @@ const onSubmit = async (e: Event) => {
   }
   formdata.append("id", props.pid.toString());
   formdata.append("data", file.value);
-  const r = await useAPI().problem.fulldata.post(formdata);
+  const r = await useAPI().problem.fulldata.post.use(formdata);
   console.log(r.data.value);
 
   info("上传成功");

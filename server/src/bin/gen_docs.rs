@@ -34,7 +34,7 @@ impl EntryRoot {
         let (code, types) = self
             .0
             .iter()
-            .map(|s| s.gen_code(String::new()))
+            .map(|s| s.gen_code(&String::new()))
             .reduce(|acc, cur| {
                 (
                     acc.0 + &cur.0,
@@ -92,7 +92,7 @@ impl EntryNode {
         children
     }
     // 返回 api code 和 type context
-    fn gen_code(&self, path: String) -> (String, BTreeMap<String, String>) {
+    fn gen_code(&self, path: &String) -> (String, BTreeMap<String, String>) {
         match self {
             EntryNode::Endpoint {
                 method,
@@ -100,31 +100,43 @@ impl EntryNode {
                 returns,
             } => {
                 let mut ty = BTreeMap::new();
-                let ret_ty = returns.clone().map(|ret| {
+                let o_ret_ty = returns.clone().map(|ret| {
                     let ret_ty = to_typename(path.clone() + "/" + method + "/return");
                     ty.insert(ret_ty.clone(), ret);
                     ret_ty
                 });
+                let ret_ty = &o_ret_ty
+                    .clone()
+                    .map(|s| s + " | null")
+                    .unwrap_or("void".into());
                 if let Some(payload) = payload {
                     let path_ty = to_typename(path.clone() + "/" + method + "/payload");
                     ty.insert(path_ty.clone(), payload.clone());
-                    (format!(
-                        "{}: (payload: {}) => callAPI({:?}, {:?}, payload) as Promise<AsyncData<{}, FetchError>>,\n",
-                        method,
-                        path_ty,
-                        method,
-                        path,
-                        ret_ty.map(|s| s + " | null").unwrap_or("void".into()),
-                    ), ty)
+                    (
+                        format!(
+                            r#"{method}: {{ 
+    use: (payload: {path_ty}) => callAPI({method:?}, {path:?}, payload) as Promise<AsyncData<{ret_ty}, FetchError>>,
+    fetch: (payload: {path_ty}) => fetchAPI({method:?}, {path:?}, payload) as Promise<{}>,
+    key: {:?},
+}},
+"#,
+                            o_ret_ty.unwrap_or("void".into()),
+                            path.to_owned() + ":" + method,
+                        ),
+                        ty,
+                    )
                 } else {
                     (
                         format!(
-                        "{}: () => callAPI({:?}, {:?}) as Promise<AsyncData<{}, FetchError>>,\n",
-                        method,
-                        method,
-                        path,
-                        ret_ty.map(|s| s + " | null").unwrap_or("void".into()),
-                    ),
+                            r#"{method}: {{
+    use: () => callAPI({method:?}, {path:?}) as Promise<AsyncData<{ret_ty}, FetchError>>,
+    fetch: () => fetchAPI({method:?}, {path:?}) as Promise<{}>,
+    key: {:?},
+}},
+"#,
+                            o_ret_ty.unwrap_or("void".into()),
+                            path.to_owned() + ":" + method,
+                        ),
                         ty,
                     )
                 }
@@ -132,7 +144,7 @@ impl EntryNode {
             EntryNode::Path { slug, children } => {
                 let inner = children
                     .iter()
-                    .map(|c| c.gen_code(path.clone() + "/" + slug))
+                    .map(|c| c.gen_code(&(path.clone() + "/" + slug)))
                     .reduce(|acc, cur| {
                         (
                             acc.0 + &cur.0,
@@ -140,7 +152,7 @@ impl EntryNode {
                         )
                     })
                     .unwrap();
-                (format!("{}: {{ {} }},\n", slug, inner.0), inner.1)
+                (format!("{slug}: {{ {} }},\n", inner.0), inner.1)
             }
         }
     }
@@ -209,6 +221,27 @@ fn gen_nuxt_basic() -> String {
         return useFetch(path, { ...options, body: args });
     }
 }
+function fetchAPI(method: string, path: string, args?: any): Promise<any> {
+    if (process.client) {
+        console.log('client call api', method, path, args)
+    }
+    path = useRuntimeConfig().public.apiBase + path;
+
+    const options = {
+        method: method as any,
+        credentials: 'include' as any,
+        headers: useRequestHeaders()
+    };
+    if (args === undefined) {
+        return $fetch(path, options);
+    } else if (method === 'get') {
+        return $fetch(path, { ...options, query: args });
+    } else if (args instanceof FormData) {
+        return $fetch(path, { ...options, body: args});
+    } else {
+        return $fetch(path, { ...options, body: args });
+    }
+}
 "#
     .into()
 }
@@ -217,10 +250,13 @@ fn main() {
     let auth = app::auth::service_doc();
     let user = app::user::service_doc();
     let problem = app::problem::service_doc();
+    let oneoff = app::one_off::service_doc();
+
     let entry = EntryRoot(vec![
         gen_entry(auth.0),
         gen_entry(user.0),
         gen_entry(problem.0),
+        gen_entry(oneoff.0),
     ]);
 
     let code = String::from(
@@ -232,7 +268,7 @@ import type { FetchError } from "ofetch";
 
 "#,
     ) + &gen_nuxt_basic()
-        + &(auth.1 + user.1 + problem.1).render_code()
+        + &(auth.1 + user.1 + problem.1 + oneoff.1).render_code()
         + &entry.gen_code();
     println!("{code}");
 }

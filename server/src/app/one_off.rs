@@ -61,7 +61,7 @@ pub struct CustomTestResult {
 
 #[api(method = get, path = "")]
 async fn custom_test_get(
-    oneoff: web::Data<OneOffManager>,
+    oneoff: ServerData<OneOffManager>,
     uid: web::ReqData<UserID>,
 ) -> JsonResult<CustomTestResult> {
     Ok(web::Json(CustomTestResult {

@@ -8,7 +8,7 @@
 //   },
 //   problems: genProbSet(10),
 // };
-const { data } = await useAPI().problem.metas.get({
+const { data } = await useAPI().problem.metas.get.use({
   max_count: 20,
   min_id: 0,
   max_id: undefined,

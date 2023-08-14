@@ -4,6 +4,9 @@
 import type { AsyncData } from "nuxt/app";
 import type { FetchError } from "ofetch";
 
+export {
+    FetchError
+}
 function callAPI(method: string, path: string, args?: any): Promise<any> {
     if (process.client) {
         console.log('client call api', method, path, args)
@@ -27,6 +30,27 @@ function callAPI(method: string, path: string, args?: any): Promise<any> {
         return useFetch(path, { ...options, body: args });
     }
 }
+function fetchAPI(method: string, path: string, args?: any): Promise<any> {
+    if (process.client) {
+        console.log('client call api', method, path, args)
+    }
+    path = useRuntimeConfig().public.apiBase + path;
+
+    const options = {
+        method: method as any,
+        credentials: 'include' as any,
+        headers: useRequestHeaders()
+    };
+    if (args === undefined) {
+        return $fetch(path, options);
+    } else if (method === 'get') {
+        return $fetch(path, { ...options, query: args });
+    } else if (args instanceof FormData) {
+        return $fetch(path, { ...options, body: args});
+    } else {
+        return $fetch(path, { ...options, body: args });
+    }
+}
 export type AlignKind = (AlignKindCenter|AlignKindLeft|AlignKindNone|AlignKindRight);
 export type AlignKindCenter = "center";
 export type AlignKindLeft = "left";
@@ -36,6 +60,7 @@ export type AuthInfoRes = {email:string;username:Username;};
 export type BlockQuote = {children:Node[];};
 export type Break = {};
 export type Code = {lang:(undefined|null|string);meta:(undefined|null|string);value:string;};
+export type CustomTestResult = {result:(undefined|TaskReport|null);};
 export type Definition = {identifier:string;label:(undefined|null|string);title:(undefined|null|string);url:string;};
 export type Delete = {children:Node[];};
 export type Elapse = number;
@@ -59,6 +84,10 @@ export type ListItem = {checked:(undefined|null|boolean);children:Node[];spread:
 export type LoginPayload = {passwordHash:string;username:Username;};
 export type Math = {meta:(undefined|null|string);value:string;};
 export type Memory = number;
+export type MemoryLimitExceededKind = (MemoryLimitExceededKindReal|MemoryLimitExceededKindStack|MemoryLimitExceededKindVirtual);
+export type MemoryLimitExceededKindReal = {Real:Memory;};
+export type MemoryLimitExceededKindStack = "Stack";
+export type MemoryLimitExceededKindVirtual = "Virtual";
 export type MetasQuery = {max_count:number;max_id:(undefined|null|number);min_id:(undefined|null|number);pattern:(undefined|null|string);};
 export type Node = (NodeBlockQuote|NodeBreak|NodeCode|NodeDefinition|NodeDelete|NodeEmphasis|NodeFootnoteDefinition|NodeFootnoteReference|NodeHeading|NodeHtml|NodeImage|NodeImageReference|NodeInlineCode|NodeInlineMath|NodeLink|NodeLinkReference|NodeList|NodeListItem|NodeMath|NodeParagraph|NodeRoot|NodeStrong|NodeTable|NodeTableCell|NodeTableRow|NodeText|NodeThematicBreak|NodeToml|NodeTwoColumns|NodeYaml);
 export type NodeBlockQuote = (BlockQuote&{type:"blockquote";});
@@ -102,52 +131,136 @@ export type ReferenceKindShortcut = "shortcut";
 export type RegisterPayload = {email:string;passwordHash:string;username:Username;};
 export type Root = {children:Node[];};
 export type Statement = {meta:StmtMeta;statement:Node;};
+export type Status = (StatusDangerousSyscall|StatusMemoryLimitExceeded|StatusOk|StatusOutputLimitExceeded|StatusRuntimeError|StatusTimeLimitExceeded);
+export type StatusAccepted = {name:"accepted";payload:null;};
+export type StatusCompileError = {name:"compile_error";payload:(undefined|Status|null);};
+export type StatusCustom = {name:"custom";payload:string;};
+export type StatusDangerousSyscall = {name:"dangerous_syscall";payload:null;};
+export type StatusMemoryLimitExceeded = {name:"memory_limit_exceeded";payload:null;};
+export type StatusOk = "Ok";
+export type StatusOutputLimitExceeded = {name:"output_limit_exceeded";payload:null;};
+export type StatusPartial = {name:"partial";payload:[number,number];};
+export type StatusPresentationError = {name:"presentation_error";payload:null;};
+export type StatusRuntimeError = {name:"runtime_error";payload:null;};
+export type StatusTimeLimitExceeded = {name:"time_limit_exceeded";payload:null;};
+export type StatusWrongAnswer = {name:"wrong_answer";payload:null;};
 export type StmtMeta = {kind:(undefined|ProblemKind|null);memory:(undefined|Memory|null);time:(undefined|Elapse|null);title:string;};
 export type StmtQuery = {id:number;};
 export type Strong = {children:Node[];};
 export type Table = {align:AlignKind[];children:Node[];};
 export type TableCell = {children:Node[];};
 export type TableRow = {children:Node[];};
+export type TaskMeta = {memory:Memory;score:number;status:Status;time:Elapse;};
+export type TaskReport = {meta:TaskMeta;payload:[string,TruncStr][];};
 export type Text = {value:string;};
 export type ThematicBreak = {};
+export type TimeLimitExceededKind = (TimeLimitExceededKindCpu|TimeLimitExceededKindReal);
+export type TimeLimitExceededKindCpu = {Cpu:Elapse;};
+export type TimeLimitExceededKindReal = "Real";
 export type Toml = {value:string;};
+export type TruncStr = {limit:number;str:string;truncated:number;};
 export type TwoColumns = {left:Node;right:Node;};
 export type UserDisplayInfo = {email:string;gender:number;id:number;motto:string;name:string;register_time:string;username:Username;};
 export type UserEditInfo = {email:string;gender:number;id:number;motto:string;name:string;register_time:string;username:string;};
 export type UserUpdateInfo = {email:(undefined|null|string);gender:(undefined|null|number);motto:(undefined|null|string);name:(undefined|null|string);password_hash:(undefined|null|string);};
 export type Username = string;
 export type Yaml = {value:string;};
-export function useAPI () { return { auth: { login: { post: (payload: AuthLoginPostPayload) => callAPI("post", "/auth/login", payload) as Promise<AsyncData<void, FetchError>>,
+export function useAPI () { return { auth: { login: { post: { 
+    use: (payload: AuthLoginPostPayload) => callAPI("post", "/auth/login", payload) as Promise<AsyncData<void, FetchError>>,
+    fetch: (payload: AuthLoginPostPayload) => fetchAPI("post", "/auth/login", payload) as Promise<void>,
+    key: "/auth/login:post",
+},
  },
-logout: { post: () => callAPI("post", "/auth/logout") as Promise<AsyncData<void, FetchError>>,
+logout: { post: {
+    use: () => callAPI("post", "/auth/logout") as Promise<AsyncData<void, FetchError>>,
+    fetch: () => fetchAPI("post", "/auth/logout") as Promise<void>,
+    key: "/auth/logout:post",
+},
  },
-register: { post: (payload: AuthRegisterPostPayload) => callAPI("post", "/auth/register", payload) as Promise<AsyncData<void, FetchError>>,
+register: { post: { 
+    use: (payload: AuthRegisterPostPayload) => callAPI("post", "/auth/register", payload) as Promise<AsyncData<void, FetchError>>,
+    fetch: (payload: AuthRegisterPostPayload) => fetchAPI("post", "/auth/register", payload) as Promise<void>,
+    key: "/auth/register:post",
+},
  },
-info: { get: () => callAPI("get", "/auth/info") as Promise<AsyncData<AuthInfoGetReturn | null, FetchError>>,
+info: { get: {
+    use: () => callAPI("get", "/auth/info") as Promise<AsyncData<AuthInfoGetReturn | null, FetchError>>,
+    fetch: () => fetchAPI("get", "/auth/info") as Promise<AuthInfoGetReturn>,
+    key: "/auth/info:get",
+},
  },
  },
-user: { get: (payload: UserGetPayload) => callAPI("get", "/user", payload) as Promise<AsyncData<UserGetReturn | null, FetchError>>,
-edit: { get: () => callAPI("get", "/user/edit") as Promise<AsyncData<UserEditGetReturn | null, FetchError>>,
-post: (payload: UserEditPostPayload) => callAPI("post", "/user/edit", payload) as Promise<AsyncData<void, FetchError>>,
+user: { get: { 
+    use: (payload: UserGetPayload) => callAPI("get", "/user", payload) as Promise<AsyncData<UserGetReturn | null, FetchError>>,
+    fetch: (payload: UserGetPayload) => fetchAPI("get", "/user", payload) as Promise<UserGetReturn>,
+    key: "/user:get",
+},
+edit: { get: {
+    use: () => callAPI("get", "/user/edit") as Promise<AsyncData<UserEditGetReturn | null, FetchError>>,
+    fetch: () => fetchAPI("get", "/user/edit") as Promise<UserEditGetReturn>,
+    key: "/user/edit:get",
+},
+post: { 
+    use: (payload: UserEditPostPayload) => callAPI("post", "/user/edit", payload) as Promise<AsyncData<void, FetchError>>,
+    fetch: (payload: UserEditPostPayload) => fetchAPI("post", "/user/edit", payload) as Promise<void>,
+    key: "/user/edit:post",
+},
  },
-gravatar: { get: (payload: UserGravatarGetPayload) => callAPI("get", "/user/gravatar", payload) as Promise<AsyncData<void, FetchError>>,
+gravatar: { get: { 
+    use: (payload: UserGravatarGetPayload) => callAPI("get", "/user/gravatar", payload) as Promise<AsyncData<void, FetchError>>,
+    fetch: (payload: UserGravatarGetPayload) => fetchAPI("get", "/user/gravatar", payload) as Promise<void>,
+    key: "/user/gravatar:get",
+},
  },
  },
-problem: { full_dbg: { get: () => callAPI("get", "/problem/full_dbg") as Promise<AsyncData<ProblemFullDbgGetReturn | null, FetchError>>,
+problem: { full_dbg: { get: {
+    use: () => callAPI("get", "/problem/full_dbg") as Promise<AsyncData<ProblemFullDbgGetReturn | null, FetchError>>,
+    fetch: () => fetchAPI("get", "/problem/full_dbg") as Promise<ProblemFullDbgGetReturn>,
+    key: "/problem/full_dbg:get",
+},
  },
-metas: { get: (payload: ProblemMetasGetPayload) => callAPI("get", "/problem/metas", payload) as Promise<AsyncData<ProblemMetasGetReturn | null, FetchError>>,
+metas: { get: { 
+    use: (payload: ProblemMetasGetPayload) => callAPI("get", "/problem/metas", payload) as Promise<AsyncData<ProblemMetasGetReturn | null, FetchError>>,
+    fetch: (payload: ProblemMetasGetPayload) => fetchAPI("get", "/problem/metas", payload) as Promise<ProblemMetasGetReturn>,
+    key: "/problem/metas:get",
+},
  },
-statement: { get: (payload: ProblemStatementGetPayload) => callAPI("get", "/problem/statement", payload) as Promise<AsyncData<ProblemStatementGetReturn | null, FetchError>>,
+statement: { get: { 
+    use: (payload: ProblemStatementGetPayload) => callAPI("get", "/problem/statement", payload) as Promise<AsyncData<ProblemStatementGetReturn | null, FetchError>>,
+    fetch: (payload: ProblemStatementGetPayload) => fetchAPI("get", "/problem/statement", payload) as Promise<ProblemStatementGetReturn>,
+    key: "/problem/statement:get",
+},
  },
-fulldata: { post: (payload: ProblemFulldataPostPayload) => callAPI("post", "/problem/fulldata", payload) as Promise<AsyncData<ProblemFulldataPostReturn | null, FetchError>>,
+fulldata: { post: { 
+    use: (payload: ProblemFulldataPostPayload) => callAPI("post", "/problem/fulldata", payload) as Promise<AsyncData<ProblemFulldataPostReturn | null, FetchError>>,
+    fetch: (payload: ProblemFulldataPostPayload) => fetchAPI("post", "/problem/fulldata", payload) as Promise<ProblemFulldataPostReturn>,
+    key: "/problem/fulldata:post",
+},
  },
-fulldata_meta: { get: (payload: ProblemFulldataMetaGetPayload) => callAPI("get", "/problem/fulldata_meta", payload) as Promise<AsyncData<ProblemFulldataMetaGetReturn | null, FetchError>>,
+fulldata_meta: { get: { 
+    use: (payload: ProblemFulldataMetaGetPayload) => callAPI("get", "/problem/fulldata_meta", payload) as Promise<AsyncData<ProblemFulldataMetaGetReturn | null, FetchError>>,
+    fetch: (payload: ProblemFulldataMetaGetPayload) => fetchAPI("get", "/problem/fulldata_meta", payload) as Promise<ProblemFulldataMetaGetReturn>,
+    key: "/problem/fulldata_meta:get",
+},
  },
+ },
+custom_test: { get: {
+    use: () => callAPI("get", "/custom_test") as Promise<AsyncData<CustomTestGetReturn | null, FetchError>>,
+    fetch: () => fetchAPI("get", "/custom_test") as Promise<CustomTestGetReturn>,
+    key: "/custom_test:get",
+},
+post: { 
+    use: (payload: CustomTestPostPayload) => callAPI("post", "/custom_test", payload) as Promise<AsyncData<void, FetchError>>,
+    fetch: (payload: CustomTestPostPayload) => fetchAPI("post", "/custom_test", payload) as Promise<void>,
+    key: "/custom_test:post",
+},
  },
  }; }
 export type AuthInfoGetReturn = AuthInfoRes;
 export type AuthLoginPostPayload = LoginPayload;
 export type AuthRegisterPostPayload = RegisterPayload;
+export type CustomTestGetReturn = CustomTestResult;
+export type CustomTestPostPayload = FormData;
 export type ProblemFullDbgGetReturn = [number,StmtMeta][];
 export type ProblemFulldataMetaGetPayload = FullDataMetaQuery;
 export type ProblemFulldataMetaGetReturn = any;
