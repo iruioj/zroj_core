@@ -13,7 +13,7 @@ pub mod problem;
 pub mod render_data;
 
 pub use checker::Checker;
-pub use error::{DataError, RuntimeError};
+pub use error::RuntimeError;
 pub use judger::sandbox::{Elapse, Memory};
 pub use problem::StandardProblem;
 use store::FsStore;

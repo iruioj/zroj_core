@@ -140,7 +140,7 @@ pub trait ExecSandBox {
         let mut tmp = tempfile().unwrap();
 
         match unsafe { fork() } {
-            Err(e) => Err(SandboxError::Fork(e.to_string())),
+            Err(e) => Err(SandboxError::Fork(e)),
             Ok(ForkResult::Parent { child, .. }) => {
                 match waitpid(child, None).expect("wait pid failed") {
                     WaitStatus::Signaled(pid, signal, _) => {

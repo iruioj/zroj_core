@@ -3,7 +3,7 @@
 
 mod error;
 
-pub use error::Error;
+pub type Error = error::StoreError;
 use serde::{de::DeserializeOwned, Serialize};
 
 use std::{
@@ -52,11 +52,11 @@ impl Handle {
     }
     /// 从该路径下的文件中解析数据（要求文件存在）
     pub fn deserialize<T: DeserializeOwned>(&self) -> Result<T, Error> {
-        serde_json::from_reader(self.open_file()?).map_err(Error::Deserialize)
+        Ok(serde_json::from_reader(self.open_file()?)?)
     }
     /// 将数据序列化到该路径下（要求文件不存在）
     pub fn serialize_new_file<T: Serialize>(&self, data: &T) -> Result<(), Error> {
-        serde_json::to_writer(self.create_new_file()?, data).map_err(Error::Serialize)
+        Ok(serde_json::to_writer(self.create_new_file()?, data)?)
     }
     pub fn path(&self) -> &Path {
         &self.dir

@@ -1,100 +1,67 @@
-use std::{
-    fmt::{Debug, Display},
-    path::PathBuf,
-};
+use std::{fmt::Debug, path::PathBuf};
 
+use nix::errno::Errno;
 use serde::{Deserialize, Serialize};
 
-/// 子进程（选手程序）在执行过程中遇到的评测错误
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ChildError {
-    /// 打开文件时出错
-    OpenFile(String, PathBuf, i32),
-    /// 文件重定向时出错
-    Dup(String, i32, i32),
-    /// setpgid error
-    SetPGID(String),
-    /// setrlimit error
-    SetRlimit(String, String, u64, u64),
-    /// execve error
-    Execve(String, PathBuf, Vec<String>, Vec<String>),
-}
+mod errno_serde {
+    use nix::errno::Errno;
+    use serde::{de::Visitor, Deserializer, Serializer};
 
-impl Display for ChildError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ChildError::OpenFile(err, path, flag) => write!(
-                f,
-                "opening file (path = {}, flag = {}): {err}",
-                path.display(),
-                flag
-            ),
-            ChildError::Dup(err, to, from) => write!(f, "dup from {from} to {to}: {err}"),
-            ChildError::SetPGID(err) => write!(f, "setpgid: {err}"),
-            ChildError::SetRlimit(err, name, s, h) => {
-                write!(f, "setrlimit for {name:?} (soft = {s}, hard = {h}): {err}")
-            }
-            ChildError::Execve(err, path, args, env) => write!(
-                f,
-                "execve (path = {}, args = {args:?}, envs = {env:?}): {err}",
-                path.display()
-            ),
+    pub fn serialize<S>(errno: &Errno, ser: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        ser.serialize_i32(*errno as i32)
+    }
+
+    struct ErrnoVisitor;
+    impl<'de> Visitor<'de> for ErrnoVisitor {
+        type Value = Errno;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("an i32")
+        }
+
+        fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Errno::from_i32(v))
         }
     }
+
+    pub fn deserialize<'de, D>(de: D) -> Result<Errno, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        de.deserialize_i32(ErrnoVisitor)
+    }
+}
+
+/// 子进程（选手程序）在执行过程中遇到的评测错误
+#[derive(thiserror::Error, Debug, Clone, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub enum ChildError {
+    #[error("opening file: errno = {0}, path = {1:?}, mode = {2}")]
+    OpenFile(#[serde(with = "errno_serde")] Errno, PathBuf, i32),
+    #[error("redirect file: errno = {0}, to = {1}, from = {2}")]
+    Dup(#[serde(with = "errno_serde")] Errno, i32, i32),
+    #[error("setpgid: errno = {0}")]
+    SetPGID(#[serde(with = "errno_serde")] Errno),
+    #[error("setrlimit: errno = {0}, rsc = {1}, lim = {2}, {3}")]
+    SetRlimit(#[serde(with = "errno_serde")] Errno, String, u64, u64),
+    #[error("execve: errno = {0}")]
+    Execve(#[serde(with = "errno_serde")] Errno),
 }
 
 /// sandbox 运行时遇到的评测错误
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(thiserror::Error, Debug, Clone, Serialize, Deserialize)]
+#[allow(missing_docs)]
 pub enum SandboxError {
-    /// 子进程出错
-    Child(ChildError),
     /// fork failed
-    Fork(String),
+    #[error("fork failed: {0}")]
+    Fork(#[serde(with = "errno_serde")] Errno),
     /// can't be killed
+    #[error("child process cannot be killed")]
     Unstoppable,
-    /// not encouraged
-    Custom(String)
 }
-
-impl Display for SandboxError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SandboxError::Child(err) => write!(f, "child process: {err}"),
-            SandboxError::Fork(e) => write!(f, "fork failed: {e}"),
-            SandboxError::Custom(e) => write!(f, "custom: {e}"),
-            SandboxError::Unstoppable => write!(f, "can not stop"),
-        }
-    }
-}
-
-impl std::error::Error for SandboxError {}
-
-// macro_rules! impl_err {
-//     ($( $t:ty )+) => {
-//         $(
-//             impl From<$t> for SandboxError {
-//                 fn from(value: $t) -> Self {
-//                     SandboxError::Msg(format!("{:?}", value))
-//                 }
-//             }
-//         )+
-//     };
-// }
-
-// impl_err!(
-//     serde_json::Error
-//     std::io::Error
-//     std::string::String
-//     std::sync::mpsc::SendError<()>
-//     std::ffi::NulError
-// );
-
-// #[cfg(all(unix))]
-// impl_err!(
-//     nix::errno::Errno
-// );
-
-// /// return a Result error containing a message
-// pub fn msg_err<T, M: Into<String>>(msg: M) -> Result<T, SandboxError> {
-//     Err(SandboxError::Msg(msg.into()))
-// }

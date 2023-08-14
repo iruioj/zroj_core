@@ -53,18 +53,16 @@ fn open_file(path: impl AsRef<std::path::Path>, flag: OFlag) -> Result<RawFd, Ch
         // mode is for creating new file
         Mode::S_IRUSR | Mode::S_IWUSR | Mode::S_IRGRP | Mode::S_IROTH,
     )
-    .map_err(|errno| {
-        ChildError::OpenFile(errno.to_string(), path.as_ref().to_path_buf(), flag.bits())
-    })
+    .map_err(|errno| ChildError::OpenFile(errno, path.as_ref().to_path_buf(), flag.bits()))
 }
 fn dup(to: RawFd, from: RawFd) -> Result<RawFd, ChildError> {
-    nix::unistd::dup2(to, from).map_err(|errno| ChildError::Dup(errno.to_string(), to, from))
+    nix::unistd::dup2(to, from).map_err(|errno| ChildError::Dup(errno, to, from))
 }
 impl Singleton {
     fn exec_child(&self) -> Result<(), ChildError> {
         c_write(b"start exec child\n");
         unistd::setpgid(unistd::Pid::from_raw(0), unistd::Pid::from_raw(0))
-            .map_err(|errno| ChildError::SetPGID(errno.to_string()))?;
+            .map_err(ChildError::SetPGID)?;
         c_write(format!("pgid = {}\n", unistd::getpgid(None).unwrap()).as_bytes());
         // 提前计算好需要的东西
         let path = CString::new(self.exec_path.as_os_str().as_bytes())
@@ -95,22 +93,12 @@ impl Singleton {
                     crate::unix::Lim::None => {}
                     crate::unix::Lim::Single(s) => {
                         setrlimit(Resource::$r, s.$f(), s.$f()).map_err(|errno| {
-                            ChildError::SetRlimit(
-                                errno.to_string(),
-                                stringify!($r).into(),
-                                s.$f(),
-                                s.$f(),
-                            )
+                            ChildError::SetRlimit(errno, stringify!($r).into(), s.$f(), s.$f())
                         })?;
                     }
                     crate::unix::Lim::Double(s, h) => {
                         setrlimit(Resource::$r, s.$f(), h.$f()).map_err(|errno| {
-                            ChildError::SetRlimit(
-                                errno.to_string(),
-                                stringify!($r).into(),
-                                s.$f(),
-                                s.$f(),
-                            )
+                            ChildError::SetRlimit(errno, stringify!($r).into(), s.$f(), s.$f())
                         })?;
                     }
                 }
@@ -131,12 +119,7 @@ impl Singleton {
         // todo: set syscall limit
         unistd::execve(&path, &args, &env).map_err(|errno| {
             c_write(format!("execve error: {errno}").as_bytes());
-            ChildError::Execve(
-                errno.to_string(),
-                self.exec_path.clone(),
-                self.arguments.clone(),
-                self.envs.clone(),
-            )
+            ChildError::Execve(errno)
         })?;
         unreachable!("execve returns infallible")
     }
@@ -221,7 +204,7 @@ impl crate::ExecSandBox for Singleton {
     fn exec_sandbox(&self) -> Result<crate::Termination, SandboxError> {
         let start = Instant::now();
         match unsafe { unistd::fork() } {
-            Err(e) => Err(SandboxError::Fork(e.to_string())),
+            Err(e) => Err(SandboxError::Fork(e)),
             Ok(unistd::ForkResult::Parent { child }) => self.exec_parent(child, start),
             Ok(unistd::ForkResult::Child) => {
                 let e = self.exec_child().unwrap_err();

@@ -94,7 +94,7 @@ impl JudgeTask for Traditional {
                 fileno: 5.into(),
             });
 
-        let term = s.exec_fork().unwrap();
+        let term = s.exec_fork()?;
         let term_status = term.status.clone();
 
         let mut report = judger::TaskReport {

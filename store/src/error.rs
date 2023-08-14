@@ -1,25 +1,15 @@
-#[derive(Debug)]
-pub enum Error {
+#[derive(thiserror::Error, Debug)]
+pub enum StoreError {
+    #[error("open file: {0}")]
     OpenFile(std::io::Error),
+    #[error("not a file")]
     NotFile,
-    Serialize(serde_json::Error),
-    Deserialize(serde_json::Error),
+    #[error("serde json: {0}")]
+    SerdeJson(#[from] serde_json::Error),
+    #[error("creating new file: {0}")]
     CreateNewFile(std::io::Error),
+    #[error("creating parent dir: {0}")]
     CreateParentDir(std::io::Error),
+    #[error("vector is too long to store")]
     VecTooLong,
 }
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self {
-            Error::OpenFile(e) => write!(f, "error opening file: {}", e),
-            Error::NotFile => write!(f, "handle not a file"),
-            Error::Deserialize(e) => write!(f, "error deserializing: {}", e),
-            Error::CreateNewFile(p) => write!(f, "error creating new file: {}", p),
-            Error::Serialize(e) => write!(f, "error serializing: {}", e),
-            Error::CreateParentDir(e) => write!(f, "error creating parent dir: {}", e),
-            Error::VecTooLong => write!(f, "vector too lang to save"),
-        }
-    }
-}
-impl std::error::Error for Error {}

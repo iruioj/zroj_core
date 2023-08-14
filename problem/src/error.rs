@@ -1,39 +1,13 @@
-/// 在创建、修改题目，操作题目数据时出错
-#[derive(Debug)]
-pub enum DataError {
-    IO(std::io::Error),
-    SerdeJson(serde_json::Error),
-    NoVersion,
-    InvalidVersion,
-    InvalidData(String),
-    Store(store::Error),
-}
-
-impl From<std::io::Error> for DataError {
-    fn from(value: std::io::Error) -> Self {
-        Self::IO(value)
-    }
-}
-impl From<serde_json::Error> for DataError {
-    fn from(value: serde_json::Error) -> Self {
-        Self::SerdeJson(value)
-    }
-}
-impl From<store::Error> for DataError {
-    fn from(value: store::Error) -> Self {
-        Self::Store(value)
-    }
-}
+use judger::sandbox;
 
 /// 在评测题目时出现的错误，注意这里是指评测错误，不包括选手程序的错误
-#[derive(Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum RuntimeError {
     /// 操作题目数据时出错
-    DataError(DataError)
-}
-
-impl From<DataError> for RuntimeError {
-    fn from(value: DataError) -> Self {
-        Self::DataError(value)
-    }
+    #[error("io: {0}")]
+    IO(#[from] std::io::Error),
+    #[error("store: {0}")]
+    Store(#[from] store::Error),
+    #[error("sandbox: {0}")]
+    Sandbox(#[from] sandbox::error::SandboxError),
 }
