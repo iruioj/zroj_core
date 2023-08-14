@@ -56,10 +56,13 @@ mod default {
         }
         async fn get_meta(&self, id: ProblemID) -> Result<String, Error> {
             let handle = self.0.read()?.root.join(id.to_string());
+            if !handle.path().is_dir() {
+                return Ok("no data".into())
+            }
 
             let mut buf = std::io::BufWriter::new(Vec::new());
             use std::io::Write;
-            writeln!(buf, "{:?}", handle).unwrap();
+            writeln!(buf, "{:?}", handle.path()).unwrap();
 
             let bytes = buf.into_inner().unwrap();
             Ok(String::from_utf8(bytes).unwrap())

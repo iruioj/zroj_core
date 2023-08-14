@@ -29,7 +29,7 @@ const onSubmit = async (e: Event) => {
       if (res.status === 200) {
         msg.value = "登陆成功";
         await auth.refresh();
-        navigateTo("/");
+        useRouter().back()
       } else {
         msg.value = "登陆失败：" + (await res.text());
       }

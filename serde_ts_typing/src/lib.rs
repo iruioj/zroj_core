@@ -12,6 +12,8 @@ pub enum Error {
 /// TypeScript type representation
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum TypeExpr {
+    /// `undefined`
+    Undefined,
     /// name, id of another type
     /// `type name = {...}`
     Ident(TypeId, String),
@@ -40,6 +42,7 @@ pub enum TypeExpr {
 impl ToString for TypeExpr {
     fn to_string(&self) -> String {
         match self {
+            TypeExpr::Undefined => "undefined".into(),
             TypeExpr::Ident(_, n) => n.clone(),
             TypeExpr::Value(v) => v.to_string(),
             TypeExpr::String => "string".into(),

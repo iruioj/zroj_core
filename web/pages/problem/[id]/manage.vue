@@ -32,6 +32,7 @@ const onSubmit = async (e: Event) => {
 <template>
   <div>
     <CodeBlock v-if="fulldata_meta" :raw="String(fulldata_meta)" lang="" />
+    <div v-else>暂无数据</div>
     <div class="my-1">上传题目文件</div>
     <InputFile class="my-1" @change="onChange" />
     <UBtn class="my-1" @click="onSubmit">提交</UBtn>

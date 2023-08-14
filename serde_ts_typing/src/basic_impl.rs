@@ -57,7 +57,7 @@ impl<T: TsType> TsType for Option<T> {
     }
     fn type_def() -> TypeExpr {
         TypeExpr::Union(
-            [TypeExpr::Value(Value::Null), T::type_def()]
+            [TypeExpr::Undefined, TypeExpr::Value(Value::Null), T::type_def()]
                 .into_iter()
                 .collect(),
         )

@@ -125,7 +125,7 @@ int main() {
 }
 /// 用于测试的题面数据库
 ///
-/// 预先插入 A + B problem 的题面，id = 0
+/// 预先插入若干个 A + B problem 的题面
 pub async fn test_stmtdb(dir: &std::path::Path) -> web::Data<StmtDB> {
     let stmt_db = mkdata!(
         StmtDB,
@@ -133,6 +133,22 @@ pub async fn test_stmtdb(dir: &std::path::Path) -> web::Data<StmtDB> {
     );
     stmt_db
         .insert(0, gen_a_plus_b_statment())
+        .await
+        .expect("fail to insert A + B Problem");
+    stmt_db
+        .insert(1, gen_a_plus_b_statment())
+        .await
+        .expect("fail to insert A + B Problem");
+    stmt_db
+        .insert(2, gen_a_plus_b_statment())
+        .await
+        .expect("fail to insert A + B Problem");
+    stmt_db
+        .insert(3, gen_a_plus_b_statment())
+        .await
+        .expect("fail to insert A + B Problem");
+    stmt_db
+        .insert(4, gen_a_plus_b_statment())
         .await
         .expect("fail to insert A + B Problem");
     stmt_db
