@@ -53,25 +53,28 @@ mod default {
 
     use super::*;
     use crate::ProblemID;
-    use std::{collections::BTreeMap, io::Write, sync::RwLock};
+    use std::{collections::BTreeMap, sync::RwLock};
 
     pub struct DefaultDB {
-        data: RwLock<(BTreeMap<ProblemID, render_data::Statement>, std::fs::File)>,
+        data: RwLock<(BTreeMap<ProblemID, render_data::Statement>, Handle)>,
         dir: Handle,
     }
     impl DefaultDB {
+        /// dir: base dir
         pub fn new(dir: impl AsRef<std::path::Path>) -> Self {
             std::fs::create_dir_all(dir.as_ref()).expect("create statement database dir");
-            let data_file = std::fs::File::options()
-                .create(true)
-                .write(true)
-                .read(true)
-                .open(dir.as_ref().join("stmt.json"))
-                .expect("create/read data file");
-            let data = serde_json::from_reader(&data_file).unwrap_or_default();
+
+            let dir = Handle::new(dir.as_ref().to_path_buf());
+            let data_file_path = dir.join("stmt.json");
+            let data = if let Ok(file) = data_file_path.open_file() {
+                serde_json::from_reader(&file).unwrap_or_default()
+            } else {
+                Default::default()
+            };
+
             Self {
-                data: RwLock::new((data, data_file)),
-                dir: Handle::new(dir.as_ref().to_path_buf()),
+                data: RwLock::new((data, data_file_path)),
+                dir,
             }
         }
     }
@@ -83,11 +86,8 @@ mod default {
         async fn insert(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), Error> {
             let mut data = self.data.write()?;
             data.0.insert(id, stmt);
-            data.1.set_len(0).expect("truncate data file");
             let r = serde_json::to_string(&data.0).map_err(Error::SerdeJson)?;
-            data.1
-                .write_all(r.as_bytes())
-                .expect("fail to write problem statement data file");
+            std::fs::write(data.1.path(), r).expect("write data to file");
             drop(data);
             Ok(())
         }

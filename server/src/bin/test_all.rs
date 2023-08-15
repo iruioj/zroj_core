@@ -3,7 +3,7 @@ use actix_web::{web, HttpServer};
 use server::{
     app,
     auth::{middleware::SessionAuth, SessionManager},
-    data::gravatar::GravatarDB,
+    data::{gravatar::GravatarDB, problem_statement::StmtDB},
     dev,
     manager::one_off::OneOffManager,
     mkdata,
@@ -14,7 +14,11 @@ async fn main() -> std::io::Result<()> {
     let dir = tempfile::tempdir().unwrap();
     let session_container = SessionManager::default();
     let user_db = dev::test_userdb(dir.path()).await;
-    let stmt_db = dev::test_stmtdb(dir.path()).await;
+    // let stmt_db = dev::test_stmtdb(dir.path()).await;
+    let stmt_db = mkdata!(
+        StmtDB,
+        server::data::problem_statement::DefaultDB::new("stmt_data")
+    );
     let ojdata_db = dev::test_ojdata_db(dir.path()).await;
     let custom_test = web::Data::new(OneOffManager::new(dir.path().join("oneoff")));
     let gravatar = mkdata!(

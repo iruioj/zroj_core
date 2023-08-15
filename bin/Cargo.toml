@@ -8,10 +8,13 @@ build = "build.rs"
 
 [dependencies]
 sandbox = { path = "../sandbox" }
+migrator = { path = "../migrator" }
+server = { path = "../server" }
 
 clap = { version = "4.3", features = ["derive"] }
 serde_json = "1.0"
 shadow-rs = "0.23.0"
+tokio = { version = "1.31.0", features = ["full"] }
 
 [build-dependencies]
 shadow-rs = "0.23.0"
