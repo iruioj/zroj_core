@@ -14,6 +14,7 @@ pub enum Error {
     Regex(regex::Error),
     Store(store::Error),
     FetchError(awc::error::SendRequestError),
+    IO(std::io::Error),
 }
 
 impl From<Error> for actix_web::Error {
@@ -64,6 +65,7 @@ impl Display for Error {
             Error::Regex(e) => write!(f, "creating regex: {e}"),
             Error::Store(e) => write!(f, "store error: {e}"),
             Error::FetchError(e) => write!(f, "fetch error: {e}"),
+            Error::IO(e) => write!(f, "io: {e}"),
         }
     }
 }
