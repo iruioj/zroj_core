@@ -40,9 +40,8 @@ pub trait Manager {
     async fn get_metas(
         &self,
         max_count: u8,
+        offset: usize,
         pattern: Option<String>,
-        min_id: Option<ProblemID>,
-        max_id: Option<ProblemID>,
     ) -> Result<Vec<(ProblemID, StmtMeta)>, Error>;
     /// 当前的最大的题目 id
     async fn max_id(&self) -> Result<ProblemID, Error>;
@@ -112,9 +111,8 @@ mod default {
         async fn get_metas(
             &self,
             max_count: u8,
+            offset: usize,
             pattern: Option<String>,
-            min_id: Option<ProblemID>,
-            max_id: Option<ProblemID>,
         ) -> Result<Vec<(ProblemID, StmtMeta)>, Error> {
             let re = if let Some(p) = pattern {
                 Some(regex::Regex::new(&p).map_err(Error::Regex)?)
@@ -126,13 +124,11 @@ mod default {
             let data =
                 db.0.iter()
                     .filter(|m| {
-                        *m.0 >= min_id.unwrap_or_default()
-                            && *m.0 <= max_id.unwrap_or(ProblemID::MAX)
-                            && re
-                                .as_ref()
-                                .map(|r| r.is_match(&m.1.meta.title))
-                                .unwrap_or(true)
+                        re.as_ref()
+                            .map(|r| r.is_match(&m.1.meta.title))
+                            .unwrap_or(true)
                     })
+                    .skip(offset)
                     .take(max_count.into());
 
             Ok(data.map(|d| (*d.0, d.1.meta.clone())).collect())

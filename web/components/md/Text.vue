@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { NodeText } from "composables/api";
 
-const props = defineProps<{
+defineProps<{
   data: NodeText;
 }>();
 </script>

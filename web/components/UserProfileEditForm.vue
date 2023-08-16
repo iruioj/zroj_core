@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UserEditGetReturn } from 'composables/api';
+import { UserEditGetReturn } from "composables/api";
 
 const { error } = useMsgStore();
 const props = defineProps<{
@@ -10,7 +10,7 @@ const data = reactive(props.initdata);
 
 const onSubmit = async (e: Event) => {
   e.preventDefault();
-  console.log("submit");
+  // console.log("submit");
   try {
     await useAPI().user.edit.post.use({
       password_hash: undefined,

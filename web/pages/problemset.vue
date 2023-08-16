@@ -1,20 +1,29 @@
 <script lang="ts" setup>
-// const data = {
-//   page: {
-//     cur: 2,
-//     totalPage: 26,
-//     isFirst: false,
-//     isLast: false,
-//   },
-//   problems: genProbSet(10),
-// };
-const { data } = await useAPI().problem.metas.get.use({
-  max_count: 20,
-  min_id: 0,
-  max_id: undefined,
-  pattern: undefined
-});
+const route = useRoute();
+const router = useRouter();
+const query = computed(() => ({
+  max_count: 15,
+  offset: parseInt(route.query.offset as string) || 0,
+  pattern: (route.query.pattern as string) || "",
+}));
+const pattern = ref((route.query.pattern as string) || "");
 
+const { data, fetching } = await useAPI().problem.metas.get.use(query);
+
+const toPrevPage = () => {
+  let offset = query.value.offset - query.value.max_count;
+  if (offset < 0) offset = 0;
+  router.push(`?offset=${offset}&pattern=${query.value.pattern}`);
+};
+const toNextPage = () => {
+  const offset = query.value.offset + query.value.max_count;
+  router.push(`?offset=${offset}&pattern=${query.value.pattern}`);
+};
+const onSearch = () => {
+  if (pattern.value !== query.value.pattern) {
+    router.push(`?offset=0&pattern=${pattern.value}`);
+  }
+};
 </script>
 <template>
   <PageContainer>
@@ -42,13 +51,24 @@ const { data } = await useAPI().problem.metas.get.use({
             </TableRow>
           </tbody>
         </table>
-        <!-- <div class="flex justify-center">
-          <div v-if="!data.page.isFirst"><button>上一页</button></div>
-          <div class="mx-4">
-            第 {{ data.page.cur }} 页 / 共 {{ data.page.totalPage }} 页
+        <div class="flex justify-center">
+          <div class="mx-1">
+            <UBtn :disable="query.offset <= 0" @click="toPrevPage">上一页</UBtn>
           </div>
-          <div v-if="!data.page.isLast"><button>下一页</button></div>
-        </div> -->
+          <div class="mx-1">
+            <UBtn
+              :disable="(data?.length || 0) < query.max_count"
+              @click="toNextPage"
+              >下一页</UBtn
+            >
+          </div>
+          <form class="mx-1" @submit.prevent="onSearch">
+            <InputText v-model="pattern" />
+          </form>
+          <div class="mx-1">
+            <UBtn @click="onSearch">搜索</UBtn>
+          </div>
+        </div>
       </div>
     </SectionContainer>
   </PageContainer>

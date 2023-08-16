@@ -2,7 +2,7 @@
 import Node from "./Node.vue";
 import { NodeRoot } from "composables/api";
 
-const props = defineProps<{
+defineProps<{
   data: NodeRoot;
 }>();
 </script>

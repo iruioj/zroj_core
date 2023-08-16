@@ -41,13 +41,12 @@ struct MetasQuery {
     /// 利用类型限制，一次请求的数量不能超过 256 个
     max_count: u8,
 
+    /// 跳过前若干个结果
+    offset: u32,
+
     // filters
     /// 搜索的关键字/模式匹配
     pattern: Option<String>,
-    /// 题目 ID 下限
-    min_id: Option<ProblemID>,
-    /// 题目 ID 上限
-    max_id: Option<ProblemID>,
 }
 
 /// 获取题目的元信息
@@ -59,15 +58,9 @@ async fn metas(
     let query = query.into_inner();
     Ok(Json(
         stmt_db
-            .get_metas(query.max_count, query.pattern, query.min_id, query.max_id)
+            .get_metas(query.max_count, query.offset as usize, query.pattern)
             .await?,
     ))
-}
-
-/// 所有的题目元信息，用于调试
-#[api(method = get, path = "/full_dbg")]
-async fn full_list(stmt_db: ServerData<StmtDB>) -> JsonResult<Vec<(ProblemID, StmtMeta)>> {
-    Ok(Json(stmt_db.get_metas(255, None, None, None).await?))
 }
 
 #[derive(Debug, MultipartForm)]
@@ -145,7 +138,6 @@ async fn fulldata_meta(
 pub fn service(stmt_db: ServerData<StmtDB>, ojdata_db: ServerData<OJDataDB>) {
     app_data(stmt_db);
     app_data(ojdata_db);
-    service(full_list);
     service(metas);
     service(statement);
     service(fulldata);

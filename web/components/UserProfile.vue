@@ -3,7 +3,9 @@ const props = defineProps<{
   username: string;
 }>();
 
-const { data: profile } = await useAPI().user.get.use({ username: props.username });
+const { data: profile } = await useAPI().user.get.use({
+  username: props.username,
+});
 </script>
 
 <template>

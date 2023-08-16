@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { TaskReport } from 'composables/api';
+import { TaskReport } from "composables/api";
 
 const { error } = useMsgStore();
 
@@ -48,7 +48,7 @@ const onSubmit = async () => {
   data.append("input", inpFile);
 
   try {
-    await useAPI().custom_test.post.fetch(data)
+    await useAPI().custom_test.post.fetch(data);
     isJudging.value = true;
     const queryResult = async (): Promise<TaskReport> => {
       const data = await useAPI().custom_test.get.fetch();
@@ -77,14 +77,25 @@ const onSubmit = async () => {
   <PageContainer>
     <div class="mt-8 mb-4 text-2xl text-brand font-medium">自定义测试</div>
     <div class="flex my-2">
-      <InputSelect :items="langs" placeholder="选择语言" class="w-32" @change="onChangeLang" />
+      <InputSelect
+        :items="langs"
+        placeholder="选择语言"
+        class="w-32"
+        @change="onChangeLang"
+      />
       <UBtn class="mx-2" @click="onSubmit">提交</UBtn>
     </div>
-    <textarea ref="sourceRef" v-model="value"
-      class="bg-back border border-slate-400 w-full overflow-y-auto font-mono p-2 h-96 outline-brand rounded"></textarea>
+    <textarea
+      ref="sourceRef"
+      v-model="value"
+      class="bg-back border border-slate-400 w-full overflow-y-auto font-mono p-2 h-96 outline-brand rounded"
+    ></textarea>
     <div class="my-1 text-secondary">标准读入</div>
-    <textarea ref="sourceRef" v-model="inp"
-      class="bg-back border border-slate-400 w-full overflow-y-auto font-mono p-2 h-32 outline-brand rounded"></textarea>
+    <textarea
+      ref="sourceRef"
+      v-model="inp"
+      class="bg-back border border-slate-400 w-full overflow-y-auto font-mono p-2 h-32 outline-brand rounded"
+    ></textarea>
     <div v-if="isJudging">评测中...</div>
     <div v-else-if="judgeResult">
       {{ judgeResult }}

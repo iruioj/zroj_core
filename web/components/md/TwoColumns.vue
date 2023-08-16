@@ -3,7 +3,7 @@ import Node from "./Node.vue";
 import Code from "./Code.vue";
 import { NodeTwoColumns } from "composables/api";
 
-const props = defineProps<{
+defineProps<{
   data: NodeTwoColumns;
 }>();
 </script>
