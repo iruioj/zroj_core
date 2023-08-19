@@ -156,7 +156,6 @@ impl Singleton {
         let memory = Memory::from((u.max_rss()) as u64);
         #[cfg(not(target_os = "macos"))]
         let memory = Memory::from((u.max_rss() * 1024) as u64);
-        dbg!(cpu_time, memory);
 
         macro_rules! real_tle {
             () => {

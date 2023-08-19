@@ -2,6 +2,8 @@
 pub enum StoreError {
     #[error("open file: {0}")]
     OpenFile(std::io::Error),
+    #[error("remove files: {0}")]
+    RemoveAll(std::io::Error),
     #[error("not a file")]
     NotFile,
     #[error("serde json: {0}")]

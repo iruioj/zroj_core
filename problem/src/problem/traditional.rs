@@ -33,7 +33,7 @@ pub struct Task {
 
 #[derive(FsStore, Debug)]
 pub struct Subm {
-    source: StoreFile,
+    pub source: StoreFile,
 }
 
 /// 传统题评测
@@ -63,7 +63,7 @@ impl JudgeTask for Traditional {
             return Ok({
                 let mut r = judger::TaskReport {
                     meta: judger::TaskMeta {
-                        score: 0.0,
+                        score_rate: 0.0,
                         status: judger::Status::CompileError(Some(term.status)),
                         time: term.cpu_time,
                         memory: term.memory,
@@ -99,14 +99,14 @@ impl JudgeTask for Traditional {
 
         let mut report = judger::TaskReport {
             meta: judger::TaskMeta {
-                score: 0.0,
+                score_rate: 0.0,
                 status: term.status.into(),
                 time: term.cpu_time,
                 memory: term.memory,
             },
             payload: Vec::new(),
         };
-        report.meta.score = report.meta.status.score_rate();
+        report.meta.score_rate = report.meta.status.direct_score_rate();
         let _ = report.add_payload("compile log", wd.join("main.c.log"));
         let _ = report.add_payload("stdin", wd.join("input"));
         let _ = report.add_payload("stdout", wd.join("output"));
@@ -181,7 +181,7 @@ mod tests {
         };
 
         let report = Traditional::judge_task(&mut jd, &mut meta, &mut task, &mut subm).unwrap();
-        let judger::Status::Accepted = report.meta.status else {
+        let judger::Status::Good = report.meta.status else {
             panic!("not accepted")
         };
         dbg!(report);

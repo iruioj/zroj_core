@@ -1,21 +1,21 @@
 //! 主要用于开发
 
+use crate::data::{
+    problem_ojdata::{self, OJDataDB},
+    problem_statement,
+    problem_statement::StmtDB,
+    types::*,
+    user,
+};
+use crate::mkdata;
+use crate::rev_proxy::RevProxy;
 use actix_http::body::MessageBody;
 use actix_web::middleware::Logger;
 use actix_web::{
     dev::{ServiceFactory, ServiceRequest, ServiceResponse},
     web, App,
 };
-use judger::StoreFile;
-use problem::data::OJData;
-use problem::{ProblemFullData, StandardProblem};
-
-use crate::data::problem_ojdata::{self, OJDataDB};
-use crate::data::problem_statement::StmtDB;
-use crate::data::user;
-use crate::data::{problem_statement, types::*};
-use crate::mkdata;
-use crate::rev_proxy::RevProxy;
+use problem::sample::{a_plus_b_data, a_plus_b_statment};
 
 /// 将非 `/api` 开头的请求转发到 localhost:3000
 pub fn frontend_rev_proxy() -> RevProxy {
@@ -80,49 +80,6 @@ pub async fn test_userdb(dir: &std::path::Path) -> web::Data<dyn user::Manager +
     r
 }
 
-pub fn gen_a_plus_b_statment() -> problem::render_data::Statement {
-    problem::render_data::Statement {
-        statement: problem::render_data::statement::Inner::Standard {
-            legend: r#"这是一道简单题。
-
-你需要从标准输入中读入 $a, b$，请你输出 $a + b$。"#
-                .into(),
-            input_format: "输入数据包括两行，每行一个数，分别表示 $a$ 和 $b$。".into(),
-            output_format: "一行一个整数表示答案。".into(),
-            notes: r#"```cpp
-#include<iostream>
-
-using namespace std;
-
-int main() {
-    int a, b;
-    cin >> a >> b;
-    cout << a + b << endl;
-    return 0;
-}
-```"#
-                .into(),
-            samples: vec![(
-                problem::render_data::statement::IOData {
-                    fd: problem::render_data::FileDescriptor::Stdin,
-                    content: "1\n2".into(),
-                },
-                problem::render_data::statement::IOData {
-                    fd: problem::render_data::FileDescriptor::Stdout,
-                    content: "3".into(),
-                },
-            )],
-        },
-        meta: problem::render_data::statement::StmtMeta {
-            title: "A + B Problem".into(),
-            time: None,
-            memory: None,
-            kind: Some(problem::render_data::ProblemKind::Traditional(
-                problem::render_data::IOKind::StdIO,
-            )),
-        },
-    }
-}
 /// 用于测试的题面数据库
 ///
 /// 预先插入若干个 A + B problem 的题面
@@ -132,23 +89,23 @@ pub async fn test_stmtdb(dir: &std::path::Path) -> web::Data<StmtDB> {
         problem_statement::DefaultDB::new(dir.join("ojdata"))
     );
     stmt_db
-        .insert(0, gen_a_plus_b_statment())
+        .insert(0, a_plus_b_statment())
         .await
         .expect("fail to insert A + B Problem");
     stmt_db
-        .insert(1, gen_a_plus_b_statment())
+        .insert(1, a_plus_b_statment())
         .await
         .expect("fail to insert A + B Problem");
     stmt_db
-        .insert(2, gen_a_plus_b_statment())
+        .insert(2, a_plus_b_statment())
         .await
         .expect("fail to insert A + B Problem");
     stmt_db
-        .insert(3, gen_a_plus_b_statment())
+        .insert(3, a_plus_b_statment())
         .await
         .expect("fail to insert A + B Problem");
     stmt_db
-        .insert(4, gen_a_plus_b_statment())
+        .insert(4, a_plus_b_statment())
         .await
         .expect("fail to insert A + B Problem");
     stmt_db
@@ -160,82 +117,9 @@ pub async fn test_ojdata_db(dir: impl AsRef<std::path::Path>) -> web::Data<OJDat
         problem_ojdata::DefaultDB::new(dir.as_ref().join("stmt_data")).unwrap()
     );
 
-    db.insert(0, gen_a_plus_b_data())
+    db.insert(0, a_plus_b_data())
         .await
         .expect("fail to insert A + B Problem data");
 
     db
-}
-
-fn gen_a_plus_b_task(a: i32, b: i32) -> problem::problem::traditional::Task {
-    problem::problem::traditional::Task {
-        input: StoreFile::from_str(a.to_string(), judger::FileType::Plain),
-        output: StoreFile::from_str(b.to_string(), judger::FileType::Plain),
-    }
-}
-
-fn gen_a_plus_b_data() -> StandardProblem {
-    StandardProblem::Traditional(
-        OJData::new(problem::problem::traditional::Meta {
-            checker: problem::Checker::AutoCmp {
-                float_relative_eps: 0.0,
-                float_absoulte_eps: 0.0,
-            },
-            time_limit: problem::Elapse::from(1000u64),
-            memory_limit: problem::Memory::from(256u64 << 20),
-            output_limit: problem::Memory::from(64u64 << 20),
-        })
-        .set_data(problem::data::Taskset::Subtasks {
-            subtasks: vec![
-                problem::data::Subtask {
-                    tasks: vec![
-                        gen_a_plus_b_task(1, 2),
-                        gen_a_plus_b_task(10, 20),
-                        gen_a_plus_b_task(100, 200),
-                        gen_a_plus_b_task(1000, 2000),
-                        gen_a_plus_b_task(10000, 20000),
-                    ],
-                    meta: (),
-                    score: 0.5,
-                },
-                problem::data::Subtask {
-                    tasks: vec![
-                        gen_a_plus_b_task(-100, 200),
-                        gen_a_plus_b_task(-1000, 2000),
-                        gen_a_plus_b_task(-10000, 20000),
-                    ],
-                    meta: (),
-                    score: 0.3,
-                },
-                problem::data::Subtask {
-                    tasks: vec![gen_a_plus_b_task(-10000, -20000)],
-                    meta: (),
-                    score: 0.2,
-                },
-            ],
-            deps: vec![problem::data::DepRelation::new(2, 1)],
-        })
-        .set_pre(problem::data::Taskset::Tests {
-            tasks: vec![
-                gen_a_plus_b_task(1, 2),
-                gen_a_plus_b_task(10, 20),
-                gen_a_plus_b_task(-100, 200),
-            ],
-        }),
-    )
-}
-
-pub fn gen_test_fulldata() -> ProblemFullData {
-    ProblemFullData {
-        data: gen_a_plus_b_data(),
-        statement: gen_a_plus_b_statment(),
-        tutorial: problem::render_data::Tutorial {
-            tutorial: problem::render_data::tutorial::Inner::Source("题解已经写在题面中".into()),
-            meta: problem::render_data::tutorial::TutrMeta {
-                origin: None,
-                difficulty: Some("简单".into()),
-                tags: vec!["IO".into()],
-            },
-        },
-    }
 }

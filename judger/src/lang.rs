@@ -31,7 +31,7 @@ impl GnuCpp {
     /// 默认编译器为 g++
     pub fn new(gpp_path: Option<PathBuf>, args: Vec<&'static str>) -> Self {
         let gpp_path = gpp_path.unwrap_or(crate::env::which("g++").unwrap());
-        dbg!(&gpp_path);
+        // dbg!(&gpp_path);
         let extra_args: Vec<String> = args.into_iter().map(|s| s.to_string()).collect();
         GnuCpp {
             gpp_path,

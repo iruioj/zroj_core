@@ -11,8 +11,8 @@ use serde_ts_typing::TsType;
 #[serde(tag = "name", content = "payload", rename_all = "snake_case")]
 #[ts(name = "JudgerStatus")]
 pub enum Status {
-    /// 通过
-    Accepted,
+    /// 目前没有问题。不等价于通过（得看得分是否等于总分）
+    Good,
     /// 编译错误
     CompileError(Option<sandbox::Status>),
     /// 自定义的评测状态
@@ -20,8 +20,8 @@ pub enum Status {
     DangerousSyscall,
     MemoryLimitExceeded,
     OutputLimitExceeded,
-    /// (获得的部分分，总分）
-    Partial(f64, f64),
+    // (获得的部分分，总分）
+    // Partial(f64, f64),
     /// 非空字符构成的字符串与答案匹配
     PresentationError,
     RuntimeError,
@@ -32,35 +32,17 @@ pub enum Status {
 impl Status {
     pub fn update(&mut self, s: Status) {
         match s {
-            Status::Accepted => {} // do nothing
-            Status::Partial(s, t) => {
-                if let Status::Accepted = self {
-                    *self = Status::Partial(s, t);
-                } else if let Status::Partial(score, tot) = self {
-                    *score += s;
-                    *tot += t;
-                }
-                // otherwise do nothing
-            }
+            Status::Good => {} // do nothing
             _ => {
                 // 默认直接赋值，不考虑 self 本身
                 *self = s;
             }
         }
     }
-    /// 测试点的得分率
-    pub fn score_rate(&self) -> f64 {
+    pub fn direct_score_rate(&self) -> f64 {
         match self {
-            Status::Accepted => 1.0,
-            Status::Partial(s, t) => s / t,
-            _ => 0.0,
-        }
-    }
-    /// 总分（如果有）
-    pub fn total_score(&self) -> Option<f64> {
-        match self {
-            Status::Partial(_, t) => Some(*t),
-            _ => None,
+            Status::Good => 1.0,
+            _ => 0.0
         }
     }
 }
@@ -68,8 +50,8 @@ impl Status {
 /// 一个测试点的测试结果指标
 #[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub struct TaskMeta {
-    /// 得分
-    pub score: f64,
+    /// 得分率
+    pub score_rate: f64,
     /// 评测结果
     pub status: Status,
     /// 花费时间
@@ -81,7 +63,7 @@ pub struct TaskMeta {
 impl TaskMeta {
     pub fn error_status(status: Status) -> Self {
         Self {
-            score: 0.0,
+            score_rate: 0.0,
             status,
             time: 0.into(),
             memory: 0.into(),
@@ -131,7 +113,7 @@ impl TaskReport {
 impl From<sandbox::Status> for Status {
     fn from(value: sandbox::Status) -> Self {
         match value {
-            sandbox::Status::Ok => Status::Accepted,
+            sandbox::Status::Ok => Status::Good,
             sandbox::Status::RuntimeError(_, _) => Status::RuntimeError,
             sandbox::Status::MemoryLimitExceeded(_) => Status::MemoryLimitExceeded,
             sandbox::Status::TimeLimitExceeded(_) => Status::TimeLimitExceeded,
@@ -143,6 +125,8 @@ impl From<sandbox::Status> for Status {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtaskReport {
+    /// 所有子任务的分数总和为 1
+    pub total_score: f64,
     pub meta: TaskMeta,
     pub tasks: Vec<Option<TaskReport>>,
 }
@@ -174,22 +158,23 @@ mod tests {
     fn test_judge_result_serde() {
         let r = JudgeReport {
             meta: crate::TaskMeta {
-                score: 0.0,
+                score_rate: 0.0,
                 status: crate::Status::WrongAnswer,
                 time: 114.into(),
                 memory: 514.into(),
             },
             detail: super::JudgeDetail::Subtask(vec![SubtaskReport {
+                total_score: 1.0,
                 meta: crate::TaskMeta {
-                    score: 0.0,
+                    score_rate: 0.0,
                     status: crate::Status::WrongAnswer,
                     time: 114.into(),
                     memory: 514.into(),
                 },
                 tasks: vec![Some(TaskReport {
                     meta: crate::TaskMeta {
-                        score: 0.5,
-                        status: crate::Status::Partial(1., 2.),
+                        score_rate: 0.5,
+                        status: crate::Status::Good,
                         time: 114.into(),
                         memory: 514.into(),
                     },

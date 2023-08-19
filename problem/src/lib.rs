@@ -11,6 +11,7 @@ mod error;
 pub mod prob_judger;
 pub mod problem;
 pub mod render_data;
+pub mod sample;
 
 pub use checker::Checker;
 pub use error::RuntimeError;

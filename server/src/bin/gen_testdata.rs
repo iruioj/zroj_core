@@ -5,7 +5,7 @@ use store::{FsStore, Handle};
 
 /// 生成一个 aplusb.zip
 fn main() {
-    server::dev::gen_test_fulldata()
+    problem::sample::a_plus_b_full()
         .save(&Handle::new("aplusb"))
         .unwrap();
 

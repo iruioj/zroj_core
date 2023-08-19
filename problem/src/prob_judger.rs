@@ -5,19 +5,18 @@ use judger::{
 
 use crate::data::Rule;
 
-pub struct JudgeMonitor {
+pub struct Summarizer {
     status: Status,
     time: Elapse,
     memory: Memory,
     score: f64,
     rule: Rule,
-    default_score: f64,
 }
 
-impl JudgeMonitor {
-    pub fn new(default_score: f64, rule: &Rule) -> Self {
+impl Summarizer {
+    pub fn new(rule: Rule) -> Self {
         Self {
-            status: Status::Accepted,
+            status: Status::Good,
             time: 0.into(),
             memory: 0.into(),
             score: match rule {
@@ -25,14 +24,13 @@ impl JudgeMonitor {
                 Rule::Minimum => 1.0,
             },
             rule: rule.clone(),
-            default_score,
         }
     }
-    pub fn update(&mut self, r: &TaskMeta) {
+    pub fn update(&mut self, r: &TaskMeta, task_score: f64) {
         self.status.update(r.status.clone());
         self.time = self.time.max(r.time);
         self.memory = self.memory.max(r.memory);
-        let score = r.status.score_rate() * r.status.total_score().unwrap_or(self.default_score);
+        let score = r.score_rate * task_score;
         self.score = match self.rule {
             Rule::Sum => self.score + score,
             Rule::Minimum => self.score.min(score),
@@ -46,7 +44,7 @@ impl JudgeMonitor {
     }
     pub fn report(&self) -> TaskMeta {
         TaskMeta {
-            score: self.score,
+            score_rate: self.score,
             status: self.status.clone(),
             time: self.time,
             memory: self.memory,

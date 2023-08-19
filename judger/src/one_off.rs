@@ -89,7 +89,7 @@ impl OneOff {
             let st = term.status.clone();
             if st != sandbox::Status::Ok {
                 let r = TaskReport::new(TaskMeta {
-                    score: 0.0,
+                    score_rate: 0.0,
                     status: Status::CompileError(Some(st)),
                     time: term.cpu_time,
                     memory: term.memory,
@@ -167,7 +167,7 @@ impl OneOff {
         let status: crate::Status = term.status.into();
 
         Ok(TaskReport::new(TaskMeta {
-            score: status.score_rate(),
+            score_rate: status.direct_score_rate(),
             status,
             time: term.cpu_time,
             memory: term.memory,

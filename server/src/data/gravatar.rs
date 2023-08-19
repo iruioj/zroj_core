@@ -55,7 +55,7 @@ impl Manager for DefaultDB {
         drop(dir);
 
         if path.path().exists() {
-            let file = NamedFile::open(path.path().to_path_buf()).unwrap();
+            let file = NamedFile::open(path.path()).unwrap();
             Ok(file)
         } else {
             self.fetch(email).await
@@ -72,7 +72,7 @@ impl Manager for DefaultDB {
             .get(url.to_str().unwrap())
             .insert_header(("user-agent", r#"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"#))
             .timeout(Duration::from_secs(30));
-        let mut res = req.send().await.map_err(|e| Error::FetchError(e))?;
+        let mut res = req.send().await.map_err(Error::FetchError)?;
         eprintln!("get response");
         let img = res.body().await.unwrap();
         eprintln!("get body");
@@ -87,7 +87,7 @@ impl Manager for DefaultDB {
         dbg!(&dir);
         drop(dir);
 
-        let file = NamedFile::open(path.path().to_path_buf()).expect("opening named file");
+        let file = NamedFile::open(path.path()).expect("opening named file");
         Ok(file)
     }
 }

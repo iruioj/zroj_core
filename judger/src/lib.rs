@@ -28,6 +28,8 @@ pub use store::Handle;
 pub trait Judger {
     /// 返回当前的工作目录
     fn working_dir(&self) -> store::Handle;
+    /// 输出评测日志
+    fn runtime_log(&mut self, msg: LogMessage);
 }
 
 pub struct DefaultJudger {
@@ -42,22 +44,24 @@ impl Judger for DefaultJudger {
     fn working_dir(&self) -> store::Handle {
         self.wd.clone()
     }
+    fn runtime_log(&mut self, msg: LogMessage) {
+        eprintln!("[judger] {}", msg)
+    }
 }
 
-/// Judge 表示的评测过程.
-///
-/// 考虑到评测的过程中很多文件可以再利用（比如选手的源文件，编译花费的时间很长，最好只编译一次，
-/// 这种优化在比赛评测时很有效，也就是说终测的时候不用再次编译，这样会很节省评测时间），
-/// 因此不把它写成一个 generic function 的形式，改用 trait 实现。大概会有
-///
-/// - pre_judge：检查参数是否正确，临时文件/目录初始化啥的。做一些编译啥的活，有的可以缓存
-/// - judge：枚举测试点去评测（可能要考虑依赖），然后直接返回
-/// - post_judge：收尾（删除临时文件啥的）
-///
-trait Judge {}
-
-/// Hack 表示证伪选手代码的过程
-trait Hack {}
+#[derive(thiserror::Error, Debug)]
+pub enum LogMessage {
+    #[error("start judging (task kind: subtasks)")]
+    StartSubtasks,
+    #[error("start judging (task kind: tests)")]
+    StartTests,
+    #[error("judging subtask {0} task {1}")]
+    SubtaskTask(usize, usize),
+    #[error("judging task {0}")]
+    TestTask(usize),
+    #[error("finished")]
+    End,
+}
 
 pub mod sha_hash {
     pub use sha2::digest::Update; // re-export

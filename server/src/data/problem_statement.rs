@@ -63,7 +63,7 @@ mod default {
         pub fn new(dir: impl AsRef<std::path::Path>) -> Self {
             std::fs::create_dir_all(dir.as_ref()).expect("create statement database dir");
 
-            let dir = Handle::new(dir.as_ref().to_path_buf());
+            let dir = Handle::new(dir.as_ref());
             let data_file_path = dir.join("stmt.json");
             let data = if let Ok(file) = data_file_path.open_file() {
                 serde_json::from_reader(&file).unwrap_or_default()

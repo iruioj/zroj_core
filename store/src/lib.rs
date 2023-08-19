@@ -50,6 +50,17 @@ impl Handle {
             .open(self.as_ref())
             .map_err(Error::CreateNewFile)
     }
+    /// 如果是文件就删除，如果是文件夹就删除它自己和所有子文件夹和子文件
+    pub fn remove_all(&self) -> Result<(), Error> {
+        if !self.path().exists() {
+            return Ok(());
+        }
+        if self.path().is_dir() {
+            std::fs::remove_dir_all(self.path()).map_err(Error::RemoveAll)
+        } else {
+            std::fs::remove_file(self.path()).map_err(Error::RemoveAll)
+        }
+    }
     /// 从该路径下的文件中解析数据（要求文件存在）
     pub fn deserialize<T: DeserializeOwned>(&self) -> Result<T, Error> {
         Ok(serde_json::from_reader(self.open_file()?)?)
