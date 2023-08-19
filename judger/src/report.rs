@@ -9,6 +9,7 @@ use serde_ts_typing::TsType;
 /// 一个测试点提交的可能的返回状态
 #[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 #[serde(tag = "name", content = "payload", rename_all = "snake_case")]
+#[ts(name = "JudgerStatus")]
 pub enum Status {
     /// 通过
     Accepted,

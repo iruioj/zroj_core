@@ -5,7 +5,7 @@ const { list } = useMsgStore();
 </script>
 
 <template>
-  <header class="bg-back sticky top-0 z-30 border-b border-theme">
+  <header class="bg-back fixed w-full top-0 z-30 border-b border-theme">
     <div class="flex items-center">
       <NuxtLink to="/">
         <div class="inline-block px-4 font-bold text-xl text-brand">

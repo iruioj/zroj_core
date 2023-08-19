@@ -85,6 +85,10 @@ const config: Partial<Config> = {
             "1"
           )} !important`,
         },
+        html: {
+          color: "rgb(var(--theme-pri))",
+          'background-color': back.replace("<alpha-value>", "1")
+        },
         // '@media (prefers-color-scheme: dark)': {
         //   'html': {
         //     'background-color':

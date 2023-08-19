@@ -159,7 +159,8 @@ impl OneOff {
                 .stderr(&log)
                 .stdin(input);
             eprintln!("开始运行选手程序");
-            let term = s.exec_sandbox()?;
+            // 为了避免 getrusage 数值累加，使用 exec_fork
+            let term = s.exec_fork()?;
             eprintln!("程序运行结束");
             term
         };

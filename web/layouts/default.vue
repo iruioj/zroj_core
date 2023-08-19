@@ -1,38 +1,32 @@
 <template>
   <div class="w-full">
     <NavBar />
-    <NuxtPage />
+    <div class="mt-[56px]">
+      <NuxtPage />
+    </div>
     <FootBar />
   </div>
 </template>
 <style>
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+:root {
+  --theme-bg: 255 255 255;
+  --theme-pri: 0 0 0;
+  --theme-sec: 51 65 85;
+  --theme-brand: 140 0 0;
+  --theme-brand-sec: 86 0 0;
+}
 
-@layer base {
+@media (prefers-color-scheme: dark) {
   :root {
-    --theme-bg: 255 255 255;
-    --theme-pri: 0 0 0;
-    --theme-sec: 51 65 85;
-    --theme-brand: 140 0 0;
-    --theme-brand-sec: 86 0 0;
-  }
-  html {
-    color: rgb(var(--theme-pri));
-    @apply bg-back;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --theme-pri: 238 238 238;
-      --theme-sec: 171 171 171;
-      --theme-bg: 32 33 36;
-      --theme-brand: 201 52 52;
-      --theme-brand-sec: 202 92 92;
-    }
+    --theme-pri: 238 238 238;
+    --theme-sec: 171 171 171;
+    --theme-bg: 32 33 36;
+    --theme-brand: 201 52 52;
+    --theme-brand-sec: 202 92 92;
   }
 }
+
+@tailwind components;
 
 @layer components {
   .border-table,

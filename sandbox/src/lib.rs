@@ -45,6 +45,7 @@ pub enum MemoryLimitExceededKind {
 
 /// 执行的结果状态，只是一个初步的分析，适用于绝大多数情况
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, TsType)]
+#[ts(name = "SandboxStatus")]
 pub enum Status {
     /// All Correct
     Ok,
@@ -128,6 +129,8 @@ pub trait ExecSandBox {
     }
 
     /// Unix only: 先 fork 一个子进程再执行程序，避免主进程终止导致整个进程终止
+    /// 
+    /// 避免 getrusage 出现累加的情况
     #[cfg(all(unix))]
     fn exec_fork(&self) -> Result<Termination, SandboxError> {
         use std::io::{Seek, SeekFrom};

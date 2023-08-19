@@ -36,8 +36,8 @@ const onChangeLang = (item: Pick<(typeof langs)[0], "title" | "value">) => {
   lang.value = langs.find((o) => o.value === item.value)!;
 };
 
-const isJudging = ref(false);
-const judgeResult = ref<TaskReport | null>(null);
+const isJudging = useState('oneoff_is_judging', () => false);
+const judgeResult = useState<TaskReport | null>('oneoff_report', () => null);
 
 const onSubmit = async () => {
   const data = new FormData();
@@ -97,8 +97,6 @@ const onSubmit = async () => {
       class="bg-back border border-slate-400 w-full overflow-y-auto font-mono p-2 h-32 outline-brand rounded"
     ></textarea>
     <div v-if="isJudging">评测中...</div>
-    <div v-else-if="judgeResult">
-      {{ judgeResult }}
-    </div>
+    <TaskReportView v-else-if="judgeResult" :data="judgeResult" />
   </PageContainer>
 </template>
