@@ -6,6 +6,7 @@ import topLevelAwait from "vite-plugin-top-level-await";
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: ["@nuxtjs/tailwindcss", "nuxt-icons", "@pinia/nuxt"],
+
   runtimeConfig: {
     // The private keys which are only available server-side
     apiSecret: "123",
@@ -16,8 +17,14 @@ export default defineNuxtConfig({
       // apiBase: "http://api.zroj.tst",
     },
   },
+
   devServer: {},
+
   vite: {
     plugins: [wasm(), topLevelAwait()],
+  },
+
+  devtools: {
+    enabled: true,
   },
 });

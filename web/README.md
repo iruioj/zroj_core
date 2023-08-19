@@ -42,5 +42,5 @@ mkcert localhost # 创建证书
 在项目根目录下执行
 
 ```bash
-cargo run --bin gen_docs -- nocapture > web/composables/api/index.ts
+cargo run --bin gen_docs -- nocapture > web/composables/api.ts
 ```
