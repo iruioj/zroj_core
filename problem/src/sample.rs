@@ -125,9 +125,9 @@ mod tests {
     use judger::DefaultJudger;
     use store::Handle;
 
-    use crate::problem::{
-        traditional::{Subm, Traditional},
-        JudgeData,
+    use crate::{
+        judger_framework::JudgeData,
+        problem::traditional::{Subm, Traditional},
     };
 
     use super::*;

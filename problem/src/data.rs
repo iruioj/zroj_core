@@ -25,7 +25,7 @@ use store::FsStore;
 pub struct Data<T, M, S>
 where
     T: FsStore,
-    M: FsStore,
+    M: FsStore + Clone,
     S: Override<M> + FsStore,
 {
     /// 测试数据
@@ -67,7 +67,7 @@ where
 impl<T, M, S> OJData<T, M, S>
 where
     T: FsStore,
-    M: FsStore,
+    M: FsStore + Clone,
     S: Override<M> + FsStore,
 {
     pub fn new(meta: M) -> Self {

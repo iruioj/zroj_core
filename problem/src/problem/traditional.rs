@@ -1,11 +1,9 @@
-use super::JudgeTask;
-use crate::{
-    data::StoreFile,
-    problem::{compile_in_wd, copy_in_wd},
-    Checker, RuntimeError,
-};
+use crate::{data::StoreFile, judger_framework::JudgeTask, utils::*, Checker, RuntimeError};
 use judger::{
-    sandbox::{unix::{Singleton, Lim}, Elapse, ExecSandBox, Memory},
+    sandbox::{
+        unix::{Lim, Singleton},
+        Elapse, ExecSandBox, Memory,
+    },
     truncstr::{TruncStr, TRUNCATE_LEN},
 };
 use store::FsStore;
@@ -147,7 +145,7 @@ mod tests {
     };
     use store::Handle;
 
-    use crate::{data::StoreFile, problem::JudgeTask, Checker};
+    use crate::{data::StoreFile, judger_framework::JudgeTask, Checker};
 
     use super::{Meta, Subm, Task, Traditional};
 

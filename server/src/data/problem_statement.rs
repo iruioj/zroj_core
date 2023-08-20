@@ -10,7 +10,7 @@ pub type StmtDB = dyn Manager + Sync + Send;
 
 #[derive(Debug, Serialize, TsType)]
 pub struct Statement {
-    statement: problem::Mdast,
+    statement: problem::render_data::Mdast,
     meta: StmtMeta,
 }
 

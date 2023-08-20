@@ -55,9 +55,11 @@ pub enum ProblemKind {
     SubmitAnswer,
 }
 
+/// markdown AST，用于传递给前端
+pub type Mdast = md::Node;
+
 pub mod statement {
     use super::*;
-    use crate::{Elapse, Memory};
 
     /// 题面数据
     /// 
@@ -91,7 +93,7 @@ pub mod statement {
         },
     }
 
-    fn create_heading(content: &str, depth: u8) -> md::Node {
+    fn create_heading(content: &str, depth: u8) -> Mdast {
         md::Node::Heading(md::ast::Heading {
             children: vec![md::Node::Text(md::ast::Text {
                 value: content.into(),
@@ -101,7 +103,7 @@ pub mod statement {
     }
 
     impl Inner {
-        pub fn render_mdast(&self) -> crate::Mdast {
+        pub fn render_mdast(&self) -> Mdast {
             match self {
                 Inner::Legacy(s) => md::parse_ast(s.as_str()).expect("parse error"),
                 Inner::Standard {
@@ -174,9 +176,9 @@ pub mod statement {
         /// 标题
         pub title: String,
         /// 时间限制
-        pub time: Option<Elapse>,
+        pub time: Option<judger::sandbox::Elapse>,
         /// 空间限制
-        pub memory: Option<Memory>,
+        pub memory: Option<judger::sandbox::Memory>,
         /// 题目类型
         pub kind: Option<ProblemKind>,
     }
