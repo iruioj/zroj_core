@@ -1,3 +1,4 @@
+use super::job_runner::JobRunner;
 use crate::{SubmID, UserID};
 use actix_web::error;
 use judger::{JudgeReport, LogMessage, MpscJudger};
@@ -6,15 +7,14 @@ use problem::{
     judger_framework::{self, JudgeTask},
     Override,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
 use store::{FsStore, Handle};
 
-use super::job_runner::JobRunner;
-
-#[derive(Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FullJudgeReport {
     pub pre: Option<JudgeReport>,
     pub data: Option<JudgeReport>,

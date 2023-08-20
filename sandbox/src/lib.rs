@@ -179,6 +179,12 @@ pub trait ExecSandBox {
 )]
 pub struct Elapse(u64);
 
+impl From<Elapse> for u64 {
+    fn from(value: Elapse) -> Self {
+        value.0
+    }
+}
+
 impl Elapse {
     /// 输出以秒为单位的时间
     pub fn sec(self) -> u64 {
@@ -221,6 +227,12 @@ impl From<Duration> for Elapse {
     Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord, TsType,
 )]
 pub struct Memory(u64);
+
+impl From<Memory> for u64 {
+    fn from(value: Memory) -> Self {
+        value.0
+    }
+}
 
 impl Display for Memory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

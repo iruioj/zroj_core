@@ -10,9 +10,11 @@ mod email;
 mod gender;
 mod json_str;
 mod username;
+mod cast;
 
 pub use datetime::DateTime;
 pub use email::EmailAddress;
 pub use gender::{Gender, GenderInner};
 pub use json_str::JsonStr;
 pub use username::Username;
+pub use cast::{CastElapse, CastMemory};
