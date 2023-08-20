@@ -13,6 +13,7 @@ pub type GroupID = u32;
 pub type SessionID = uuid::Uuid;
 pub type UserID = u32;
 pub type ProblemID = u32;
+pub type SubmID = u32;
 
 // re-export
 pub use actix_session;

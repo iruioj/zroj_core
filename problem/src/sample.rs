@@ -120,13 +120,31 @@ pub fn a_plus_b_full() -> ProblemFullData {
     }
 }
 
+pub fn a_plus_b_std() -> crate::problem::traditional::Subm {
+    crate::problem::traditional::Subm {
+        source: StoreFile::from_str(
+            r#"
+#include<iostream>
+using namespace std;
+int main() {
+    int a, b;
+    cin >> a >> b;
+    cout << a + b;
+    return 0;
+}
+"#,
+            judger::FileType::GnuCpp14O2,
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use judger::DefaultJudger;
     use store::Handle;
 
     use crate::{
-        judger_framework::JudgeData,
+        judger_framework,
         problem::traditional::{Subm, Traditional},
     };
 
@@ -137,11 +155,11 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let data = a_plus_b_data();
         let StandardProblem::Traditional(data) = data;
-        let data = data.to_data();
+        let mut data = data.into_triple().1;
 
-        let mut data: JudgeData<_, _, _, Traditional> = JudgeData::from_data(data);
+        // let mut data: JudgeData<_, _, _, Traditional> = JudgeData::from_data(data);
 
-        let default_judger = DefaultJudger::new(Handle::new(dir.path()));
+        let mut default_judger = DefaultJudger::new(Handle::new(dir.path()));
 
         let mut subm = Subm {
             source: StoreFile::from_str(
@@ -158,7 +176,12 @@ int main() {
                 judger::FileType::GnuCpp14O2,
             ),
         };
-        let report = data.judge(default_judger, &mut subm).unwrap();
+        let report = judger_framework::judge::<_, _, _, Traditional>(
+            &mut data,
+            &mut default_judger,
+            &mut subm,
+        )
+        .unwrap();
         dbg!(report.meta);
         drop(dir)
     }

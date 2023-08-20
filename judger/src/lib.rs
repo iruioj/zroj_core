@@ -10,6 +10,9 @@ mod report;
 mod store_file;
 pub mod truncstr;
 
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::SyncSender;
+
 // pub use basic::Submission;
 pub use cache::Cache;
 pub use error::Error;
@@ -17,8 +20,8 @@ pub use lang::Compile;
 pub use lang::FileType;
 pub use one_off::OneOff;
 pub use report::*;
-pub use store_file::StoreFile;
 pub use store::Handle;
+pub use store_file::StoreFile;
 
 /// Judger 是一个评测服务的上下文，可以提供评测环境的信息，访问相关缓存等等
 ///
@@ -46,6 +49,30 @@ impl Judger for DefaultJudger {
     }
     fn runtime_log(&mut self, msg: LogMessage) {
         eprintln!("[judger] {}", msg)
+    }
+}
+
+/// 通过 channel 发送评测日志
+pub struct MpscJudger {
+    wd: store::Handle,
+    sender: SyncSender<LogMessage>,
+}
+
+impl MpscJudger {
+    pub fn new(wd: store::Handle) -> (Self, Receiver<LogMessage>) {
+        let (sender, receiver) = std::sync::mpsc::sync_channel::<LogMessage>(128);
+        (Self { wd, sender }, receiver)
+    }
+}
+
+impl Judger for MpscJudger {
+    fn working_dir(&self) -> store::Handle {
+        self.wd.clone()
+    }
+
+    fn runtime_log(&mut self, msg: LogMessage) {
+        // ignore send error
+        let _ = self.sender.send(msg);
     }
 }
 

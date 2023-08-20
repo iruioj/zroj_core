@@ -220,7 +220,7 @@ impl FsStore for std::fs::File {
     }
 }
 
-impl<T> FsStore for std::marker::PhantomData<T> {
+impl<T: Send> FsStore for std::marker::PhantomData<T> {
     fn open(_: &Handle) -> Result<Self, Error> {
         Ok(Self)
     }

@@ -4,7 +4,7 @@ use pest::Parser;
 use pest_derive::Parser;
 use problem::{
     data::{DepRelation, FileType, StoreFile, Subtask, Taskset},
-    problem::{traditional::Task, TraditionalData},
+    problem::{traditional::Task, TraditionalOJData},
     Checker,
 };
 
@@ -184,14 +184,14 @@ impl Config {
     }
 }
 
-pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalData, LoadError> {
+pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalOJData, LoadError> {
     if !conf.use_builtin_judger {
         panic!("this problem doesn't use builtin judger")
     }
     if conf.with_implementer {
         panic!("this problem use custom implementer")
     }
-    let mut ojdata = TraditionalData::new(
+    let mut ojdata = TraditionalOJData::new(
         problem::problem::traditional::Meta {
             checker: if let Some(checker) = &conf.use_builtin_checker {
                 if checker == "ncmp" {

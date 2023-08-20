@@ -17,7 +17,7 @@ actix-session = { version = "0.7", features = ["cookie-session"] }
 actix-multipart = { version = "0.6" }
 actix-rt = "2.8"
 actix-cors = "0.6"
-awc = "3.0.0-beta.9"
+awc = "3.1"
 
 async-trait = "0.1"
 crossbeam-channel = "0.5.8"

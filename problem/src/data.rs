@@ -24,9 +24,9 @@ use store::FsStore;
 #[derive(FsStore, Debug)]
 pub struct Data<T, M, S>
 where
-    T: FsStore,
-    M: FsStore + Clone,
-    S: Override<M> + FsStore,
+    T: FsStore + Send + Sync + 'static,
+    M: FsStore + Clone + Send + Sync + 'static,
+    S: Override<M> + FsStore + Send + Sync + 'static,
 {
     /// 测试数据
     pub tasks: Taskset<T, S>,
@@ -49,15 +49,15 @@ where
     S: Override<M> + FsStore,
 {
     /// 测试数据
-    data: Taskset<T, S>,
+    pub data: Taskset<T, S>,
     /// 样例评测的数据
     ///
     /// 初始化时与 data 的元信息一致，数据集为空
-    pre: Taskset<T, S>,
+    pub pre: Taskset<T, S>,
     /// 额外的评测数据
     ///
     /// 初始化时与 data 的元信息一致，数据集为空
-    extra: Taskset<T, S>,
+    pub extra: Taskset<T, S>,
     /// see [`Data`]
     pub meta: M,
     // see [`Data`]
@@ -66,9 +66,9 @@ where
 
 impl<T, M, S> OJData<T, M, S>
 where
-    T: FsStore,
-    M: FsStore + Clone,
-    S: Override<M> + FsStore,
+    T: FsStore + Send + Sync + 'static,
+    M: FsStore + Clone + Send + Sync + 'static,
+    S: Override<M> + FsStore + Send + Sync + 'static,
 {
     pub fn new(meta: M) -> Self {
         Self {
@@ -91,26 +91,21 @@ where
         self.extra = data;
         self
     }
-    pub fn to_data(self) -> Data<T, M, S> {
-        Data {
-            tasks: self.data,
-            meta: self.meta,
-            // rule: self.rule,
-        }
-    }
-    pub fn to_pre(self) -> Data<T, M, S> {
-        Data {
-            tasks: self.pre,
-            meta: self.meta,
-            // rule: self.rule,
-        }
-    }
-    pub fn to_extra(self) -> Data<T, M, S> {
-        Data {
-            tasks: self.extra,
-            meta: self.meta,
-            // rule: self.rule,
-        }
+    pub fn into_triple(self) -> (Data<T, M, S>, Data<T, M, S>, Data<T, M, S>) {
+        (
+            Data {
+                tasks: self.pre,
+                meta: self.meta.clone(),
+            },
+            Data {
+                tasks: self.data,
+                meta: self.meta.clone(),
+            },
+            Data {
+                tasks: self.extra,
+                meta: self.meta,
+            },
+        )
     }
 }
 

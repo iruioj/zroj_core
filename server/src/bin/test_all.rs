@@ -28,7 +28,7 @@ async fn main() -> std::io::Result<()> {
             "http://sdn.geekzu.org/avatar/".into()
         )
     );
-    eprintln!("job thread id = {:?}", custom_test.handle.thread().id());
+    // eprintln!("job thread id = {:?}", custom_test.handle.thread().id());
 
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     let session_key = actix_web::cookie::Key::generate();
