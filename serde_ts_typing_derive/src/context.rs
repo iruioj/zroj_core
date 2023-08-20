@@ -87,7 +87,7 @@ impl VariantContext {
                     SeperableMeta::Consistent(s) => r.rename = Some(RenameOption::Specify(s)),
                     SeperableMeta::Seperate { serialize, .. } => {
                         r.rename = serialize.map(RenameOption::Specify)
-                    },
+                    }
                 },
                 VariantAttr::RenameAll(i) => match i {
                     SeperableMeta::Consistent(s) => r.rename_all = Some(s),
@@ -172,10 +172,10 @@ impl ContainerContext {
     pub fn tag(&self) -> Option<String> {
         self.tag.clone()
     }
-    pub fn content_tag(&self) -> Option<String>  {
+    pub fn content_tag(&self) -> Option<String> {
         self.content.clone()
     }
-    pub fn untagged(&self) -> bool{
+    pub fn untagged(&self) -> bool {
         self.untagged
     }
 }

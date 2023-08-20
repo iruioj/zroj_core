@@ -16,7 +16,7 @@ use nix::{
     },
     unistd,
 };
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::{
     ffi::CString,
     os::{fd::RawFd, unix::prelude::OsStrExt},

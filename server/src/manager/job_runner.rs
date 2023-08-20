@@ -33,8 +33,7 @@ impl JobRunner {
         F: FnOnce() + Send + Sync + 'static,
     {
         let job = Box::new(f);
-        self.sender
-            .send(job)
+        self.sender.send(job)
     }
     /// wait for job thread to finish and then close it
     pub fn terminate(self) {

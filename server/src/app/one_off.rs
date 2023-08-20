@@ -1,9 +1,6 @@
 use crate::{manager::one_off::OneOffManager, marker::*, UserID};
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
-use actix_web::{
-    error::ErrorBadRequest,
-    web,
-};
+use actix_web::{error::ErrorBadRequest, web};
 use judger::{StoreFile, TaskReport};
 use serde::Serialize;
 use serde_json::json;
@@ -39,7 +36,7 @@ async fn custom_test_post(
     };
     let lang = parse_source_name(file_name).ok_or(ErrorBadRequest("invalid file name"))?;
     if !lang.compileable() {
-        return Err(ErrorBadRequest("file not compilable"))
+        return Err(ErrorBadRequest("file not compilable"));
     }
     let source = StoreFile {
         file: payload.source.file.reopen()?,

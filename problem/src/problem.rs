@@ -1,6 +1,6 @@
 use store::{FsStore, Handle};
 
-use crate::data::{OJData, Data};
+use crate::data::{Data, OJData};
 
 pub mod traditional;
 pub type TraditionalOJData = OJData<traditional::Task, traditional::Meta, ()>;

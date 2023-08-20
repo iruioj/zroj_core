@@ -265,7 +265,7 @@ impl ToString for Node {
             | Node::ImageReference(_)
             | Node::ThematicBreak(_)
             | Node::Definition(_) => String::new(),
-            
+
             // custom
             Node::TwoColumns(x) => x.left.to_string() + &x.right.to_string(),
         }

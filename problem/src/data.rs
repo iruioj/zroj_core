@@ -71,7 +71,7 @@ where
     T: FsStore + Send + Sync + 'static,
     M: FsStore + Clone + Send + Sync + 'static,
     S: FsStore + Send + Sync + 'static,
-    for <'a> &'a S: Override<M>,
+    for<'a> &'a S: Override<M>,
 {
     pub fn new(meta: M) -> Self {
         Self {

@@ -5,14 +5,14 @@ use diesel::{sql_types::*, *};
 
 use serde::{Deserialize, Serialize};
 
+mod datetime;
 mod email;
 mod gender;
-mod username;
-mod datetime;
 mod json_str;
+mod username;
 
 pub use datetime::DateTime;
 pub use email::EmailAddress;
 pub use gender::{Gender, GenderInner};
-pub use username::Username;
 pub use json_str::JsonStr;
+pub use username::Username;

@@ -42,7 +42,7 @@ impl Status {
     pub fn direct_score_rate(&self) -> f64 {
         match self {
             Status::Good => 1.0,
-            _ => 0.0
+            _ => 0.0,
         }
     }
 }
@@ -104,7 +104,11 @@ impl TaskReport {
         ));
         Ok(())
     }
-    pub fn try_add_payload(mut self, name: impl AsRef<str>, path: impl AsRef<std::path::Path>) -> Self {
+    pub fn try_add_payload(
+        mut self,
+        name: impl AsRef<str>,
+        path: impl AsRef<std::path::Path>,
+    ) -> Self {
         let _ = self.add_payload(name, path);
         self
     }

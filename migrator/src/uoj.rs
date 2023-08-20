@@ -191,27 +191,26 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalOJData,
     if conf.with_implementer {
         panic!("this problem use custom implementer")
     }
-    let mut ojdata = TraditionalOJData::new(
-        problem::problem::traditional::Meta {
-            checker: if let Some(checker) = &conf.use_builtin_checker {
-                if checker == "ncmp" {
-                    Checker::AutoCmp {
-                        float_relative_eps: 0.0,
-                        float_absoulte_eps: 0.0,
-                    }
+    let mut ojdata = TraditionalOJData::new(problem::problem::traditional::Meta {
+        checker: if let Some(checker) = &conf.use_builtin_checker {
+            if checker == "ncmp" {
+                Checker::AutoCmp {
+                    float_relative_eps: 0.0,
+                    float_absoulte_eps: 0.0,
                 }
-                // default checker
-                else {
-                    Checker::FileCmp
-                }
-            } else { // TODO: spj
-                unimplemented!()
-            },
-            time_limit: conf.time_limit.unwrap_or(5000).into(),
-            memory_limit: conf.memory_limit.unwrap_or(256 << 20).into(),
-            output_limit: conf.output_limit.unwrap_or(64 << 20).into()
+            }
+            // default checker
+            else {
+                Checker::FileCmp
+            }
+        } else {
+            // TODO: spj
+            unimplemented!()
         },
-    )
+        time_limit: conf.time_limit.unwrap_or(5000).into(),
+        memory_limit: conf.memory_limit.unwrap_or(256 << 20).into(),
+        output_limit: conf.output_limit.unwrap_or(64 << 20).into(),
+    })
     .set_data(if let Some((subtasks, deps)) = &conf.subtasks {
         Taskset::Subtasks {
             subtasks: subtasks

@@ -67,11 +67,7 @@ impl Cache {
             sorted: BTreeMap::<Entry, String>::new(),
         }
     }
-    pub fn get_exec(
-        &mut self,
-        lang: &impl Compile,
-        src_path: &PathBuf,
-    ) -> Result<PathBuf, Error> {
+    pub fn get_exec(&mut self, lang: &impl Compile, src_path: &PathBuf) -> Result<PathBuf, Error> {
         let src = fs::read_to_string(src_path)?;
         let hash = seq_hash![src, lang];
         let mut dest = self.dir.clone();

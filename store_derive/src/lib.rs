@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::quote;
-use syn::{Attribute, Item, token::Comma, punctuated::Punctuated};
+use syn::{punctuated::Punctuated, token::Comma, Attribute, Item};
 
 fn has_meta(attrs: &[Attribute]) -> bool {
     attrs.iter().any(|attr| attr.meta.path().is_ident("meta"))

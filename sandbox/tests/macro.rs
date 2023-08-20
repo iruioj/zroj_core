@@ -1,6 +1,6 @@
+use sandbox::{Elapse, Memory};
 use sandbox_macro::mem;
 use sandbox_macro::time;
-use sandbox::{Memory, Elapse};
 
 #[test]
 #[cfg(unix)]

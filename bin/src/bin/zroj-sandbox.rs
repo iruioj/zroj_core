@@ -116,8 +116,11 @@ fn main() {
     let lim = cli.lim.map(|s| {
         Limitation::from_str(&s)
             .map_err(|e| {
-                cmd.error(ErrorKind::InvalidValue, format!("invalid limitation value: {e}"))
-                    .exit();
+                cmd.error(
+                    ErrorKind::InvalidValue,
+                    format!("invalid limitation value: {e}"),
+                )
+                .exit();
             })
             .unwrap()
     });

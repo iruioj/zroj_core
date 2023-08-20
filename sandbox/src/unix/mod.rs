@@ -158,7 +158,7 @@ impl Default for Limitation {
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
 
     #[test]
@@ -167,4 +167,4 @@ mod tests{
         let d2: Limitation = d.to_string().parse().unwrap();
         dbg!(d.to_string(), d2);
     }
-} 
+}

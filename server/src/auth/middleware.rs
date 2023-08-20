@@ -3,8 +3,7 @@ use crate::auth::SessionID;
 use actix_session::SessionExt;
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    error,
-    Error, HttpMessage, Result,
+    error, Error, HttpMessage, Result,
 };
 use futures::Future;
 use std::{

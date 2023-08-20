@@ -78,7 +78,7 @@ impl ToString for TypeExpr {
                     r
                 }) + ")"
             }
-            TypeExpr::Any => "any".into()
+            TypeExpr::Any => "any".into(),
         }
     }
 }

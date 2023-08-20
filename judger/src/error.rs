@@ -33,9 +33,9 @@ impl Display for Error {
             Error::CmdSymLink => write!(f, "Command found but is symlink"),
             Error::Sandbox(e) => write!(f, "sandbox error: {}", e),
             Error::IOError(e) => write!(f, "io error: {}", e),
-			Error::CacheCE(e) => write!(f, "compile error: {:?}", e),
+            Error::CacheCE(e) => write!(f, "compile error: {:?}", e),
             Error::SandboxExit(s) => write!(f, "sandbox exit error: {s}"),
         }
     }
 }
-impl std::error::Error for Error{}
+impl std::error::Error for Error {}

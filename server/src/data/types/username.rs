@@ -1,10 +1,10 @@
 //! 自定义用户名的类型，实现内容正确性检验
 
-use std::fmt::Display;
-use serde::{Deserialize, Serialize};
-use serde_ts_typing::TsType;
 #[cfg(feature = "mysql")]
 use super::*;
+use serde::{Deserialize, Serialize};
+use serde_ts_typing::TsType;
+use std::fmt::Display;
 
 /// 用户名类型，在创建时会进行内容检查，确保没有不合法字符
 #[derive(Debug, Serialize, Clone, Hash, PartialEq, Eq, TsType)]
@@ -16,7 +16,7 @@ pub struct Username(String);
 pub enum Error {
     TooLong,
     TooShort,
-    InvalidChar(char)
+    InvalidChar(char),
 }
 
 impl Display for Error {
@@ -85,10 +85,8 @@ impl<'de> Deserialize<'de> for Username {
             where
                 E: Error,
             {
-                Username::new(s).map_err(|e| Error::invalid_value(
-                    Unexpected::Str(s),
-                    &e.to_string().as_str(),
-                ))
+                Username::new(s)
+                    .map_err(|e| Error::invalid_value(Unexpected::Str(s), &e.to_string().as_str()))
             }
         }
 

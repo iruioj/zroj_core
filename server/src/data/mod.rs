@@ -1,7 +1,7 @@
 pub mod error;
-pub mod types;
 #[cfg(feature = "mysql")]
 mod mysql;
+pub mod types;
 
 // database
 pub mod gravatar;
@@ -33,4 +33,3 @@ fn notfound_as_none<T>(r: Result<T, error::DataError>) -> Result<Option<T>, erro
         },
     }
 }
-

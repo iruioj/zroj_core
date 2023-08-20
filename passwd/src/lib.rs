@@ -4,7 +4,7 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordVerifier, SaltString},
     Argon2, PasswordHasher,
 };
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -27,7 +27,9 @@ pub fn register_hash(plain: &str) -> String {
 pub fn login_hash(plain: &str) -> String {
     let salt = SaltString::generate(OsRng);
     let argon2 = Argon2::default();
-    let hash = argon2.hash_password(sha_hash(plain).as_bytes(), &salt).unwrap();
+    let hash = argon2
+        .hash_password(sha_hash(plain).as_bytes(), &salt)
+        .unwrap();
     hash.to_string()
 }
 
@@ -43,7 +45,7 @@ pub fn verify(passwd: &str, passwd_hash: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     #[test]
     fn test_passwd() {
         use super::*;

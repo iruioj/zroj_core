@@ -5,21 +5,19 @@ use serde_derive::{Deserialize, Serialize};
 use winapi::shared::winerror::WAIT_TIMEOUT;
 
 use crate::ExecSandBox;
-use winapi::shared::minwindef::{DWORD};
+use winapi::shared::minwindef::DWORD;
 
-use crate::{
-    MemoryLimitExceededKind, Status, Termination, TimeLimitExceededKind,
-};
+use crate::{MemoryLimitExceededKind, Status, Termination, TimeLimitExceededKind};
 
 extern crate winapi;
 
-use std::os::windows::prelude::AsRawHandle;
-use std::ptr;
 use std::mem;
-use std::process::{Command};
-use std::time::{Instant};
-use winapi::shared::{minwindef::*};
-use winapi::um::{synchapi::*, processthreadsapi::*, jobapi2::*, winbase::*, winnt::*,psapi::*};
+use std::os::windows::prelude::AsRawHandle;
+use std::process::Command;
+use std::ptr;
+use std::time::Instant;
+use winapi::shared::minwindef::*;
+use winapi::um::{jobapi2::*, processthreadsapi::*, psapi::*, synchapi::*, winbase::*, winnt::*};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Limitation {
@@ -53,21 +51,29 @@ impl ExecSandBox for Singleton {
         let job = unsafe {
             let job_handle = CreateJobObjectW(ptr::null_mut(), ptr::null());
             let job = job_handle;
-    
+
             // Set the memory limit
-            
+
             let mem_limit = self.limits.real_memory.unwrap();
             let mut job_info = mem::zeroed::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>();
             job_info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_JOB_MEMORY;
-            job_info.JobMemoryLimit = mem_limit as usize; 
-            let ret = SetInformationJobObject(job, JobObjectExtendedLimitInformation, &mut job_info as *mut _ as LPVOID, mem::size_of_val(&job_info) as u32);
+            job_info.JobMemoryLimit = mem_limit as usize;
+            let ret = SetInformationJobObject(
+                job,
+                JobObjectExtendedLimitInformation,
+                &mut job_info as *mut _ as LPVOID,
+                mem::size_of_val(&job_info) as u32,
+            );
             if ret == 0 {
-                panic!("Failed to set job object limit: {:?}", std::io::Error::last_os_error());
+                panic!(
+                    "Failed to set job object limit: {:?}",
+                    std::io::Error::last_os_error()
+                );
             }
 
             job
         };
-        
+
         let start = Instant::now();
 
         //println!("pwd: {}", std::env::current_dir().unwrap().display());
@@ -79,16 +85,19 @@ impl ExecSandBox for Singleton {
         }
 
         // cmd.stdout(Stdio::null()).stderr(Stdio::null());
-        let mut child = cmd.spawn().unwrap();   
+        let mut child = cmd.spawn().unwrap();
         let pid = child.id();
         let ret = unsafe { AssignProcessToJobObject(job, child.as_raw_handle()) };
         if ret == 0 {
-            panic!("Failed to assign process to job object: {:?}", std::io::Error::last_os_error());
+            panic!(
+                "Failed to assign process to job object: {:?}",
+                std::io::Error::last_os_error()
+            );
         }
 
         let time_limit = self.limits.real_time.unwrap();
         let handle = unsafe { OpenProcess(PROCESS_QUERY_INFORMATION, 0, pid) };
-                
+
         let mut counters_ex = PROCESS_MEMORY_COUNTERS_EX {
             cb: std::mem::size_of::<PROCESS_MEMORY_COUNTERS_EX>() as u32,
             PageFaultCount: 0,
@@ -104,23 +113,29 @@ impl ExecSandBox for Singleton {
         };
 
         loop {
-            unsafe{
-                GetProcessMemoryInfo(handle, &mut counters_ex as *mut _ as *mut _, std::mem::size_of::<PROCESS_MEMORY_COUNTERS_EX>() as u32);
+            unsafe {
+                GetProcessMemoryInfo(
+                    handle,
+                    &mut counters_ex as *mut _ as *mut _,
+                    std::mem::size_of::<PROCESS_MEMORY_COUNTERS_EX>() as u32,
+                );
             }
-            let wait_result = unsafe { WaitForSingleObject(child.as_raw_handle(), time_limit as DWORD) };
+            let wait_result =
+                unsafe { WaitForSingleObject(child.as_raw_handle(), time_limit as DWORD) };
             match wait_result {
                 WAIT_OBJECT_0 => {
-                    
                     // Process has exited
                     //let process_handle: HANDLE = unsafe { OpenProcess(0x0400, FALSE, pid as u32) };
                     let status = child.wait().unwrap();
                     let duration = start.elapsed();
-                    println!("Process exited with code {} after {:?}", status.code().unwrap_or(0), duration);
-                    println!("{}",status);
-                    
+                    println!(
+                        "Process exited with code {} after {:?}",
+                        status.code().unwrap_or(0),
+                        duration
+                    );
+                    println!("{}", status);
 
                     match status.code().unwrap() as u32 {
-
                         // MLE
                         STATUS_STACK_OVERFLOW => {
                             return Ok(Termination {
@@ -149,28 +164,33 @@ impl ExecSandBox for Singleton {
                             });
                         }
                     }
-                },
+                }
                 // TLE
                 WAIT_TIMEOUT => {
                     let ret = unsafe { TerminateProcess(child.as_raw_handle(), 1) };
                     if ret == 0 {
-                        panic!("Failed to terminate process: {:?}", std::io::Error::last_os_error());
+                        panic!(
+                            "Failed to terminate process: {:?}",
+                            std::io::Error::last_os_error()
+                        );
                     }
                     let status = child.wait().unwrap();
                     let duration = start.elapsed();
-                    println!("{}",status);
+                    println!("{}", status);
                     println!("Process terminated due to time limit");
-                        
+
                     return Ok(Termination {
                         status: Status::TimeLimitExceeded(TimeLimitExceededKind::Real),
                         real_time: duration.as_millis() as u64,
                         cpu_time: duration.as_millis() as u64,
                         memory: counters_ex.PrivateUsage as u64,
                     });
-                },
+                }
                 _ => {
-                    
-                    panic!("WaitForSingleObject failed: {:?}", std::io::Error::last_os_error());
+                    panic!(
+                        "WaitForSingleObject failed: {:?}",
+                        std::io::Error::last_os_error()
+                    );
                 }
             }
         }
@@ -179,7 +199,7 @@ impl ExecSandBox for Singleton {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ExecSandBox, windows::Limitation};
+    use crate::{windows::Limitation, ExecSandBox};
 
     use super::Singleton;
 
@@ -203,7 +223,7 @@ mod tests {
                 output_memory: Some(10 * 1024 * 1024),
             },
             exec_path: r#"C:\Users\lyuu\zroj_core\sandbox\windows_test.exe"#.to_string(),
-            arguments: vec![]
+            arguments: vec![],
         };
         let term = s.exec_sandbox().unwrap();
         dbg!(term);

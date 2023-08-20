@@ -62,7 +62,7 @@ pub mod statement {
     use super::*;
 
     /// 题面数据
-    /// 
+    ///
     /// 使用 `[pdf](path)` 的格式插入 pdf
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct Statement {

@@ -16,7 +16,7 @@ pub enum ContainerAttr {
     /// `ts(variant_inline)`
     ///
     /// **do not** specify type names variants of enum, default it's container name + variant name.
-    VariantInline
+    VariantInline,
 }
 pub fn parse_container_attr(attrs: &[Attribute]) -> Vec<ContainerAttr> {
     parse_attrs("ts", attrs)
@@ -24,7 +24,10 @@ pub fn parse_container_attr(attrs: &[Attribute]) -> Vec<ContainerAttr> {
         .map(|meta| match meta {
             Meta::NameValue(item) => {
                 if item.path.is_ident("name") {
-                    if let Expr::Lit(syn::ExprLit { lit: Lit::Str(s), .. }) = &item.value {
+                    if let Expr::Lit(syn::ExprLit {
+                        lit: Lit::Str(s), ..
+                    }) = &item.value
+                    {
                         return ContainerAttr::Name(s.value());
                     }
                 }

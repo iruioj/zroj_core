@@ -12,7 +12,7 @@ enum MixedEnum {
 
 #[derive(Serialize, TsType)]
 #[ts(inline)]
-struct Test{
+struct Test {
     flag: bool,
 }
 
@@ -21,14 +21,14 @@ struct Test{
 #[serde(tag = "tt")]
 #[allow(dead_code)]
 enum TestEnum {
-    Test(Test)
+    Test(Test),
 }
 
 #[derive(Serialize, TsType)]
 #[ts(inline)]
 #[serde(tag = "tt")]
 enum NewTypeVariantEnum {
-    Mixed(MixedEnum)
+    Mixed(MixedEnum),
 }
 
 #[test]
@@ -67,7 +67,10 @@ fn test_enum() {
         )
     );
 
-    eprintln!("{}", serde_json::to_string(&NewTypeVariantEnum::Mixed(MixedEnum::D)).unwrap());
+    eprintln!(
+        "{}",
+        serde_json::to_string(&NewTypeVariantEnum::Mixed(MixedEnum::D)).unwrap()
+    );
     eprintln!("{}", serde_json::to_string(&MixedEnum::D).unwrap());
     eprintln!("{}", TestEnum::type_def().to_string());
 }

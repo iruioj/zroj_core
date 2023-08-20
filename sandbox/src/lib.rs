@@ -10,7 +10,8 @@ use serde_ts_typing::TsType;
 use std::{
     ffi::{CString, NulError},
     fmt::{Debug, Display},
-    time::Duration, str::FromStr
+    str::FromStr,
+    time::Duration,
 };
 
 /// 沙盒运行过程中产生的错误（系统错误）
@@ -129,7 +130,7 @@ pub trait ExecSandBox {
     }
 
     /// Unix only: 先 fork 一个子进程再执行程序，避免主进程终止导致整个进程终止
-    /// 
+    ///
     /// 避免 getrusage 出现累加的情况
     #[cfg(unix)]
     fn exec_fork(&self) -> Result<Termination, SandboxError> {
