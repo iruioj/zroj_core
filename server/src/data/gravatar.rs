@@ -49,10 +49,10 @@ fn hash(email: &EmailAddress) -> String {
 #[async_trait(?Send)]
 impl Manager for DefaultDB {
     async fn get(&self, email: &EmailAddress) -> Result<NamedFile, Error> {
-        let hash = hash(email);
-        let dir = self.dir.read()?;
-        let path = dir.join(hash + ".jpg");
-        drop(dir);
+        let path = {
+            let hash = hash(email);
+            self.dir.read()?.join(hash + ".jpg")
+        };
 
         if path.path().exists() {
             let file = NamedFile::open(path.path()).unwrap();

@@ -231,7 +231,7 @@ pub fn api(
                 ctxt_stmt.extend(quote!(
                     <#v as serde_ts_typing::TsType>::register_context(&mut c);
                 ))
-            } else if let Some(_) = parse_marker_type("FormData", &arg.ty) {
+            } else if parse_marker_type("FormData", &arg.ty).is_some() {
                 is_form = true;
             }
         });
@@ -244,7 +244,7 @@ pub fn api(
             ctxt_stmt.extend(quote!(
                 <#v as serde_ts_typing::TsType>::register_context(&mut c);
             ))
-        } else if let Some(_) = parse_marker_type("AnyResult", ty) {
+        } else if parse_marker_type("AnyResult", ty).is_some() {
             res_type_stmt = quote!(let res_type = Some(serde_ts_typing::TypeExpr::Any););
         }
     }

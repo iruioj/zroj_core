@@ -47,7 +47,7 @@ fn c_write(s: &[u8]) {
         );
     }
 }
-fn open_file(path: &PathBuf, flag: OFlag) -> Result<RawFd, ChildError> {
+fn open_file(path: &Path, flag: OFlag) -> Result<RawFd, ChildError> {
     fcntl::open(
         path.as_os_str(),
         flag,

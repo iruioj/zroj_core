@@ -24,10 +24,8 @@ pub fn parse_container_attr(attrs: &[Attribute]) -> Vec<ContainerAttr> {
         .map(|meta| match meta {
             Meta::NameValue(item) => {
                 if item.path.is_ident("name") {
-                    if let Expr::Lit(syn::ExprLit { lit, .. }) = &item.value {
-                        if let Lit::Str(s) = lit {
-                            return ContainerAttr::Name(s.value());
-                        }
+                    if let Expr::Lit(syn::ExprLit { lit: Lit::Str(s), .. }) = &item.value {
+                        return ContainerAttr::Name(s.value());
                     }
                 }
                 panic!("invalid ts attr")

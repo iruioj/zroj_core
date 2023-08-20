@@ -157,10 +157,8 @@ impl From<String> for RenameAllKind {
 macro_rules! str_value_ret {
     ($item:ident, $name:literal, $var:ident) => {
         if $item.path.is_ident($name) {
-            if let Expr::Lit(syn::ExprLit { lit, .. }) = &$item.value {
-                if let Lit::Str(s) = lit {
-                    return $var(s.value());
-                }
+            if let Expr::Lit(syn::ExprLit { lit: Lit::Str(s), .. }) = &$item.value {
+                return $var(s.value());
             }
         }
     };
@@ -168,10 +166,8 @@ macro_rules! str_value_ret {
 macro_rules! sep_value_ret {
     ($item:ident, $name:literal, $var:ident) => {
         if $item.path.is_ident($name) {
-            if let Expr::Lit(syn::ExprLit { lit, .. }) = &$item.value {
-                if let Lit::Str(s) = lit {
-                    return $var(SeperableMeta::Consistent(s.value().into()));
-                }
+            if let Expr::Lit(syn::ExprLit { lit: Lit::Str(s), .. }) = &$item.value {
+                return $var(SeperableMeta::Consistent(s.value().into()));
             }
         }
     };
@@ -236,10 +232,8 @@ fn parse_container_attr_meta_name_value(item: MetaNameValue) -> ContainerAttr {
     sep_value_ret!(item, "rename_all", RenameAll);
 
     if item.path.is_ident("default") {
-        if let Expr::Lit(syn::ExprLit { lit, .. }) = &item.value {
-            if let Lit::Str(s) = lit {
-                return Default(Some(s.value()));
-            }
+        if let Expr::Lit(syn::ExprLit { lit: Lit::Str(s), .. }) = &item.value {
+            return Default(Some(s.value()));
         }
     }
 
@@ -292,10 +286,8 @@ fn parse_variant_attr_meta_name_value(item: MetaNameValue) -> VariantAttr {
     str_value_ret!(item, "with", With);
 
     if item.path.is_ident("borrow") {
-        if let Expr::Lit(syn::ExprLit { lit, .. }) = &item.value {
-            if let Lit::Str(s) = lit {
-                return Borrow(Some(s.value()));
-            }
+        if let Expr::Lit(syn::ExprLit { lit: Lit::Str(s), .. }) = &item.value {
+            return Borrow(Some(s.value()));
         }
     }
 
@@ -348,17 +340,13 @@ fn parse_field_attr_meta_name_value(item: MetaNameValue) -> FieldAttr {
     str_value_ret!(item, "with", With);
 
     if item.path.is_ident("default") {
-        if let Expr::Lit(syn::ExprLit { lit, .. }) = &item.value {
-            if let Lit::Str(s) = lit {
-                return Default(Some(s.value()));
-            }
+        if let Expr::Lit(syn::ExprLit { lit: Lit::Str(s), .. }) = &item.value {
+            return Default(Some(s.value()));
         }
     }
     if item.path.is_ident("borrow") {
-        if let Expr::Lit(syn::ExprLit { lit, .. }) = &item.value {
-            if let Lit::Str(s) = lit {
-                return Borrow(Some(s.value()));
-            }
+        if let Expr::Lit(syn::ExprLit { lit: Lit::Str(s), .. }) = &item.value {
+            return Borrow(Some(s.value()));
         }
     }
 

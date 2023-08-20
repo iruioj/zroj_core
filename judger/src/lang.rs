@@ -119,11 +119,7 @@ impl FileType {
         }
     }
     pub fn compileable(&self) -> bool {
-        match self {
-            FileType::Plain => false,
-            FileType::Binary => false,
-            _ => true
-        }
+        !matches!(self, FileType::Plain | FileType::Binary)
     }
 }
 
