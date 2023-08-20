@@ -121,7 +121,7 @@ async fn fulldata(
 struct FullDataMetaQuery {
     id: ProblemID,
 }
-/// 上传题目数据
+/// 题目数据元信息
 #[api(method = get, path = "/fulldata_meta")]
 async fn fulldata_meta(
     query: QueryParam<FullDataMetaQuery>,

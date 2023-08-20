@@ -6,6 +6,7 @@ pub mod user;
 pub mod problem_statement;
 pub mod problem_ojdata;
 pub mod gravatar;
+pub mod submission;
 
 pub mod group;
 pub mod problem_config;

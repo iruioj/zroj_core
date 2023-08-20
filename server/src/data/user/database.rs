@@ -25,7 +25,7 @@ table! {
         email -> Text,
         motto -> Text,
         register_time -> BigInt,
-        gender -> Unsigned<Integer>,
+        gender -> Text,
     }
 }
 
@@ -110,7 +110,7 @@ impl Manager for DbManager {
                 password_hash,
                 email,
                 register_time: &DateTime::now(),
-                gender: &Gender::Private,
+                gender: &JsonStr(GenderInner::Private),
                 // groups: serde_json::to_string(&Vec::<GroupID>::new()).unwrap(),
             };
             diesel::insert_into(users::table)

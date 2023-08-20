@@ -73,7 +73,7 @@ impl super::Manager for DefaultDB {
             motto: String::new(),
             name: String::new(),
             register_time: DateTime::now(),
-            gender: Gender::Private,
+            gender: JsonStr(GenderInner::Private),
             // groups: serde_json::to_string(&Vec::<GroupID>::new()).unwrap(),
         };
         data.name_map.insert(username.clone(), new_user.id);
