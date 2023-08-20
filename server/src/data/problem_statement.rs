@@ -1,4 +1,4 @@
-use super::error::Error;
+use super::error::DataError;
 use crate::ProblemID;
 use actix_files::NamedFile;
 use async_trait::async_trait;
@@ -26,25 +26,25 @@ impl From<&render_data::Statement> for Statement {
 #[async_trait]
 pub trait Manager {
     /// HTML statement
-    async fn get(&self, id: ProblemID) -> Result<Option<Statement>, Error>;
+    async fn get(&self, id: ProblemID) -> Result<Option<Statement>, DataError>;
     /// parse statement for reader and insert (update) it
-    async fn insert(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), Error>;
+    async fn insert(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), DataError>;
     async fn get_assets(&self, id: ProblemID, name: &str) -> Option<NamedFile>;
     async fn insert_assets(
         &self,
         id: ProblemID,
         file: std::fs::File,
         name: &str,
-    ) -> Result<(), Error>;
+    ) -> Result<(), DataError>;
     /// get problem meta list, often used for problem listing
     async fn get_metas(
         &self,
         max_count: u8,
         offset: usize,
         pattern: Option<String>,
-    ) -> Result<Vec<(ProblemID, StmtMeta)>, Error>;
+    ) -> Result<Vec<(ProblemID, StmtMeta)>, DataError>;
     /// 当前的最大的题目 id
-    async fn max_id(&self) -> Result<ProblemID, Error>;
+    async fn max_id(&self) -> Result<ProblemID, DataError>;
 }
 
 mod default {
@@ -79,13 +79,17 @@ mod default {
     }
     #[async_trait]
     impl Manager for DefaultDB {
-        async fn get(&self, id: ProblemID) -> Result<Option<Statement>, Error> {
+        async fn get(&self, id: ProblemID) -> Result<Option<Statement>, DataError> {
             Ok(self.data.read()?.0.get(&id).map(From::from))
         }
-        async fn insert(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), Error> {
+        async fn insert(
+            &self,
+            id: ProblemID,
+            stmt: render_data::Statement,
+        ) -> Result<(), DataError> {
             let mut data = self.data.write()?;
             data.0.insert(id, stmt);
-            let r = serde_json::to_string(&data.0).map_err(Error::SerdeJson)?;
+            let r = serde_json::to_string(&data.0)?;
             std::fs::write(data.1.path(), r).expect("write data to file");
             drop(data);
             Ok(())
@@ -99,13 +103,9 @@ mod default {
             id: ProblemID,
             mut file: std::fs::File,
             name: &str,
-        ) -> Result<(), Error> {
+        ) -> Result<(), DataError> {
             let handle = self.dir.join(id.to_string()).join(name);
-            std::io::copy(
-                &mut file,
-                &mut handle.create_new_file().map_err(Error::Store)?,
-            )
-            .expect("copy file");
+            std::io::copy(&mut file, &mut handle.create_new_file()?).expect("copy file");
             Ok(())
         }
         async fn get_metas(
@@ -113,9 +113,9 @@ mod default {
             max_count: u8,
             offset: usize,
             pattern: Option<String>,
-        ) -> Result<Vec<(ProblemID, StmtMeta)>, Error> {
+        ) -> Result<Vec<(ProblemID, StmtMeta)>, DataError> {
             let re = if let Some(p) = pattern {
-                Some(regex::Regex::new(&p).map_err(Error::Regex)?)
+                regex::Regex::new(&p).ok()
             } else {
                 None
             };
@@ -133,7 +133,7 @@ mod default {
 
             Ok(data.map(|d| (*d.0, d.1.meta.clone())).collect())
         }
-        async fn max_id(&self) -> Result<ProblemID, Error> {
+        async fn max_id(&self) -> Result<ProblemID, DataError> {
             Ok(self
                 .data
                 .read()?

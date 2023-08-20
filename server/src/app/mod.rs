@@ -1,14 +1,14 @@
 //! app 模块可以创建 OJ 后端的应用路由配置.
 pub mod auth;
-pub mod group;
+// pub mod group;
 pub mod one_off;
 pub mod problem;
 pub mod user;
 
 use crate::{
     auth::{middleware::SessionAuth, SessionManager},
-    data::group::AManager as GroupAManager,
-    data::{user::UserDB, gravatar::GravatarDB},
+    // data::group::AManager as GroupAManager,
+    data::{gravatar::GravatarDB, user::UserDB},
     manager::one_off::OneOffManager,
 };
 use actix_web::{
@@ -37,7 +37,7 @@ pub async fn default_route(req: HttpRequest) -> HttpResponse {
 pub fn new(
     session_mgr: SessionManager,
     user_db: web::Data<UserDB>,
-    group_db: web::Data<GroupAManager>,
+    // group_db: web::Data<GroupAManager>,
     gravatar_db: web::Data<GravatarDB>,
     // problem_config_mgr: web::Data<ProblemConfigAManager>,
     // problem_mgr: web::Data<ProblemManager>,
@@ -49,7 +49,7 @@ pub fn new(
             .service(one_off::service(custom_test_mgr).wrap(session_auth.clone()))
             // .service(problem::service(problem_mgr, problem_config_mgr).wrap(session_auth.clone()))
             .service(user::service(user_db.clone(), gravatar_db).wrap(session_auth.clone()))
-            .service(group::service(group_db.clone()).wrap(session_auth))
+            // .service(group::service(group_db.clone()).wrap(session_auth))
             .default_service(web::route().to(default_route));
     }
 }

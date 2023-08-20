@@ -1,6 +1,6 @@
 //! 用户数据库
 
-use super::error::Error;
+use super::error::DataError;
 use super::types::*;
 use crate::app::user::UserUpdateInfo;
 use crate::{Override, UserID};
@@ -36,15 +36,15 @@ pub struct User {
 // Result<Option<...>> pattern: Err 表示出错， None 表示未查到，Some 表示查到的值
 #[async_trait(?Send)]
 pub trait Manager {
-    async fn query_by_username(&self, username: &Username) -> Result<Option<User>, Error>;
-    async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>, Error>;
+    async fn query_by_username(&self, username: &Username) -> Result<Option<User>, DataError>;
+    async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>, DataError>;
     async fn new_user(
         &self,
         username: &Username,
         password_hash: &str,
         email: &EmailAddress,
-    ) -> Result<User, Error>;
-    async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), Error>;
+    ) -> Result<User, DataError>;
+    async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError>;
 }
 
 #[cfg(feature = "mysql")]

@@ -1,17 +1,18 @@
 pub mod error;
 pub mod types;
+#[cfg(feature = "mysql")]
+mod mysql;
 
 // database
-pub mod user;
-pub mod problem_statement;
-pub mod problem_ojdata;
 pub mod gravatar;
+pub mod problem_ojdata;
+pub mod problem_statement;
 pub mod submission;
+pub mod user;
 
-pub mod group;
-pub mod problem_config;
-pub mod schema;
-
+// pub mod group;
+// pub mod problem_config;
+// pub mod schema;
 
 /// 定义一个类型为 web::Data<ty> 的值
 #[macro_export]
@@ -21,3 +22,15 @@ macro_rules! mkdata {
     };
 }
 pub use mkdata;
+
+fn notfound_as_none<T>(r: Result<T, error::DataError>) -> Result<Option<T>, error::DataError> {
+    match r {
+        Ok(t) => Ok(Some(t)),
+        Err(e) => match e {
+            error::DataError::NotFound
+            | error::DataError::Diesel(diesel::result::Error::NotFound) => Ok(None),
+            e => Err(e),
+        },
+    }
+}
+

@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use md5::{Digest, Md5};
 use store::Handle;
 
-use super::error::Error;
+use super::error::DataError;
 use super::types::EmailAddress;
 
 pub type GravatarDB = dyn Manager + Sync + Send;
@@ -18,10 +18,10 @@ pub type GravatarDB = dyn Manager + Sync + Send;
 #[async_trait(?Send)]
 pub trait Manager {
     /// Get the gravatar, fetch if not cached
-    async fn get(&self, email: &EmailAddress) -> Result<NamedFile, Error>;
+    async fn get(&self, email: &EmailAddress) -> Result<NamedFile, DataError>;
 
     /// Get the gravatar, always fetch from CDN
-    async fn fetch(&self, email: &EmailAddress) -> Result<NamedFile, Error>;
+    async fn fetch(&self, email: &EmailAddress) -> Result<NamedFile, DataError>;
 }
 
 pub struct DefaultDB {
@@ -48,7 +48,7 @@ fn hash(email: &EmailAddress) -> String {
 
 #[async_trait(?Send)]
 impl Manager for DefaultDB {
-    async fn get(&self, email: &EmailAddress) -> Result<NamedFile, Error> {
+    async fn get(&self, email: &EmailAddress) -> Result<NamedFile, DataError> {
         let path = {
             let hash = hash(email);
             self.dir.read()?.join(hash + ".jpg")
@@ -62,7 +62,7 @@ impl Manager for DefaultDB {
         }
     }
 
-    async fn fetch(&self, email: &EmailAddress) -> Result<NamedFile, Error> {
+    async fn fetch(&self, email: &EmailAddress) -> Result<NamedFile, DataError> {
         let hash = hash(email);
 
         let url = self.cdn_base.join(&hash);
@@ -72,7 +72,7 @@ impl Manager for DefaultDB {
             .get(url.to_str().unwrap())
             .insert_header(("user-agent", r#"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"#))
             .timeout(Duration::from_secs(30));
-        let mut res = req.send().await.map_err(Error::FetchError)?;
+        let mut res = req.send().await?;
         eprintln!("get response");
         let img = res.body().await.unwrap();
         eprintln!("get body");

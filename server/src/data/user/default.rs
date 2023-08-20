@@ -47,14 +47,14 @@ impl DefaultDB {
 
 #[async_trait(?Send)]
 impl super::Manager for DefaultDB {
-    async fn query_by_username(&self, username: &Username) -> Result<Option<User>, Error> {
+    async fn query_by_username(&self, username: &Username) -> Result<Option<User>, DataError> {
         let data = self.data.read()?;
         Ok(data
             .name_map
             .get(username)
             .map(|uid| data.users[*uid as usize].clone()))
     }
-    async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>, Error> {
+    async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>, DataError> {
         let data = self.data.read()?;
         Ok(data.users.get(uid as usize).cloned())
     }
@@ -63,7 +63,7 @@ impl super::Manager for DefaultDB {
         username: &Username,
         password_hash: &str,
         email: &EmailAddress,
-    ) -> Result<User, Error> {
+    ) -> Result<User, DataError> {
         let mut data = self.data.write()?;
         let new_user = User {
             id: data.users.len() as UserID,
@@ -82,15 +82,12 @@ impl super::Manager for DefaultDB {
         self.save();
         Ok(new_user)
     }
-    async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), Error> {
+    async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError> {
         let mut data = self.data.write()?;
         let value = data
             .users
             .get_mut(uid as usize)
-            .ok_or(Error::InvalidArgument(format!(
-                "userid = {} violates range",
-                uid
-            )))?;
+            .ok_or(DataError::NotFound)?;
         info.over(value);
         drop(data);
         self.save();

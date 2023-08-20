@@ -1,9 +1,9 @@
-//! 使用 serde_json 转化为字符串存储
 use std::fmt::Debug;
 
 use super::*;
 use serde_ts_typing::TsType;
 
+/// 使用 serde_json 转化为字符串存储在数据库中
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "mysql", derive(SqlType, FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "mysql", diesel(sql_type = Text))]
