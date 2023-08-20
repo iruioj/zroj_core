@@ -17,10 +17,10 @@ use std::{
 pub mod error;
 pub use error::SandboxError;
 /// Unix 系统下的沙盒 API
-#[cfg(all(unix))]
+#[cfg(unix)]
 pub mod unix;
 
-#[cfg(all(windows))]
+#[cfg(windows)]
 pub mod windows;
 
 /// TLE 的具体类型
@@ -68,7 +68,7 @@ impl Status {
     }
 }
 
-#[cfg(all(unix))]
+#[cfg(unix)]
 impl From<nix::sys::signal::Signal> for Status {
     fn from(signal: nix::sys::signal::Signal) -> Self {
         Self::RuntimeError(0, Some(signal.to_string()))
@@ -88,7 +88,7 @@ pub struct Termination {
     pub memory: Memory,
 }
 
-#[cfg(all(unix))]
+#[cfg(unix)]
 impl From<nix::sys::signal::Signal> for Termination {
     fn from(signal: nix::sys::signal::Signal) -> Self {
         // 存在优化的可能，即通过 signal 判断状态
@@ -114,7 +114,7 @@ pub trait ExecSandBox {
     fn exec_sandbox(&self) -> Result<Termination, SandboxError>;
 
     /// Unix Only: 在执行 exec_fork 内部执行此函数，如果失败会直接返回 Error，子进程会返回异常
-    #[cfg(all(unix))]
+    #[cfg(unix)]
     fn exec_sandbox_fork(&self, result_file: &mut std::fs::File) -> Result<(), SandboxError> {
         use std::io::Write;
 
@@ -131,7 +131,7 @@ pub trait ExecSandBox {
     /// Unix only: 先 fork 一个子进程再执行程序，避免主进程终止导致整个进程终止
     /// 
     /// 避免 getrusage 出现累加的情况
-    #[cfg(all(unix))]
+    #[cfg(unix)]
     fn exec_fork(&self) -> Result<Termination, SandboxError> {
         use std::io::{Seek, SeekFrom};
         use tempfile::tempfile;

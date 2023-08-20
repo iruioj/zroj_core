@@ -61,10 +61,13 @@ impl Summarizer {
     }
 }
 
-pub trait JudgeTask {
+pub trait JudgeTask
+where
+    for<'a> &'a Self::S: Override<Self::M>,
+{
     type T: FsStore;
     type M: FsStore;
-    type S: FsStore + Override<Self::M>;
+    type S: FsStore;
     // any owned data always passes a 'static lifetime bound
     type Subm: FsStore + Send + Sync + 'static;
 
@@ -98,7 +101,8 @@ pub fn judge<T, M, S, J>(
 where
     T: FsStore + Send + Sync + 'static,
     M: FsStore + Clone + Send + Sync + 'static,
-    S: FsStore + Override<M> + Send + Sync + 'static,
+    S: FsStore + Send + Sync + 'static,
+    for<'a> &'a S: Override<M>,
     J: JudgeTask<T = T, M = M, S = S>,
 {
     Ok(match &mut data.tasks {

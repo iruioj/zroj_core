@@ -22,11 +22,7 @@ use store::FsStore;
 
 /// 实现了 Override 的可以在默认值的基础上将一部分数据覆盖
 pub trait Override<T> {
-    fn over(&self, default: &mut T);
-}
-
-impl<T> Override<T> for () {
-    fn over(&self, _: &mut T) {}
+    fn over(self, default: &mut T);
 }
 
 /// 题目的数据、题面和题解组成的完整数据

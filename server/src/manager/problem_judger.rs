@@ -4,6 +4,7 @@ use judger::{JudgeReport, LogMessage, MpscJudger};
 use problem::{
     data::OJData,
     judger_framework::{self, JudgeTask},
+    Override,
 };
 use std::{
     collections::HashMap,
@@ -90,7 +91,8 @@ impl ProblemJudger {
     where
         T: FsStore + Send + Sync + 'static,
         M: FsStore + Clone + Send + Sync + 'static,
-        S: problem::Override<M> + FsStore + Send + Sync + 'static,
+        S: FsStore + Send + Sync + 'static,
+        for<'a> &'a S: Override<M>,
         J: JudgeTask<T = T, M = M, S = S>,
     {
         let state = self.state.clone();

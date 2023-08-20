@@ -11,7 +11,7 @@ use crate::{lang::Compile, Error, Status, StoreFile, TaskReport};
 ///
 /// OneOff 只需要处理简单的时空限制即可 TODO：自定义时空限制
 /// OneOff 假定你已经在 working_dir（默认当前目录）准备好了相关的原始文件
-#[cfg(all(unix))]
+#[cfg(unix)]
 pub struct OneOff {
     file: StoreFile,
     stdin: StoreFile,
@@ -42,7 +42,7 @@ impl OneOff {
         self.working_dir = dir;
         self
     }
-    #[cfg(all(unix))]
+    #[cfg(unix)]
     pub fn exec(&mut self) -> Result<TaskReport, Error> {
         use crate::TaskMeta;
         use sandbox::{

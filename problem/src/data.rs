@@ -26,7 +26,8 @@ pub struct Data<T, M, S>
 where
     T: FsStore + Send + Sync + 'static,
     M: FsStore + Clone + Send + Sync + 'static,
-    S: Override<M> + FsStore + Send + Sync + 'static,
+    S: FsStore + Send + Sync + 'static,
+    for<'a> &'a S: Override<M>,
 {
     /// 测试数据
     pub tasks: Taskset<T, S>,
@@ -46,7 +47,8 @@ pub struct OJData<T, M, S>
 where
     T: FsStore,
     M: FsStore,
-    S: Override<M> + FsStore,
+    S: FsStore,
+    for<'a> &'a S: Override<M>,
 {
     /// 测试数据
     pub data: Taskset<T, S>,
@@ -68,7 +70,8 @@ impl<T, M, S> OJData<T, M, S>
 where
     T: FsStore + Send + Sync + 'static,
     M: FsStore + Clone + Send + Sync + 'static,
-    S: Override<M> + FsStore + Send + Sync + 'static,
+    S: FsStore + Send + Sync + 'static,
+    for <'a> &'a S: Override<M>,
 {
     pub fn new(meta: M) -> Self {
         Self {

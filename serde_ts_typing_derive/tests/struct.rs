@@ -50,7 +50,7 @@ fn test_struct() {
     assert!(matches!(TupleStruct::type_def(), TypeExpr::Ident(_, _)));
     assert_eq!(r#"[0,0,false]"#, serde_json::to_string(&v).unwrap());
 
-    let v = UnitStruct::default();
+    let v = UnitStruct;
     assert_eq!(
         UnitStruct::type_def(),
         TypeExpr::Value(serde_ts_typing::Value::Null)

@@ -2,7 +2,7 @@ use std::io::Write;
 use tempfile::tempdir;
 
 #[test]
-#[cfg(all(unix))]
+#[cfg(unix)]
 #[cfg_attr(not(target_os = "linux"), ignore = "not linux")]
 fn test_gcc_linux() -> Result<(), sandbox::SandboxError> {
     use sandbox::{

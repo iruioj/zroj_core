@@ -58,7 +58,7 @@ mod tests {
     use crate::env::which;
 
     #[test]
-    #[cfg(all(unix))]
+    #[cfg(unix)]
     fn test_linux() {
         assert_eq!(os_family(), "unix");
         eprintln!("gcc = {:?}", which("gcc"));

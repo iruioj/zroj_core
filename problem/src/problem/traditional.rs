@@ -1,4 +1,6 @@
-use crate::{data::StoreFile, judger_framework::JudgeTask, utils::*, Checker, RuntimeError};
+use crate::{
+    data::StoreFile, judger_framework::JudgeTask, utils::*, Checker, Override, RuntimeError,
+};
 use judger::{
     sandbox::{
         unix::{Lim, Singleton},
@@ -21,6 +23,10 @@ pub struct Meta {
     /// 输出限制
     #[meta]
     pub output_limit: Memory,
+}
+
+impl Override<Meta> for &'_ () {
+    fn over(self, _: &mut Meta) {}
 }
 
 #[derive(FsStore, Debug)]

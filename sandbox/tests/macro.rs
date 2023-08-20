@@ -3,7 +3,7 @@ use sandbox_macro::time;
 use sandbox::{Memory, Elapse};
 
 #[test]
-#[cfg(all(unix))]
+#[cfg(unix)]
 #[cfg_attr(not(target_os = "linux"), ignore = "not linux")]
 fn test_macro() {
     let t = time!(100ms);
