@@ -3,10 +3,10 @@ use crate::data::mysql::MysqlDb;
 use crate::data::user::{async_trait, Manager, User, UserID, UserUpdateInfo};
 use crate::data::{notfound_as_none, types::*};
 use crate::Override;
-use diesel::{self, prelude::*, table, Insertable};
+use diesel::{self, prelude::*, Insertable};
 
 // 必须保证和 User 的字段顺序相同， 不然 query 会出问题
-table! {
+diesel::table! {
     users (id) {
         /// id should be auto increment
         id -> Unsigned<Integer>,
@@ -19,6 +19,8 @@ table! {
         gender -> Text,
     }
 }
+
+use users::table;
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = users)]
@@ -40,20 +42,16 @@ impl DbManager {
 #[async_trait(?Send)]
 impl Manager for DbManager {
     async fn query_by_username(&self, username: &Username) -> Result<Option<User>, DataError> {
-        notfound_as_none(self.0.transaction(|conn| {
-            users::table
-                .filter(users::username.eq(username))
-                .first(conn)
-                .map_err(DataError::Diesel)
-        }))
+        notfound_as_none(
+            self.0
+                .transaction(|conn| Ok(table.filter(users::username.eq(username)).first(conn)?)),
+        )
     }
     async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>, DataError> {
-        notfound_as_none(self.0.transaction(|conn| {
-            users::table
-                .filter(users::id.eq(uid))
-                .first(conn)
-                .map_err(DataError::Diesel)
-        }))
+        notfound_as_none(
+            self.0
+                .transaction(|conn| Ok(table.filter(users::id.eq(uid)).first(conn)?)),
+        )
     }
     async fn new_user(
         &self,
@@ -67,22 +65,17 @@ impl Manager for DbManager {
                 password_hash,
                 email,
                 register_time: &DateTime::now(),
-                gender: &JsonStr(GenderInner::Private),
+                gender: &Gender::Private,
             };
-            diesel::insert_into(users::table)
-                .values(&new_user)
-                .execute(conn)?;
-            Ok(users::table.order(users::id.desc()).first::<User>(conn)?)
+            diesel::insert_into(table).values(&new_user).execute(conn)?;
+            Ok(table.order(users::id.desc()).first::<User>(conn)?)
         })
     }
     async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError> {
         self.0.transaction(|conn| {
-            let mut user = users::table
-                .filter(users::id.eq(uid))
-                .first(conn)
-                .map_err(DataError::Diesel)?;
+            let mut user = table.filter(users::id.eq(uid)).first(conn)?;
             info.over(&mut user);
-            diesel::update(users::table.filter(users::id.eq(uid)))
+            diesel::update(table.filter(users::id.eq(uid)))
                 .set(user)
                 .execute(conn)?;
             Ok(())

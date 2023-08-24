@@ -1,3 +1,7 @@
+//! 提供任意可序列化类型的 sql 存储类型
+//! 
+//! 对于自定义的类型，可以使用 [`impl_serde_json_sql`] macro 来实现 ToSql, FromSql，
+//! 对于非自定义的类型可以使用 [`JsonStr`] Wrapper 实现
 use std::fmt::Debug;
 
 use super::*;
@@ -34,9 +38,35 @@ where
     }
 }
 
+#[macro_export]
+macro_rules! impl_serde_json_sql {
+    ($type:ty) => {
+        
 #[cfg(feature = "mysql")]
-mod mysql {
-    use super::*;
+const _: () = {
+    use diesel::mysql::Mysql;
+    impl serialize::ToSql<Text, Mysql> for $type {
+        fn to_sql<'b>(&'b self, out: &mut serialize::Output<'b, '_, Mysql>) -> serialize::Result {
+            let v = serde_json::to_string(&self).expect("data should be serialize to json");
+            <String as serialize::ToSql<Text, Mysql>>::to_sql(&v, &mut out.reborrow())
+        }
+    }
+
+    impl deserialize::FromSql<Text, Mysql> for $type {
+        fn from_sql(
+            bytes: <Mysql as diesel::backend::Backend>::RawValue<'_>,
+        ) -> deserialize::Result<Self> {
+            let s = <String as deserialize::FromSql<Text, Mysql>>::from_sql(bytes)?;
+            Ok(serde_json::from_str(&s)?)
+        }
+    }
+};
+
+    };
+}
+
+#[cfg(feature = "mysql")]
+const _: () = {
     use diesel::mysql::Mysql;
     impl<T> serialize::ToSql<Text, Mysql> for JsonStr<T>
     where
@@ -60,7 +90,7 @@ mod mysql {
             Ok(JsonStr(serde_json::from_str::<T>(&s)?))
         }
     }
-}
+};
 
 #[cfg(test)]
 mod tests {

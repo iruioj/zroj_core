@@ -1,3 +1,4 @@
+//! some utils for mysql database
 use crate::data::error::DataError;
 use diesel::{
     self,

@@ -27,8 +27,9 @@ fn notfound_as_none<T>(r: Result<T, error::DataError>) -> Result<Option<T>, erro
     match r {
         Ok(t) => Ok(Some(t)),
         Err(e) => match e {
-            error::DataError::NotFound
-            | error::DataError::Diesel(diesel::result::Error::NotFound) => Ok(None),
+            error::DataError::NotFound => Ok(None),
+            #[cfg(feature = "mysql")]
+            error::DataError::Diesel(diesel::result::Error::NotFound) => Ok(None),
             e => Err(e),
         },
     }
