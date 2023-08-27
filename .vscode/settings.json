@@ -1,9 +1,0 @@
-{
-  "editor.tabSize": 4,
-  "rust-analyzer.check.features": [
-    "server/mysql"
-  ],
-  "rust-analyzer.cargo.cfgs": {
-    "feature": "mysql"
-  }
-}
