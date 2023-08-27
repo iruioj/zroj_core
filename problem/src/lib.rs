@@ -9,12 +9,12 @@ mod checker;
 pub mod data;
 mod error;
 pub mod judger_framework;
-pub mod problem;
+pub mod prelude;
 pub mod render_data;
 pub mod sample;
 mod utils;
 
-pub use crate::problem::StandardProblem;
+pub use crate::prelude::StandardProblem;
 pub use checker::Checker;
 pub use error::RuntimeError;
 pub use judger::sandbox::{Elapse, Memory};

@@ -2,7 +2,11 @@ use store::{FsStore, Handle};
 
 use crate::data::{Data, OJData};
 
-pub mod traditional;
+mod traditional;
+pub type Traditional = traditional::Traditional;
+pub type TraditionalSubm = traditional::Subm;
+pub type TraditionalTask = traditional::Task;
+pub type TraditionalMeta = traditional::Meta;
 pub type TraditionalOJData = OJData<traditional::Task, traditional::Meta, ()>;
 pub type TraditionalData = Data<traditional::Task, traditional::Meta, ()>;
 

@@ -76,18 +76,21 @@ impl Judger for MpscJudger {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
+// use thiserror to conveniently define message content
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum LogMessage {
     #[error("start judging (task kind: subtasks)")]
     StartSubtasks,
     #[error("start judging (task kind: tests)")]
     StartTests,
-    #[error("judging subtask {0} task {1}")]
+    #[error("judging subtask #{0} task #{1}")]
     SubtaskTask(usize, usize),
-    #[error("judging task {0}")]
+    #[error("judging task #{0}")]
     TestTask(usize),
     #[error("finished")]
     End,
+    #[error("overall test done")]
+    Done,
 }
 
 pub mod sha_hash {

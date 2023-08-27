@@ -9,9 +9,7 @@ pub type OJDataDB = dyn Manager + Sync + Send;
 
 #[async_trait]
 pub trait Manager {
-    /// HTML statement
     async fn get(&self, id: ProblemID) -> Result<StandardProblem, DataError>;
-    /// parse statement for reader and insert (update) it
     async fn insert(&self, id: ProblemID, data: StandardProblem) -> Result<(), DataError>;
     /// 获取数据的元信息用于前端显示
     async fn get_meta(&self, id: ProblemID) -> Result<String, DataError>;

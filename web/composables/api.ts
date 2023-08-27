@@ -34,9 +34,9 @@ export type Image = {alt:string;title:(undefined|null|string);url:string;};
 export type ImageReference = {alt:string;identifier:string;label:(undefined|null|string);reference_kind:ReferenceKind;};
 export type InlineCode = {value:string;};
 export type InlineMath = {value:string;};
-export type JudgerStatus = (JudgerStatusCompileError|JudgerStatusCustom|JudgerStatusDangerousSyscall|JudgerStatusGood|JudgerStatusMemoryLimitExceeded|JudgerStatusOutputLimitExceeded|JudgerStatusPresentationError|JudgerStatusRuntimeError|JudgerStatusTimeLimitExceeded|JudgerStatusWrongAnswer);
+export type JudgeReturn = {sid:number;};
+export type JudgerStatus = (JudgerStatusCompileError|JudgerStatusDangerousSyscall|JudgerStatusGood|JudgerStatusMemoryLimitExceeded|JudgerStatusOutputLimitExceeded|JudgerStatusPresentationError|JudgerStatusRuntimeError|JudgerStatusTimeLimitExceeded|JudgerStatusWrongAnswer);
 export type JudgerStatusCompileError = {name:"compile_error";payload:(undefined|SandboxStatus|null);};
-export type JudgerStatusCustom = {name:"custom";payload:string;};
 export type JudgerStatusDangerousSyscall = {name:"dangerous_syscall";payload:null;};
 export type JudgerStatusGood = {name:"good";payload:null;};
 export type JudgerStatusMemoryLimitExceeded = {name:"memory_limit_exceeded";payload:null;};
@@ -199,6 +199,12 @@ fulldata_meta: { get: {
     key: "/problem/fulldata_meta:get",
 },
  },
+submit: { post: { 
+    use: (payload: ProblemSubmitPostPayload | Ref<ProblemSubmitPostPayload>) => callAPI("post", "/problem/submit", payload) as Promise<ExtAsyncData<ProblemSubmitPostReturn | null>>,
+    fetch: (payload: ProblemSubmitPostPayload | Ref<ProblemSubmitPostPayload>) => fetchAPI("post", "/problem/submit", payload) as Promise<ProblemSubmitPostReturn>,
+    key: "/problem/submit:post",
+},
+ },
  },
 custom_test: { get: {
     use: () => callAPI("get", "/custom_test") as Promise<ExtAsyncData<CustomTestGetReturn | null>>,
@@ -206,8 +212,8 @@ custom_test: { get: {
     key: "/custom_test:get",
 },
 post: { 
-    use: (payload: CustomTestPostPayload | Ref<CustomTestPostPayload>) => callAPI("post", "/custom_test", payload) as Promise<ExtAsyncData<void>>,
-    fetch: (payload: CustomTestPostPayload | Ref<CustomTestPostPayload>) => fetchAPI("post", "/custom_test", payload) as Promise<void>,
+    use: (payload: CustomTestPostPayload | Ref<CustomTestPostPayload>) => callAPI("post", "/custom_test", payload) as Promise<ExtAsyncData<CustomTestPostReturn | null>>,
+    fetch: (payload: CustomTestPostPayload | Ref<CustomTestPostPayload>) => fetchAPI("post", "/custom_test", payload) as Promise<CustomTestPostReturn>,
     key: "/custom_test:post",
 },
  },
@@ -217,6 +223,7 @@ export type AuthLoginPostPayload = LoginPayload;
 export type AuthRegisterPostPayload = RegisterPayload;
 export type CustomTestGetReturn = CustomTestResult;
 export type CustomTestPostPayload = FormData;
+export type CustomTestPostReturn = any;
 export type ProblemFulldataMetaGetPayload = FullDataMetaQuery;
 export type ProblemFulldataMetaGetReturn = any;
 export type ProblemFulldataPostPayload = FormData;
@@ -225,6 +232,8 @@ export type ProblemMetasGetPayload = MetasQuery;
 export type ProblemMetasGetReturn = [number,StmtMeta][];
 export type ProblemStatementGetPayload = StmtQuery;
 export type ProblemStatementGetReturn = Statement;
+export type ProblemSubmitPostPayload = FormData;
+export type ProblemSubmitPostReturn = JudgeReturn;
 export type UserEditGetReturn = UserEditInfo;
 export type UserEditPostPayload = UserUpdateInfo;
 export type UserGetPayload = ProfileQuery;

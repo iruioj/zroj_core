@@ -145,15 +145,13 @@ impl JudgeTask for Traditional {
 
 #[cfg(test)]
 mod tests {
+    use super::{Meta, Subm, Task, Traditional};
+    use crate::{data::StoreFile, judger_framework::JudgeTask, Checker};
     use judger::{
         sandbox::{mem, time, Elapse, Memory},
         DefaultJudger,
     };
     use store::Handle;
-
-    use crate::{data::StoreFile, judger_framework::JudgeTask, Checker};
-
-    use super::{Meta, Subm, Task, Traditional};
 
     #[test]
     fn test_a_plus_b() {

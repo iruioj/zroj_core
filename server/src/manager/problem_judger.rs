@@ -1,5 +1,5 @@
 use super::job_runner::JobRunner;
-use crate::{SubmID, UserID};
+use crate::SubmID;
 use actix_web::error;
 use judger::{JudgeReport, LogMessage, MpscJudger};
 use problem::{
@@ -69,18 +69,22 @@ impl ProblemJudger {
             runner: JobRunner::new(),
         }
     }
-    pub fn get_result(&self, uid: &UserID) -> actix_web::Result<Option<FullJudgeReport>> {
-        let guard = self
-            .state
+    pub fn get_logs(&self, sid: &SubmID) -> actix_web::Result<Vec<LogMessage>> {
+        Ok(self
+            .logs
             .read()
-            .map_err(|e| error::ErrorInternalServerError(e.to_string()))?;
-        match guard.get(uid) {
-            Some(r) => match r {
-                Ok(r) => Ok(Some(r.clone())),
-                Err(e) => Err(error::ErrorInternalServerError(e.to_string())),
-            },
-            None => Ok(None),
-        }
+            .map_err(|e| error::ErrorInternalServerError(e.to_string()))?
+            .get(sid)
+            .cloned()
+            .unwrap_or_default())
+    }
+    /// remove result from state after judging WITHOUT checking judge status
+    pub fn remove_result(&self, sid: &SubmID) -> Option<FullJudgeReport> {
+        self.state
+            .write()
+            .expect("remove result from state")
+            .remove(sid)?
+            .ok()
     }
     pub fn add_test<T, M, S, J>(
         &self,
@@ -97,56 +101,72 @@ impl ProblemJudger {
     {
         let state = self.state.clone();
         let logs = self.logs.clone();
-        let dir = self.base_dir.clone();
+        let logs2 = self.logs.clone();
+        let dir = self.base_dir.join(sid.to_string());
 
-        self.runner
-            .add_job(move || {
-                state.write().expect("clear state").remove(&sid);
-                let r = || -> Result<_, String> {
-                    dir.remove_all().map_err(|e| e.to_string())?;
-                    std::fs::create_dir_all(dir.path()).map_err(|e| e.to_string())?;
-                    let (mut judger, receiver) = MpscJudger::new(dir.clone());
+        let job = move || {
+            state.write().expect("clear state").remove(&sid);
+            let r = || -> Result<_, String> {
+                dir.remove_all().map_err(|e| e.to_string())?;
+                std::fs::create_dir_all(dir.path()).map_err(|e| e.to_string())?;
+                let (mut judger, receiver) = MpscJudger::new(dir.clone());
 
-                    let (_, mut data, _) = ojdata.into_triple();
+                // TODO: pre and extra
+                let (_, mut data, _) = ojdata.into_triple();
 
-                    let log_handle = std::thread::spawn(move || loop {
-                        logs.write().expect("clear previous log").remove(&sid);
+                // create a new thread for receiving messages
+                let log_handle = std::thread::spawn(move || {
+                    logs.write().expect("clear previous log").remove(&sid);
+                    loop {
                         match receiver.recv() {
-                            Ok(msg) => logs
-                                .write()
-                                .expect("write log")
-                                .entry(sid)
-                                .or_default()
-                                .push(msg),
+                            Ok(msg) => {
+                                let mut g = logs.write().expect("write log");
+                                let entry = g.entry(sid).or_default();
+                                entry.push(msg);
+                            }
                             Err(_) => return,
                         }
-                    });
+                    }
+                });
 
-                    let data_report =
-                        judger_framework::judge::<_, _, _, J>(&mut data, &mut judger, &mut subm)
-                            .map_err(|e| e.to_string())?;
-                    update_state_data(
-                        &mut state.write().expect("save data state"),
-                        sid,
-                        FullJudgeReport {
-                            pre: None,
-                            data: Some(data_report),
-                            extra: None,
-                        },
-                    );
+                let data_report =
+                    judger_framework::judge::<_, _, _, J>(&mut data, &mut judger, &mut subm)
+                        .map_err(|e| e.to_string())?;
+                update_state_data(
+                    &mut state.write().expect("save data state"),
+                    sid,
+                    FullJudgeReport {
+                        pre: None,
+                        data: Some(data_report),
+                        extra: None,
+                    },
+                );
 
-                    drop(judger); // indirectly close log handle
-                    log_handle.join().expect("log thread should finish");
-                    Ok(())
-                }();
-                if let Err(e) = r {
-                    state
-                        .write()
-                        .expect("write error state")
-                        .insert(sid, Err(e));
-                }
-                eprintln!("[job] problem test done.");
-            })
+                drop(judger); // indirectly close log handle
+                log_handle.join().expect("log thread should finish");
+
+                // marking the end of judging, a trigger to move submission result
+                // to database
+                logs2
+                    .write()
+                    .expect("finish judging of submission")
+                    .entry(sid)
+                    .or_default()
+                    .push(LogMessage::Done);
+                drop(logs2);
+
+                Ok(())
+            }();
+            if let Err(e) = r {
+                state
+                    .write()
+                    .expect("write error state")
+                    .insert(sid, Err(e));
+            }
+            eprintln!("[job] problem test done.");
+        };
+        self.runner
+            .add_job(job)
             .map_err(error::ErrorInternalServerError)
     }
     pub fn terminate(self) {
@@ -156,8 +176,10 @@ impl ProblemJudger {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use problem::{
-        problem::traditional::Traditional,
+        prelude::Traditional,
         sample::{a_plus_b_data, a_plus_b_std},
         StandardProblem,
     };
@@ -183,6 +205,9 @@ mod tests {
             .add_test::<_, _, _, Traditional>(0, ojdata, subm)
             .unwrap();
         println!("test added");
+
+        std::thread::sleep(Duration::from_secs(5));
+        dbg!(problem_judger.logs.read().unwrap().get(&0));
 
         problem_judger.terminate();
         drop(dir)

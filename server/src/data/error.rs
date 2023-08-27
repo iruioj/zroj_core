@@ -23,7 +23,11 @@ pub enum DataError {
 
 impl From<DataError> for actix_web::Error {
     fn from(value: DataError) -> Self {
-        actix_web::error::ErrorInternalServerError(value.to_string())
+        let err_fn = match value {
+            DataError::NotFound => actix_web::error::ErrorNotFound,
+            _ => actix_web::error::ErrorInternalServerError,
+        };
+        err_fn(value.to_string())
     }
 }
 

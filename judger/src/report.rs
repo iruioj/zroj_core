@@ -15,8 +15,8 @@ pub enum Status {
     Good,
     /// 编译错误
     CompileError(Option<sandbox::Status>),
-    /// 自定义的评测状态
-    Custom(String),
+    // 自定义的评测状态
+    // Custom(String),
     DangerousSyscall,
     MemoryLimitExceeded,
     OutputLimitExceeded,

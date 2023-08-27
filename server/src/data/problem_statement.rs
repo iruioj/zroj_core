@@ -26,7 +26,7 @@ impl From<&render_data::Statement> for Statement {
 #[async_trait]
 pub trait Manager {
     /// HTML statement
-    async fn get(&self, id: ProblemID) -> Result<Option<Statement>, DataError>;
+    async fn get(&self, id: ProblemID) -> Result<Statement, DataError>;
     /// parse statement for reader and insert (update) it
     async fn insert(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), DataError>;
     async fn get_assets(&self, id: ProblemID, name: &str) -> Option<NamedFile>;
@@ -79,8 +79,13 @@ mod default {
     }
     #[async_trait]
     impl Manager for DefaultDB {
-        async fn get(&self, id: ProblemID) -> Result<Option<Statement>, DataError> {
-            Ok(self.data.read()?.0.get(&id).map(From::from))
+        async fn get(&self, id: ProblemID) -> Result<Statement, DataError> {
+            self.data
+                .read()?
+                .0
+                .get(&id)
+                .map(From::from)
+                .ok_or(DataError::NotFound)
         }
         async fn insert(
             &self,

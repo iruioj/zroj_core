@@ -1,18 +1,11 @@
-use crate::{manager::one_off::OneOffManager, marker::*, UserID};
+use crate::{app::parse_named_file, manager::one_off::OneOffManager, marker::*, UserID};
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{error::ErrorBadRequest, web};
 use judger::{StoreFile, TaskReport};
 use serde::Serialize;
-use serde_json::json;
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
 use std::fmt::Debug;
-
-/// warning: this funtion contains probable leak
-fn parse_source_name(s: String) -> Option<judger::FileType> {
-    let lang = s.trim().split('.').nth(1).unwrap();
-    serde_json::from_value(json!(lang)).ok()
-}
 
 /// format of custom test post payload
 #[derive(Debug, MultipartForm)]
@@ -30,18 +23,13 @@ async fn custom_test_post(
     payload: FormData<CustomTestPayload>,
     oneoff: ServerData<OneOffManager>,
     uid: web::ReqData<UserID>,
-) -> actix_web::Result<String> {
-    let Some(file_name) = payload.source.file_name.clone() else {
-        return Err(ErrorBadRequest("missing source file name"))
+) -> AnyResult<String> {
+    let Some((_, source)) = parse_named_file(&payload.source) else {
+        return Err(ErrorBadRequest("invalid payload file"))
     };
-    let lang = parse_source_name(file_name).ok_or(ErrorBadRequest("invalid file name"))?;
-    if !lang.compileable() {
+    if !source.file_type.compileable() {
         return Err(ErrorBadRequest("file not compilable"));
     }
-    let source = StoreFile {
-        file: payload.source.file.reopen()?,
-        file_type: lang,
-    };
     let input = StoreFile {
         file: payload.input.file.reopen()?,
         file_type: judger::FileType::Plain,

@@ -15,6 +15,7 @@ use actix_web::{
     web::{self, ServiceConfig},
     HttpRequest, HttpResponse,
 };
+use judger::StoreFile;
 
 /// 默认 404
 pub async fn default_route(req: HttpRequest) -> HttpResponse {
@@ -52,4 +53,20 @@ pub fn new(
             // .service(group::service(group_db.clone()).wrap(session_auth))
             .default_service(web::route().to(default_route));
     }
+}
+
+/// 将命名格式为 `name.type.suffix` 的文件解析为 StoreFile
+fn parse_named_file(nf: &actix_multipart::form::tempfile::TempFile) -> Option<(String, StoreFile)> {
+    let binding = nf.file_name.as_ref()?;
+    let lang: Vec<&str> = binding.trim().split('.').collect();
+    let name = lang.get(0)?;
+    let ty = lang.get(1)?;
+    let file_type: judger::FileType = serde_json::from_value(serde_json::json!(ty)).ok()?;
+    Some((
+        name.to_string(),
+        StoreFile {
+            file: nf.file.reopen().ok()?,
+            file_type,
+        },
+    ))
 }

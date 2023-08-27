@@ -4,7 +4,7 @@ use pest::Parser;
 use pest_derive::Parser;
 use problem::{
     data::{DepRelation, FileType, StoreFile, Subtask, Taskset},
-    problem::{traditional::Task, TraditionalOJData},
+    prelude::*,
     Checker,
 };
 
@@ -152,8 +152,8 @@ impl std::fmt::Display for LoadError {
 impl std::error::Error for LoadError {}
 
 impl Config {
-    fn _get_task(&self, dir: &store::Handle, prefix: &str, cur: u64) -> Result<Task, LoadError> {
-        Ok(Task {
+    fn _get_task(&self, dir: &store::Handle, prefix: &str, cur: u64) -> Result<TraditionalTask, LoadError> {
+        Ok(TraditionalTask {
             input: StoreFile {
                 file: dir
                     .join(format!(
@@ -176,10 +176,10 @@ impl Config {
             },
         })
     }
-    fn get_task(&self, dir: &store::Handle, cur: u64) -> Result<Task, LoadError> {
+    fn get_task(&self, dir: &store::Handle, cur: u64) -> Result<TraditionalTask, LoadError> {
         self._get_task(dir, "", cur)
     }
-    fn get_ex_task(&self, dir: &store::Handle, cur: u64) -> Result<Task, LoadError> {
+    fn get_ex_task(&self, dir: &store::Handle, cur: u64) -> Result<TraditionalTask, LoadError> {
         self._get_task(dir, "ex_", cur)
     }
 }
@@ -191,7 +191,7 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalOJData,
     if conf.with_implementer {
         panic!("this problem use custom implementer")
     }
-    let mut ojdata = TraditionalOJData::new(problem::problem::traditional::Meta {
+    let mut ojdata = TraditionalOJData::new(problem::prelude::TraditionalMeta {
         checker: if let Some(checker) = &conf.use_builtin_checker {
             if checker == "ncmp" {
                 Checker::AutoCmp {
