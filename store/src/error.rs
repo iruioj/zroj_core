@@ -14,4 +14,6 @@ pub enum StoreError {
     CreateParentDir(std::io::Error),
     #[error("vector is too long to store")]
     VecTooLong,
+    #[error("read dir: {0}")]
+    ReadDir(std::io::Error),
 }

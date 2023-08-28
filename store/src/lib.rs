@@ -7,9 +7,11 @@ pub type Error = error::StoreError;
 use serde::{de::DeserializeOwned, Serialize};
 
 use std::{
+    collections::BTreeMap,
     fmt::Debug,
     io::Seek,
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
 /// 文件系统中的一个文件或文件夹的句柄，不保证其存在性
@@ -229,6 +231,33 @@ impl<T: Send> FsStore for std::marker::PhantomData<T> {
         Ok(())
     }
 }
+
+impl<K, V> FsStore for BTreeMap<K, V>
+where
+    V: FsStore,
+    K: ToString + FromStr + Ord,
+{
+    fn open(ctx: &Handle) -> Result<Self, Error> {
+        ctx.dir
+            .read_dir()
+            .map_err(Error::ReadDir)?
+            .filter_map(|e| {
+                let e = e.ok()?;
+                let binding = e.file_name();
+                let key = binding.to_str()?;
+                let k = K::from_str(key).ok()?; // ignore invalid key
+
+                Some(V::open(&ctx.join(key)).map(|v| (k, v)))
+            })
+            .collect()
+    }
+
+    fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
+        self.iter_mut()
+            .try_fold((), |_, (k, v)| v.save(&ctx.join(k.to_string())))
+    }
+}
+
 
 #[macro_use]
 #[allow(unused_imports)]
