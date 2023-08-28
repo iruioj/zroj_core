@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { TaskReport } from 'composables/api';
 
-const props = defineProps<{
+defineProps<{
   data: TaskReport,
   collapse?: boolean,
 }>()
 
 
 const statusTitle = {
-  accepted: "Accepted",
+  good: "Accepted",
   compile_error: "Compile Error",
   custom: "Unknown Error",
   dangerous_syscall: "Dangerous System Call",
@@ -26,7 +26,7 @@ const statusTitle = {
   <div class="border border-slate-400 rounded">
     <div class="flex">
       <div class="p-2">{{ statusTitle[data.meta.status.name] }}</div>
-      <div class="p-2">{{ Math.round(data.meta.score * 100) }}pts</div>
+      <div class="p-2">{{ Math.round(data.meta.score_rate * 100) }}pts</div>
       <div class="p-2">Time: {{ data.meta.time }}ms</div>
       <div class="p-2">Memory: {{ (data.meta.memory / 1e6).toFixed(3) }}MB</div>
     </div>
