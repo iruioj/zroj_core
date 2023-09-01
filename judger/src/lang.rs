@@ -1,6 +1,7 @@
 use sandbox::unix::{Lim, Limitation, Singleton};
 use sandbox::{mem, time, Elapse, ExecSandBox, Memory};
 use serde::{Deserialize, Serialize};
+use serde_ts_typing::TsType;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -84,7 +85,7 @@ impl Compile for GnuCpp {
 }
 
 /// 内置的支持的文件类型
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, TsType)]
 pub enum FileType {
     #[serde(rename = "gnu_cpp20_o2")]
     GnuCpp20O2,

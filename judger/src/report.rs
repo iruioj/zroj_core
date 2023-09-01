@@ -127,7 +127,7 @@ impl From<sandbox::Status> for Status {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub struct SubtaskReport {
     /// 所有子任务的分数总和为 1
     pub total_score: f64,
@@ -135,7 +135,7 @@ pub struct SubtaskReport {
     pub tasks: Vec<Option<TaskReport>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub enum JudgeDetail {
     Subtask(Vec<SubtaskReport>),
     Tests(Vec<Option<TaskReport>>),
@@ -143,7 +143,7 @@ pub enum JudgeDetail {
 
 pub const SCOER_EPS: f64 = 1e-5;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub struct JudgeReport {
     pub meta: TaskMeta,
     pub detail: JudgeDetail,
