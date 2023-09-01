@@ -84,19 +84,29 @@ impl Handle {
         is_last: bool,
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
+        let kind = if self.dir.is_dir() {
+            "dir"
+        } else if self.dir.is_file() {
+            "file"
+        } else if !self.dir.exists() {
+            "non-exist"
+        } else {
+            "unknown"
+        };
+
         if prefix.is_none() {
-            writeln!(f, "{}", slug.as_ref().display())?;
+            writeln!(f, "{} [{kind}]", slug.as_ref().display())?;
         } else if is_last {
             writeln!(
                 f,
-                "{}└── {}",
+                "{}└── {} [{kind}]",
                 prefix.clone().unwrap(),
                 slug.as_ref().display()
             )?;
         } else {
             writeln!(
                 f,
-                "{}├── {}",
+                "{}├── {} [{kind}]",
                 prefix.clone().unwrap(),
                 slug.as_ref().display()
             )?;
@@ -257,7 +267,6 @@ where
             .try_fold((), |_, (k, v)| v.save(&ctx.join(k.to_string())))
     }
 }
-
 
 #[macro_use]
 #[allow(unused_imports)]
