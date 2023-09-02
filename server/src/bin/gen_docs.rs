@@ -202,12 +202,14 @@ fn main() {
     let user = app::user::service_doc();
     let problem = app::problem::service_doc();
     let oneoff = app::one_off::service_doc();
+    let submission = app::submission::service_doc();
 
     let entry = EntryRoot(vec![
         gen_entry(auth.0),
         gen_entry(user.0),
         gen_entry(problem.0),
         gen_entry(oneoff.0),
+        gen_entry(submission.0),
     ]);
 
     let code = String::from(
@@ -217,7 +219,7 @@ fn main() {
 import { callAPI, fetchAPI, ExtAsyncData } from "./inner/fetch";
 
 "#,
-    ) + &(auth.1 + user.1 + problem.1 + oneoff.1).render_code()
+    ) + &(auth.1 + user.1 + problem.1 + oneoff.1 + submission.1).render_code()
         + &entry.gen_code();
     println!("{code}");
 }

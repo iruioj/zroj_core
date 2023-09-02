@@ -4,7 +4,7 @@ use crate::data::{
     user::UserDB,
 };
 use crate::marker::*;
-use crate::{SessionID, UserID};
+use crate::SessionID;
 use actix_session::Session;
 use actix_web::{error, web, HttpResponse};
 use serde::{Deserialize, Serialize};
@@ -36,8 +36,7 @@ async fn login(
     // eprintln!("session_id: {}", session_id.as_simple());
     let user = user_data_manager
         .query_by_username(&payload.username)
-        .await?
-        .ok_or(error::ErrorBadRequest("user does not exist"))?;
+        .await?;
 
     if !passwd::verify(&user.password_hash, &payload.password_hash) {
         Err(error::ErrorBadRequest("password not correct"))
@@ -73,8 +72,8 @@ async fn register(
     eprintln!("register req: {:?}", &payload);
     if user_data_manager
         .query_by_username(&payload.username)
-        .await?
-        .is_some()
+        .await
+        .is_ok()
     {
         return Err(error::ErrorBadRequest("User already exists"));
     }
@@ -94,16 +93,14 @@ struct AuthInfoRes {
 #[api(method = get, path = "/info")]
 async fn inspect(
     user_db: ServerData<UserDB>,
-    user_id: Option<web::ReqData<UserID>>,
+    user_id: Option<Identity>,
 ) -> JsonResult<AuthInfoRes> {
     if let Some(id) = user_id {
         let user = user_db.query_by_userid(*id).await?;
-        if let Some(user) = user {
-            return Ok(web::Json(AuthInfoRes {
-                username: user.username,
-                email: user.email,
-            }));
-        }
+        return Ok(web::Json(AuthInfoRes {
+            username: user.username,
+            email: user.email,
+        }));
     }
     Err(error::ErrorBadRequest("user not found"))
 }
@@ -123,7 +120,7 @@ async fn logout(
 }
 
 #[scope_service(path = "/auth")]
-pub fn service(session_mgr: SessionManager, user_database: web::Data<UserDB>) {
+pub fn service(session_mgr: SessionManager, user_database: ServerData<UserDB>) {
     wrap(crate::auth::middleware::SessionAuth::bypass(
         session_mgr.clone(),
     ));

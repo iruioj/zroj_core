@@ -8,13 +8,14 @@ use problem::{
     Override,
 };
 use serde::{Deserialize, Serialize};
+use serde_ts_typing::TsType;
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
 use store::{FsStore, Handle};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
 pub struct FullJudgeReport {
     pub pre: Option<JudgeReport>,
     pub data: Option<JudgeReport>,
@@ -69,22 +70,27 @@ impl ProblemJudger {
             runner: JobRunner::new(),
         }
     }
-    pub fn get_logs(&self, sid: &SubmID) -> actix_web::Result<Vec<LogMessage>> {
+    pub fn get_logs(&self, sid: &SubmID) -> actix_web::Result<Option<Vec<LogMessage>>> {
         Ok(self
             .logs
             .read()
             .map_err(|e| error::ErrorInternalServerError(e.to_string()))?
             .get(sid)
-            .cloned()
-            .unwrap_or_default())
+            .cloned())
     }
     /// remove result from state after judging WITHOUT checking judge status
-    pub fn remove_result(&self, sid: &SubmID) -> Option<FullJudgeReport> {
-        self.state
-            .write()
-            .expect("remove result from state")
-            .remove(sid)?
-            .ok()
+    pub fn remove_result(&self, sid: &SubmID) -> Option<(FullJudgeReport, Vec<LogMessage>)> {
+        Some((
+            self.state
+                .write()
+                .expect("remove result from state")
+                .remove(sid)?
+                .ok()?,
+            self.logs
+                .write()
+                .expect("remove log from state")
+                .remove(sid)?,
+        ))
     }
     pub fn add_test<T, M, S, J>(
         &self,

@@ -8,28 +8,13 @@ use actix_web::{web, App, HttpServer};
 use server::app;
 use server::auth::middleware::SessionAuth;
 use server::auth::SessionManager;
-use server::data::{
-    mkdata,
-    types::*,
-    user::{self, UserDB},
-};
 use server::manager::one_off::OneOffManager;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let dir = tempfile::tempdir().unwrap();
     let session_container = SessionManager::default();
-    let user_db = mkdata!(UserDB, user::DefaultDB::new(dir.path().join("user_data")));
-    // 预先插入一个用户方便测试
-    user_db
-        .new_user(
-            &Username::new("testtest").unwrap(),
-            &passwd::register_hash("testtest"),
-            &EmailAddress::new("test@test.com").unwrap(),
-        )
-        .await
-        .unwrap();
-
+    let user_db = server::dev::test_userdb(dir.path()).await;
     let custom_test = web::Data::new(OneOffManager::new(dir.path()));
 
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));

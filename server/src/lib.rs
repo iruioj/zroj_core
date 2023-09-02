@@ -35,6 +35,8 @@ pub(crate) mod marker {
     pub type ServerData<T> = web::Data<T>;
     /// 标记一个 API 的 body 类型，使用 [`actix_multipart::form::MultipartForm`] extractor
     pub type FormData<T> = actix_multipart::form::MultipartForm<T>;
+    /// 标记一个 API 需要利用用户的身份信息
+    pub type Identity = web::ReqData<crate::UserID>;
 }
 
 #[derive(Debug)]

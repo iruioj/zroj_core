@@ -81,7 +81,7 @@ impl<S> SessionAuthMiddleware<S> {
     pub fn work(&self, req: &ServiceRequest) -> Result<()> {
         let session = req.get_session();
         if let Some(id) = session.get::<SessionID>(super::SESSION_ID_KEY)? {
-            eprintln!("[auth middleware] session id = {}", id);
+            tracing::debug!("session id = {}", id);
             if let Some(info) = self.inner.store.get(id)? {
                 req.extensions_mut().insert(id);
                 req.extensions_mut().insert(info.uid);
@@ -96,8 +96,8 @@ impl<S> SessionAuthMiddleware<S> {
             if self.inner.require {
                 return Err(error::ErrorUnauthorized("not login"));
             }
-            eprintln!("no session id found");
-            dbg!(req.cookies().unwrap());
+            tracing::debug!("no session id found");
+            // dbg!(req.cookies().unwrap());
         }
         Ok(())
     }

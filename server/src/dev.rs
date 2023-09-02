@@ -10,16 +10,16 @@ use crate::data::{
 use crate::mkdata;
 use crate::rev_proxy::RevProxy;
 use actix_http::body::MessageBody;
-use actix_web::middleware::Logger;
 use actix_web::{
     dev::{ServiceFactory, ServiceRequest, ServiceResponse},
     web, App,
 };
 use problem::sample::{a_plus_b_data, a_plus_b_statment};
+use tracing_actix_web::TracingLogger;
 
 /// 将非 `/api` 开头的请求转发到 localhost:3000
-pub fn frontend_rev_proxy() -> RevProxy {
-    RevProxy::create("http://localhost:3000").path_trans(|s| {
+pub fn frontend_rev_proxy(port: u16) -> RevProxy {
+    RevProxy::create(&format!("http://localhost:{port}")).path_trans(|s| {
         if s.starts_with("/api") {
             None
         } else {
@@ -47,7 +47,8 @@ pub fn dev_server(
     App::new()
         .app_data(frontend_proxy)
         .default_service(web::route().to(crate::rev_proxy::handler::rev_proxy))
-        .wrap(Logger::new(r#"%a "%r" %s "%{Referer}i" %T"#))
+        .wrap(TracingLogger::default())
+        // .wrap(Logger::new(r#"%a "%r" %s "%{Referer}i" %T"#).exclude_regex("/_nuxt/**"))
         .wrap(
             actix_session::SessionMiddleware::builder(
                 actix_session::storage::CookieSessionStore::default(),
@@ -65,10 +66,12 @@ pub fn dev_server(
 ///
 /// 预先插入用户名 `testtest`，密码 `testtest` 的用户
 pub async fn test_userdb(dir: &std::path::Path) -> web::Data<dyn user::Manager + Send + Sync> {
+    let dir = &dir.join("user_data");
     let r = mkdata!(
         crate::data::user::UserDB,
-        user::DefaultDB::new(dir.join("user_data"))
+        user::DefaultDB::new(dir).unwrap()
     );
+    tracing::info!("user db created, dir = {:?}", dir);
     // 预先插入一个用户方便测试
     r.new_user(
         &Username::new("testtest").unwrap(),
@@ -77,6 +80,7 @@ pub async fn test_userdb(dir: &std::path::Path) -> web::Data<dyn user::Manager +
     )
     .await
     .unwrap();
+    tracing::info!("user 'testtset' added");
     r
 }
 

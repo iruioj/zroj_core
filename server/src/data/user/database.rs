@@ -1,7 +1,7 @@
 use crate::data::error::DataError;
 use crate::data::mysql::MysqlDb;
 use crate::data::user::{async_trait, Manager, User, UserID, UserUpdateInfo};
-use crate::data::{notfound_as_none, types::*};
+use crate::data::types::*;
 use crate::Override;
 use diesel::{self, prelude::*, Insertable};
 
@@ -41,17 +41,13 @@ impl DbManager {
 }
 #[async_trait(?Send)]
 impl Manager for DbManager {
-    async fn query_by_username(&self, username: &Username) -> Result<Option<User>, DataError> {
-        notfound_as_none(
-            self.0
-                .transaction(|conn| Ok(table.filter(users::username.eq(username)).first(conn)?)),
-        )
+    async fn query_by_username(&self, username: &Username) -> Result<User, DataError> {
+        self.0
+            .transaction(|conn| Ok(table.filter(users::username.eq(username)).first(conn)?))
     }
-    async fn query_by_userid(&self, uid: UserID) -> Result<Option<User>, DataError> {
-        notfound_as_none(
-            self.0
-                .transaction(|conn| Ok(table.filter(users::id.eq(uid)).first(conn)?)),
-        )
+    async fn query_by_userid(&self, uid: UserID) -> Result<User, DataError> {
+        self.0
+            .transaction(|conn| Ok(table.filter(users::id.eq(uid)).first(conn)?))
     }
     async fn new_user(
         &self,

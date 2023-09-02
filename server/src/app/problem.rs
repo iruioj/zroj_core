@@ -1,29 +1,23 @@
-use std::collections::BTreeMap;
-
 use crate::{
     app::parse_named_file,
     data::{
         problem_ojdata::OJDataDB,
         problem_statement::{self, StmtDB},
-        submission::SubmDB,
+        submission::{SubmDB, SubmRaw},
     },
     manager::problem_judger::ProblemJudger,
     marker::*,
-    ProblemID, SubmID, UserID,
+    ProblemID, SubmID,
 };
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
-use actix_web::{
-    error,
-    web::{self, Json},
-};
-use judger::StoreFile;
-use problem::{
-    prelude::*, render_data::statement::StmtMeta, ProblemFullData,
-};
+use actix_web::{error, web::Json};
+use problem::{prelude::*, render_data::statement::StmtMeta, ProblemFullData};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
 use store::{FsStore, Handle};
+
+use super::ListQuery;
 
 /// 将文件解压到临时文件夹中
 fn tempdir_unzip(
@@ -50,22 +44,15 @@ async fn statement(
     Ok(stmt_db.get(query.id).await.map(Json)?)
 }
 
-// TODO: 权限/ownership 限制
 #[derive(Deserialize, TsType)]
 struct MetasQuery {
-    // limitations
-    /// 利用类型限制，一次请求的数量不能超过 256 个
-    max_count: u8,
+    list: ListQuery,
 
-    /// 跳过前若干个结果
-    offset: u32,
-
-    // filters
     /// 搜索的关键字/模式匹配
     pattern: Option<String>,
 }
 
-/// 获取题目的元信息
+/// 获取题目列表
 #[api(method = get, path = "/metas")]
 async fn metas(
     stmt_db: ServerData<StmtDB>,
@@ -74,7 +61,7 @@ async fn metas(
     let query = query.into_inner();
     Ok(Json(
         stmt_db
-            .get_metas(query.max_count, query.offset as usize, query.pattern)
+            .get_metas(query.list.max_count, query.list.offset as usize, query.pattern)
             .await?,
     ))
 }
@@ -145,26 +132,30 @@ struct JudgeReturn {
 /// 评测题目
 #[api(method = post, path = "/submit")]
 async fn judge(
-    uid: web::ReqData<UserID>,
+    uid: Identity,
     payload: FormData<JudgePayload>,
     judger: ServerData<ProblemJudger>,
     subm_db: ServerData<SubmDB>,
     ojdata_db: ServerData<OJDataDB>,
 ) -> JsonResult<JudgeReturn> {
+    tracing::info!("run judge handler");
+
     let payload = payload.into_inner();
     let subm_db = subm_db.into_inner();
+    let mut raw = SubmRaw(payload.files.iter().filter_map(parse_named_file).collect());
+
+    tracing::info!("request parsed");
+
     let pid = payload.pid.0;
-    let subm_record = subm_db.insert_new(*uid, pid).await?;
+    let subm_record = subm_db.insert_new(*uid, pid, &mut raw).await?;
     let sid = subm_record.id;
     let stddata = ojdata_db.get(pid).await?;
-
-    let mut map: BTreeMap<String, StoreFile> =
-        payload.files.iter().filter_map(parse_named_file).collect();
 
     match stddata {
         problem::StandardProblem::Traditional(ojdata) => {
             let subm = TraditionalSubm {
-                source: map
+                source: raw
+                    .0
                     .remove("source")
                     .ok_or(error::ErrorBadRequest("source file not found"))?,
             };
@@ -177,9 +168,16 @@ async fn judge(
 
 /// 提供 problem 相关服务
 #[scope_service(path = "/problem")]
-pub fn service(stmt_db: ServerData<StmtDB>, ojdata_db: ServerData<OJDataDB>) {
+pub fn service(
+    stmt_db: ServerData<StmtDB>,
+    ojdata_db: ServerData<OJDataDB>,
+    subm_db: ServerData<SubmDB>,
+    judger: ServerData<ProblemJudger>,
+) {
     app_data(stmt_db);
     app_data(ojdata_db);
+    app_data(subm_db);
+    app_data(judger);
     service(metas);
     service(statement);
     service(fulldata);

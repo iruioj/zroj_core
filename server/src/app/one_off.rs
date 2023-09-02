@@ -1,6 +1,6 @@
-use crate::{app::parse_named_file, manager::one_off::OneOffManager, marker::*, UserID};
+use crate::{app::parse_named_file, manager::one_off::OneOffManager, marker::*};
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
-use actix_web::{error::ErrorBadRequest, web};
+use actix_web::{error::ErrorBadRequest, web::Json};
 use judger::{StoreFile, TaskReport};
 use serde::Serialize;
 use serde_ts_typing::TsType;
@@ -22,7 +22,7 @@ pub struct CustomTestPayload {
 async fn custom_test_post(
     payload: FormData<CustomTestPayload>,
     oneoff: ServerData<OneOffManager>,
-    uid: web::ReqData<UserID>,
+    uid: Identity,
 ) -> AnyResult<String> {
     let Some((_, source)) = parse_named_file(&payload.source) else {
         return Err(ErrorBadRequest("invalid payload file"))
@@ -47,16 +47,16 @@ pub struct CustomTestResult {
 #[api(method = get, path = "")]
 async fn custom_test_get(
     oneoff: ServerData<OneOffManager>,
-    uid: web::ReqData<UserID>,
+    uid: Identity,
 ) -> JsonResult<CustomTestResult> {
-    Ok(web::Json(CustomTestResult {
+    Ok(Json(CustomTestResult {
         result: oneoff.get_result(&uid)?,
     }))
 }
 
 /// 提供自定义测试服务
 #[scope_service(path = "/custom_test")]
-pub fn service(custom_test_manager: web::Data<OneOffManager>) {
+pub fn service(custom_test_manager: ServerData<OneOffManager>) {
     app_data(custom_test_manager);
     service(custom_test_get);
     service(custom_test_post);
