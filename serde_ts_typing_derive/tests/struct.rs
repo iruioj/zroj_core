@@ -76,20 +76,20 @@ fn test_struct() {
     );
 
     let v = TagSimpleStruct::default();
-    // assert_eq!(
-    //     TagSimpleStruct::type_def(),
-    //     TypeExpr::Struct(
-    //         [
-    //             ("hello".into(), TypeExpr::Boolean),
-    //             (
-    //                 "tt".into(),
-    //                 TypeExpr::Value(serde_ts_typing::Value::String("ggg".into()))
-    //             ),
-    //         ]
-    //         .into_iter()
-    //         .collect()
-    //     )
-    // );
+    assert_eq!(
+        TagSimpleStruct::type_def(),
+        TypeExpr::Struct(
+            [
+                ("hello".into(), TypeExpr::Boolean),
+                (
+                    "tt".into(),
+                    TypeExpr::Value(serde_ts_typing::Value::String("ggg".into()))
+                ),
+            ]
+            .into_iter()
+            .collect()
+        )
+    );
     assert_eq!(
         "{\"tt\":\"ggg\",\"hello\":false}",
         serde_json::to_string(&v).unwrap()

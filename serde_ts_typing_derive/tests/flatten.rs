@@ -1,5 +1,6 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_ts_typing::{TsType, TypeExpr};
+use serde_with::{serde_as, DisplayFromStr};
 
 #[derive(Serialize, TsType)]
 #[ts(inline)]
@@ -36,4 +37,41 @@ fn test_flatten() {
             .collect()
         )
     )
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, TsType)]
+#[ts(inline)]
+struct ListQuery {
+    /// 利用类型限制，一次请求的数量不能超过 256 个
+    #[serde_as(as = "DisplayFromStr")]
+    #[ts(as_type = "String")]
+    max_count: u8,
+
+    /// 跳过前 offset 个结果
+    #[serde_as(as = "DisplayFromStr")]
+    #[ts(as_type = "String")]
+    offset: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, TsType)]
+#[ts(inline)]
+struct ProbMetasQuery {
+    #[serde(flatten)]
+    list: ListQuery,
+    // /// 利用类型限制，一次请求的数量不能超过 256 个
+    // max_count: u8,
+
+    // /// 跳过前 offset 个结果
+    // offset: u32,
+    /// 搜索的关键字/模式匹配
+    pattern: Option<String>,
+}
+
+#[test]
+fn test_serde_url() {
+    let query: ProbMetasQuery = serde_urlencoded::from_str("max_count=5&offset=6").unwrap();
+    dbg!(&query);
+    eprintln!("{}", serde_json::to_string_pretty(&query).unwrap());
+    eprintln!("{}", ProbMetasQuery::type_def().to_string());
 }

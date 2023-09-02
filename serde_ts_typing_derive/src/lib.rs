@@ -3,7 +3,7 @@ mod serde_attr;
 mod ts_attr;
 
 use context::{ContainerContext, FieldContext, ProvideDefault, VariantContext};
-use quote::quote;
+use quote::{format_ident, quote, ToTokens};
 use syn::{
     AttrStyle, Attribute, Expr, Field, Fields, GenericParam, Generics, Item, ItemEnum, ItemStruct,
     Lit, Meta, MetaNameValue,
@@ -87,10 +87,12 @@ fn gen_field(
     let ctxt = ctxt.provide_default(FieldContext::from_attr(serde_attr::parse_field_attr(
         &field.attrs,
     )));
+    let ts_ctxt = ts_attr::FieldContext::from_attr(ts_attr::parse_field_attr(&field.attrs));
     if ctxt.is_skip() {
         return None;
     }
-    if ctxt.getter || ctxt.serialize_with || ctxt.with {
+    if ctxt.getter {
+        //  || ctxt.serialize_with || ctxt.with {
         unimplemented!()
     }
     let field_kind = if ctxt.flatten {
@@ -101,7 +103,16 @@ fn gen_field(
             .map(|ident| ctxt.rename_field(ident.to_string()))
             .map_or(FieldKind::Unnamed, |s| FieldKind::Named(s))
     };
-    let ty = field.ty;
+    let ty = if ctxt.serialize_with || ctxt.with {
+        let Some(ty_str) = ts_ctxt.as_type else {
+            panic!("ts(as) must be used with serde(serialize_with) or serde(with)")
+        };
+
+        let ty_ident = format_ident!("{}", ty_str);
+        ty_ident.into_token_stream()
+    } else {
+        field.ty.into_token_stream()
+    };
     let tyctxt = quote!(<#ty as serde_ts_typing::TsType>::register_self_context(c););
     let tydef = quote!(<#ty as serde_ts_typing::TsType>::type_def());
     Some((field_kind, (tyctxt, tydef)))
@@ -159,7 +170,7 @@ fn gen_fields(
                 let mut tydefs = Vec::new();
                 for field in unnamed {
                     if let Some((name, (tyctxt, tydef))) = gen_field(ctxt, field) {
-                    assert!(matches!(name, FieldKind::Unnamed));
+                        assert!(matches!(name, FieldKind::Unnamed));
 
                         tyctxts.push(tyctxt);
                         tydefs.push(tydef);
@@ -210,15 +221,10 @@ fn derive_struct(input: ItemStruct) -> proc_macro2::TokenStream {
     // must be named fields
     if let Some(tag) = ctxt.tag() {
         tydef = quote!({
-            serde_ts_typing::TypeExpr::Intersection(
-                [
-                    serde_ts_typing::TypeExpr::Struct( [
-                        (#tag.into(), serde_ts_typing::TypeExpr::Value(serde_ts_typing::Value::String(#name.into())))
-                    ].into_iter().collect()),
-                    #tydef
-                ].into_iter().collect()
-            )
-        })
+            let mut ty = #tydef;
+            ty.struct_insert(#tag.into(), serde_ts_typing::TypeExpr::Value(serde_ts_typing::Value::String(#name.into())));
+            ty
+        });
     }
     if ctxt.transparent || ctxt.remote || ctxt.into.is_some() {
         unimplemented!()

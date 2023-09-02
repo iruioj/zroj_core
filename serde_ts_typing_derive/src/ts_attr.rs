@@ -68,24 +68,28 @@ impl ContainerContext {
     }
 }
 
-/*
 pub enum FieldAttr {
-    /// `ts(ignore_context)`
+    /// `ts(as_type = "...")`
     ///
-    /// ignore context of this field, often used for recursive struct
-    IgnoreContext,
+    /// 指定该字段序列化后对应的 Rust 类型，用于配合 `serde(serialize_with)` 和 `serde(with)`
+    As(String),
 }
 pub fn parse_field_attr(attrs: &[Attribute]) -> Vec<FieldAttr> {
     parse_attrs("ts", attrs)
         .into_iter()
         .map(|meta| match meta {
-            Meta::NameValue(_) => panic!("invalid ts attr"),
-            Meta::Path(item) => {
-                if item.is_ident("ignore_context") {
-                    return FieldAttr::IgnoreContext;
+            Meta::NameValue(item) => {
+                if item.path.is_ident("as_type") {
+                    if let Expr::Lit(syn::ExprLit {
+                        lit: Lit::Str(s), ..
+                    }) = &item.value
+                    {
+                        return FieldAttr::As(s.value());
+                    }
                 }
                 panic!("invalid ts attr")
             }
+            Meta::Path(_) => panic!("invalid ts attr"),
             Meta::List(_) => panic!("invalid ts attr"),
         })
         .collect()
@@ -93,7 +97,7 @@ pub fn parse_field_attr(attrs: &[Attribute]) -> Vec<FieldAttr> {
 
 #[derive(Default)]
 pub struct FieldContext {
-    pub ignore_context: bool,
+    pub as_type: Option<String>,
 }
 
 impl FieldContext {
@@ -101,10 +105,9 @@ impl FieldContext {
         let mut r = FieldContext::default();
         for attr in attrs {
             match attr {
-                FieldAttr::IgnoreContext => r.ignore_context = true,
+                FieldAttr::As(ty) => r.as_type = Some(ty),
             }
         }
         r
     }
 }
-*/

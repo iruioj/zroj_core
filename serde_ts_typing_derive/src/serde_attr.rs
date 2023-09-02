@@ -190,7 +190,7 @@ macro_rules! unit_value_ret {
 macro_rules! sep_value_sep_ret {
     ($item:ident, $name:literal, $var:ident) => {
         if $item.path.is_ident($name) {
-            let metas = syn::parse2::<AttrList>($item.tokens).expect("parse serde attr list");
+            let metas = syn::parse2::<AttrList>($item.tokens).expect("parse serde attr list (sep_value_sep_ret)");
             let mut serialize = None;
             let mut deserialize = None;
             for meta in metas.0 {
