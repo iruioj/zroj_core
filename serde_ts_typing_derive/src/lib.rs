@@ -67,12 +67,21 @@ fn gen_where_clause(generics: Generics) -> Option<proc_macro2::TokenStream> {
         })
 }
 
+enum FieldKind {
+    // 匿名字段
+    Unnamed,
+    // 带有字段名称
+    Named(String),
+    // 该字段的类型与 container 合并
+    Flatten,
+}
+
 /// field 的 key 和 type context 与 type def
 fn gen_field(
     ctxt: impl ProvideDefault<FieldContext>,
     field: Field,
 ) -> Option<(
-    Option<String>,
+    FieldKind,
     (proc_macro2::TokenStream, proc_macro2::TokenStream),
 )> {
     let ctxt = ctxt.provide_default(FieldContext::from_attr(serde_attr::parse_field_attr(
@@ -81,19 +90,24 @@ fn gen_field(
     if ctxt.is_skip() {
         return None;
     }
-    if ctxt.flatten || ctxt.getter || ctxt.serialize_with || ctxt.with {
+    if ctxt.getter || ctxt.serialize_with || ctxt.with {
         unimplemented!()
     }
-    let field_name = field
-        .ident
-        .map(|ident| ctxt.rename_field(ident.to_string()));
+    let field_kind = if ctxt.flatten {
+        FieldKind::Flatten
+    } else {
+        field
+            .ident
+            .map(|ident| ctxt.rename_field(ident.to_string()))
+            .map_or(FieldKind::Unnamed, |s| FieldKind::Named(s))
+    };
     let ty = field.ty;
     let tyctxt = quote!(<#ty as serde_ts_typing::TsType>::register_self_context(c););
     let tydef = quote!(<#ty as serde_ts_typing::TsType>::type_def());
-    Some((field_name, (tyctxt, tydef)))
+    Some((field_kind, (tyctxt, tydef)))
 }
 
-// 返回 context 的构造代码和当前结构本身的类型构造代码
+// 返回 context 的构造代码 (return ()) 和当前结构本身的类型构造代码 (return TypeExpr)
 fn gen_fields(
     ctxt: impl ProvideDefault<FieldContext> + Copy,
     fields: Fields,
@@ -104,19 +118,19 @@ fn gen_fields(
             let mut tydefs = Vec::new();
             for field in fields.named {
                 if let Some((name, (tyctxt, tydef))) = gen_field(ctxt, field) {
-                    let name = name.unwrap();
                     tyctxts.push(tyctxt);
                     tydefs.push((name, tydef));
                 }
             }
-            let tydef = tydefs.into_iter().fold(
-                quote!(let mut r = std::collections::BTreeMap::new();),
-                |mut a, (name, tydef)| {
-                    a.extend(quote!(r.insert(#name.into(), #tydef);));
-                    a
-                },
-            );
-            let tydef = quote!(serde_ts_typing::TypeExpr::Record({ #tydef r }));
+            let mut tydef = quote!(let mut r = serde_ts_typing::TypeExpr::new_struct(););
+            for (name, fldef) in tydefs {
+                if let FieldKind::Flatten = name {
+                    tydef.extend(quote!(r.struct_merge(#fldef);));
+                } else if let FieldKind::Named(s) = name {
+                    tydef.extend(quote!(r.struct_insert(#s.into(), #fldef);));
+                }
+            }
+            let tydef = quote!({ #tydef r });
             let tyctxt = tyctxts
                 .into_iter()
                 .reduce(|mut a, b| {
@@ -132,7 +146,7 @@ fn gen_fields(
             if unnamed.len() == 1 {
                 let field = unnamed.into_iter().next().unwrap();
                 if let Some((name, (tyctxt, tydef))) = gen_field(ctxt, field) {
-                    assert!(name.is_none());
+                    assert!(matches!(name, FieldKind::Unnamed));
 
                     (tyctxt, tydef)
                 } else {
@@ -145,7 +159,7 @@ fn gen_fields(
                 let mut tydefs = Vec::new();
                 for field in unnamed {
                     if let Some((name, (tyctxt, tydef))) = gen_field(ctxt, field) {
-                        assert!(name.is_none());
+                    assert!(matches!(name, FieldKind::Unnamed));
 
                         tyctxts.push(tyctxt);
                         tydefs.push(tydef);
@@ -198,7 +212,7 @@ fn derive_struct(input: ItemStruct) -> proc_macro2::TokenStream {
         tydef = quote!({
             serde_ts_typing::TypeExpr::Intersection(
                 [
-                    serde_ts_typing::TypeExpr::Record( [
+                    serde_ts_typing::TypeExpr::Struct( [
                         (#tag.into(), serde_ts_typing::TypeExpr::Value(serde_ts_typing::Value::String(#name.into())))
                     ].into_iter().collect()),
                     #tydef
@@ -276,7 +290,7 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
         if let (Some(tag), Some(ctag)) = (ctxt.tag(), ctxt.content_tag()) {
             // adjacently tagged
             tydef = quote!(
-                serde_ts_typing::TypeExpr::Record([
+                serde_ts_typing::TypeExpr::Struct([
                     (#tag.into(), serde_ts_typing::TypeExpr::Value(serde_ts_typing:: Value::String(#var_name.into()))),
                     (#ctag.into(), #tydef),
                 ].into_iter().collect())
@@ -286,7 +300,7 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
             // 如果是 unnamed fields，serde 不会编译报错，而会在运行时 panic
             if is_unit {
                 tydef = quote!(
-                    serde_ts_typing::TypeExpr::Record([
+                    serde_ts_typing::TypeExpr::Struct([
                         (#tag.into(), serde_ts_typing::TypeExpr::Value(serde_ts_typing::Value::String(#var_name.into())))
                     ].into_iter().collect())
                 )
@@ -295,7 +309,7 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
                 tydef = quote!({
                     serde_ts_typing::TypeExpr::Intersection(
                         [
-                            serde_ts_typing::TypeExpr::Record( [
+                            serde_ts_typing::TypeExpr::Struct( [
                                 (#tag.into(), serde_ts_typing::TypeExpr::Value(serde_ts_typing::Value::String(#var_name.into())))
                             ].into_iter().collect()),
                             #tydef
@@ -308,7 +322,7 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
             if is_unit {
                 tydef = quote!(serde_ts_typing::TypeExpr::Value(serde_ts_typing::Value::String(#var_name.into())))
             } else {
-                tydef = quote!(serde_ts_typing::TypeExpr::Record([(#var_name.into(), #tydef)].into_iter().collect()));
+                tydef = quote!(serde_ts_typing::TypeExpr::Struct([(#var_name.into(), #tydef)].into_iter().collect()));
             }
         }
 

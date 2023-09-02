@@ -42,17 +42,17 @@ fn test_enum() {
         TypeExpr::Union(
             [
                 TypeExpr::Value(serde_ts_typing::Value::String("D".into())),
-                TypeExpr::Record(
+                TypeExpr::Struct(
                     [(
                         "A".into(),
-                        TypeExpr::Record(
+                        TypeExpr::Struct(
                             [("hello".into(), TypeExpr::Boolean)].into_iter().collect()
                         )
                     )]
                     .into_iter()
                     .collect()
                 ),
-                TypeExpr::Record(
+                TypeExpr::Struct(
                     [(
                         "B".into(),
                         TypeExpr::Tuple(vec![TypeExpr::String, TypeExpr::Boolean])
@@ -60,7 +60,7 @@ fn test_enum() {
                     .into_iter()
                     .collect()
                 ),
-                TypeExpr::Record([("C".into(), TypeExpr::Number)].into_iter().collect())
+                TypeExpr::Struct([("C".into(), TypeExpr::Number)].into_iter().collect())
             ]
             .into_iter()
             .collect()

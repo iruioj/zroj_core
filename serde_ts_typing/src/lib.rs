@@ -28,7 +28,9 @@ pub enum TypeExpr {
     /// `T[]`
     Array(Box<TypeExpr>),
     /// `{ a: T, b: S }`
-    Record(BTreeMap<String, TypeExpr>),
+    Struct(BTreeMap<String, TypeExpr>),
+    /// `Record<K, V>`
+    Record(Box<TypeExpr>, Box<TypeExpr>),
     /// `[T, S]`
     Tuple(Vec<TypeExpr>),
     /// ` T | S`
@@ -49,11 +51,12 @@ impl ToString for TypeExpr {
             TypeExpr::Number => "number".into(),
             TypeExpr::Boolean => "boolean".into(),
             TypeExpr::Array(t) => t.to_string() + "[]",
-            TypeExpr::Record(t) => {
+            TypeExpr::Struct(t) => {
                 t.iter().fold(String::from("{"), |acc, (k, v)| {
                     format!("{acc}{k}:{};", v.to_string())
                 }) + "}"
             }
+            TypeExpr::Record(k, v) => format!("Record<{}, {}>", k.to_string(), v.to_string()),
             TypeExpr::Tuple(t) => {
                 let mut sep = "";
                 t.iter().fold(String::from("["), |acc, v| {
@@ -80,6 +83,23 @@ impl ToString for TypeExpr {
             }
             TypeExpr::Any => "any".into(),
         }
+    }
+}
+
+impl TypeExpr {
+    pub fn new_struct() -> Self {
+        TypeExpr::Struct(BTreeMap::new())
+    }
+    pub fn struct_insert(&mut self, k: String, v_type: TypeExpr) {
+        let Self::Struct(s) = self else { panic!("invalid struct to insert") };
+        s.insert(k, v_type);
+    }
+    pub fn struct_merge(&mut self, v_type: TypeExpr) {
+        let Self::Struct(s) = self else { panic!("invalid struct to merge") };
+        let Self::Struct(t) = v_type else { panic!("invalid struct to be merged {:?}", v_type) };
+        t.into_iter().for_each(|(k, v)| {
+            s.insert(k, v);
+        });
     }
 }
 

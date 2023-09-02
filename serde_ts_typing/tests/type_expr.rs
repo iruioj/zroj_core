@@ -2,7 +2,7 @@ use serde_ts_typing::*;
 
 #[test]
 fn test_type_expr() {
-    let ty = TypeExpr::Record(
+    let ty = TypeExpr::Struct(
         [
             ("name".into(), TypeExpr::String),
             ("flag".into(), TypeExpr::Boolean),
