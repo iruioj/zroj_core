@@ -10,16 +10,16 @@ impl JobRunner {
         let (sender, receiver) = crossbeam_channel::unbounded::<Job>();
 
         let handle = std::thread::spawn(move || {
-            eprintln!("[job] thread start");
+            tracing::info!("job thread start");
             loop {
                 match receiver.recv() {
                     Ok(job) => {
-                        eprintln!("[job] receive new job");
+                        tracing::debug!("receive new job");
                         job();
                     }
                     Err(_) => {
                         // closed
-                        eprintln!("[job] close job thread");
+                        tracing::debug!("close job thread");
                         return;
                     }
                 }

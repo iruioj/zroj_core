@@ -89,8 +89,6 @@ pub enum LogMessage {
     TestTask(usize),
     #[error("finished")]
     End,
-    #[error("overall test done")]
-    Done,
 }
 
 pub mod sha_hash {

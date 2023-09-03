@@ -32,8 +32,7 @@ async fn login(
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
     use actix_web::cookie::Cookie;
-    eprintln!("login request: {:?}", payload);
-    // eprintln!("session_id: {}", session_id.as_simple());
+    tracing::info!("login request: {:?}", payload);
     let user = user_data_manager
         .query_by_username(&payload.username)
         .await?;
@@ -42,7 +41,7 @@ async fn login(
         Err(error::ErrorBadRequest("password not correct"))
     } else {
         let id = SessionID::new_v4(); // generate a random session id
-        eprintln!("generate new session id {}", id);
+        tracing::info!("generate new session id {}", id);
         session_container.set(id, AuthInfo { uid: user.id })?;
         session.insert(crate::auth::SESSION_ID_KEY, id)?;
         Ok(HttpResponse::Ok()

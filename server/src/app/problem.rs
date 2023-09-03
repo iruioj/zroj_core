@@ -17,8 +17,6 @@ use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
 use store::{FsStore, Handle};
 
-use super::ListQuery;
-
 /// 将文件解压到临时文件夹中
 fn tempdir_unzip(
     reader: impl std::io::Read + std::io::Seek,
@@ -45,8 +43,9 @@ async fn statement(
 }
 
 #[derive(Deserialize, TsType)]
-struct MetasQuery {
-    list: ListQuery,
+struct ProbMetasQuery {
+    #[serde(flatten)]
+    list: super::ListQuery,
 
     /// 搜索的关键字/模式匹配
     pattern: Option<String>,
@@ -56,12 +55,16 @@ struct MetasQuery {
 #[api(method = get, path = "/metas")]
 async fn metas(
     stmt_db: ServerData<StmtDB>,
-    query: QueryParam<MetasQuery>,
+    query: QueryParam<ProbMetasQuery>,
 ) -> JsonResult<Vec<(ProblemID, StmtMeta)>> {
     let query = query.into_inner();
     Ok(Json(
         stmt_db
-            .get_metas(query.list.max_count, query.list.offset as usize, query.pattern)
+            .get_metas(
+                query.list.max_count,
+                query.list.offset as usize,
+                query.pattern,
+            )
             .await?,
     ))
 }
@@ -147,21 +150,30 @@ async fn judge(
     tracing::info!("request parsed");
 
     let pid = payload.pid.0;
-    let subm_record = subm_db.insert_new(*uid, pid, &mut raw).await?;
-    let sid = subm_record.id;
     let stddata = ojdata_db.get(pid).await?;
 
-    match stddata {
+    let sid = match stddata {
         problem::StandardProblem::Traditional(ojdata) => {
+            let subm_record = subm_db
+                .insert_new(
+                    *uid,
+                    pid,
+                    raw.0.get("source").map(|x| x.file_type.clone()),
+                    // must insert_new before consuming raw
+                    &mut raw,
+                )
+                .await?;
+
             let subm = TraditionalSubm {
                 source: raw
                     .0
                     .remove("source")
                     .ok_or(error::ErrorBadRequest("source file not found"))?,
             };
-            judger.add_test::<_, _, _, Traditional>(sid, ojdata, subm)?;
+            judger.add_test::<_, _, _, Traditional>(subm_record.id, ojdata, subm)?;
+            subm_record.id
         }
-    }
+    };
 
     Ok(Json(JudgeReturn { sid }))
 }

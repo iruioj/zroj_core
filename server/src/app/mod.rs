@@ -9,6 +9,7 @@ pub mod user;
 use judger::StoreFile;
 use serde::Deserialize;
 use serde_ts_typing::TsType;
+use serde_with::{serde_as, DisplayFromStr};
 
 /// 默认 404
 // pub async fn default_route(req: HttpRequest) -> HttpResponse {
@@ -41,12 +42,20 @@ fn parse_named_file(nf: &actix_multipart::form::tempfile::TempFile) -> Option<(S
     ))
 }
 
-/// 一个通用的列表查询 query
+// ref: https://docs.rs/serde_qs/0.12.0/serde_qs/index.html#flatten-workaround
+#[serde_as]
 #[derive(Deserialize, TsType)]
+#[ts(inline)]
 struct ListQuery {
+    #[serde_as(as = "DisplayFromStr")]
+    // TypeScript 类型仍然为 u8，因为通过 x-www-form-urlencoded 格式传递
+    #[ts(as_type = "u8")]
     /// 利用类型限制，一次请求的数量不能超过 256 个
     max_count: u8,
 
+    #[serde_as(as = "DisplayFromStr")]
+    // TypeScript 类型仍然为 u32，因为通过 x-www-form-urlencoded 格式传递
+    #[ts(as_type = "u32")]
     /// 跳过前 offset 个结果
     offset: u32,
 }

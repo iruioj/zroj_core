@@ -5,13 +5,11 @@ use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
 
 use crate::{
-    data::submission::{FilterOption, SubmDB, SubmInfo, SubmMeta},
+    data::submission::{SubmDB, SubmInfo, SubmMeta},
     manager::problem_judger::ProblemJudger,
     marker::*,
     SubmID,
 };
-
-use super::ListQuery;
 
 #[derive(TsType, Serialize)]
 struct DetailReturn {
@@ -37,16 +35,6 @@ async fn detail(
     judger: ServerData<ProblemJudger>,
 ) -> JsonResult<DetailReturn> {
     let logs = judger.get_logs(&payload.sid)?;
-    if let Some(logs) = &logs {
-        // if judge finished, then store the result
-        if logs.iter().any(|o| matches!(o, judger::LogMessage::Done)) {
-            let (report, _) = judger
-                .remove_result(&payload.sid)
-                .ok_or(ErrorInternalServerError("judge result not found"))?;
-            subm_db.update(&payload.sid, report).await?;
-        }
-    }
-
     let meta = subm_db.get(&payload.sid).await?;
     let raw = subm_db
         .get_raw(&payload.sid)
@@ -72,22 +60,31 @@ async fn detail(
 }
 
 #[derive(Deserialize, TsType)]
-struct MetasQuery {
-    list: ListQuery,
+struct SubmMetasQuery {
+    #[serde(flatten)]
+    list: super::ListQuery,
 
-    filter: FilterOption,
+    pid: Option<crate::ProblemID>,
+    uid: Option<crate::UserID>,
+    lang: Option<judger::FileType>,
 }
 
 /// 获取提交记录列表
 #[api(method = get, path = "/metas")]
 async fn metas(
     subm_db: ServerData<SubmDB>,
-    query: QueryParam<MetasQuery>,
+    query: QueryParam<SubmMetasQuery>,
 ) -> JsonResult<Vec<SubmMeta>> {
     let query = query.into_inner();
     Ok(Json(
         subm_db
-            .get_metas(query.list.max_count, query.list.offset as usize, query.filter)
+            .get_metas(
+                query.list.max_count,
+                query.list.offset as usize,
+                query.pid,
+                query.uid,
+                query.lang,
+            )
             .await?,
     ))
 }

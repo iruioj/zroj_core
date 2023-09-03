@@ -58,6 +58,32 @@ async fn main() -> std::io::Result<()> {
         SubmDB,
         server::data::submission::DefaultDB::new(dir.path().join("subm_db"))
     );
+
+    // once finish judging, update submission database
+    {
+        let subm_db = subm_db.clone().into_inner();
+        let recv = judger.reciver();
+        std::thread::spawn(move || {
+            let rt = actix_rt::Runtime::new().expect("init actix runtime");
+            loop {
+                match recv.recv() {
+                    Ok((sid, rep)) => {
+                        let r = rt.block_on(async {
+                            subm_db.update(&sid, rep).await
+                        });
+                        if let Err(e) = r {
+                            tracing::warn!("update subm_db: {:?}", e)
+                        }
+                    },
+                    Err(_) => {
+                        tracing::warn!("update subm_db thread closed");
+                        return
+                    },
+                }
+            }
+        });
+    }
+
     let session_key = actix_web::cookie::Key::generate();
     let revproxy = web::Data::new(dev::frontend_rev_proxy(3456));
 

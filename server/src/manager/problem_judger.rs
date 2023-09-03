@@ -55,6 +55,10 @@ pub struct ProblemJudger {
     state: Arc<RwLock<HashMap<SubmID, Result<FullJudgeReport, String>>>>,
     logs: Arc<RwLock<HashMap<SubmID, Vec<LogMessage>>>>,
     runner: JobRunner,
+    channel: (
+        crossbeam_channel::Sender<(SubmID, FullJudgeReport)>,
+        crossbeam_channel::Receiver<(SubmID, FullJudgeReport)>,
+    ),
 }
 impl ProblemJudger {
     /// create `base_dir` if not exist
@@ -68,7 +72,11 @@ impl ProblemJudger {
             state: Arc::new(RwLock::new(HashMap::new())),
             logs: Default::default(),
             runner: JobRunner::new(),
+            channel: crossbeam_channel::unbounded(),
         }
+    }
+    pub fn reciver(&self) -> crossbeam_channel::Receiver<(SubmID, FullJudgeReport)> {
+        self.channel.1.clone()
     }
     pub fn get_logs(&self, sid: &SubmID) -> actix_web::Result<Option<Vec<LogMessage>>> {
         Ok(self
@@ -78,25 +86,12 @@ impl ProblemJudger {
             .get(sid)
             .cloned())
     }
-    /// remove result from state after judging WITHOUT checking judge status
-    pub fn remove_result(&self, sid: &SubmID) -> Option<(FullJudgeReport, Vec<LogMessage>)> {
-        Some((
-            self.state
-                .write()
-                .expect("remove result from state")
-                .remove(sid)?
-                .ok()?,
-            self.logs
-                .write()
-                .expect("remove log from state")
-                .remove(sid)?,
-        ))
-    }
     pub fn add_test<T, M, S, J>(
         &self,
         sid: SubmID,
         ojdata: OJData<T, M, S>,
         mut subm: J::Subm,
+        // callback: impl FnOnce(Result<FullJudgeReport, String>) -> Result<(), String> + Send + Sync,
     ) -> actix_web::Result<()>
     where
         T: FsStore + Send + Sync + 'static,
@@ -109,6 +104,7 @@ impl ProblemJudger {
         let logs = self.logs.clone();
         let logs2 = self.logs.clone();
         let dir = self.base_dir.join(sid.to_string());
+        let sender = self.channel.0.clone();
 
         let job = move || {
             state.write().expect("clear state").remove(&sid);
@@ -151,17 +147,19 @@ impl ProblemJudger {
                 drop(judger); // indirectly close log handle
                 log_handle.join().expect("log thread should finish");
 
-                // marking the end of judging, a trigger to move submission result
-                // to database
                 logs2
                     .write()
-                    .expect("finish judging of submission")
-                    .entry(sid)
-                    .or_default()
-                    .push(LogMessage::Done);
-                drop(logs2);
+                    .expect("remove log from state")
+                    .remove(&sid)
+                    .expect("remove logs from state");
 
-                Ok(())
+                let result = state
+                    .write()
+                    .expect("remove result from state")
+                    .remove(&sid)
+                    .expect("get result from state")?;
+
+                sender.send((sid, result)).map_err(|e| e.to_string())
             }();
             if let Err(e) = r {
                 state

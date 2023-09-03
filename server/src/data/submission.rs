@@ -107,14 +107,6 @@ mod database {
     }
 }
 
-#[derive(Default, TsType, Deserialize)]
-pub struct FilterOption {
-    // status: Option<judger::Status>,
-    pid: Option<ProblemID>,
-    uid: Option<UserID>,
-    lang: Option<judger::FileType>,
-}
-
 pub type SubmDB = dyn Manager + Sync + Send;
 
 #[async_trait(?Send)]
@@ -123,6 +115,7 @@ pub trait Manager {
         &self,
         uid: UserID,
         pid: ProblemID,
+        lang: Option<judger::FileType>,
         raw: &mut SubmRaw,
     ) -> Result<Submission, DataError>;
     async fn get(&self, sid: &SubmID) -> Result<Submission, DataError>;
@@ -133,7 +126,9 @@ pub trait Manager {
         &self,
         max_count: u8,
         offset: usize,
-        filter: FilterOption,
+        pid: Option<ProblemID>,
+        uid: Option<UserID>,
+        lang: Option<judger::FileType>,
     ) -> Result<Vec<SubmMeta>, DataError>;
 }
 
@@ -170,6 +165,7 @@ mod default {
             &self,
             uid: UserID,
             pid: ProblemID,
+            lang: Option<judger::FileType>,
             raw: &mut SubmRaw,
         ) -> Result<Submission, DataError> {
             let mut data = self.data.write()?;
@@ -192,7 +188,7 @@ mod default {
                 size: CastMemory(problem::Memory::from(size)),
                 judge_time: None,
                 report: None,
-                lang: None,
+                lang: lang.map(JsonStr),
                 status: None,
                 time: None,
                 memory: None,
@@ -227,21 +223,18 @@ mod default {
             &self,
             max_count: u8,
             offset: usize,
-            filter: FilterOption,
+            pid: Option<ProblemID>,
+            uid: Option<UserID>,
+            lang: Option<judger::FileType>,
         ) -> Result<Vec<SubmMeta>, DataError> {
             let db = self.data.read()?;
-            let f_uid = |uid: &UserID| filter.uid.as_ref().map(|u| u == uid).unwrap_or(true);
-            let f_pid = |uid: &UserID| filter.pid.as_ref().map(|u| u == uid).unwrap_or(true);
-            let f_lang =
-                |x: &judger::FileType| filter.lang.as_ref().map(|y| y == x).unwrap_or(true);
-            // let f_status =
-            //     |st: &judger::Status| filter.status.as_ref().map(|s| s == st).unwrap_or(true);
+            let f_uid = |x: &UserID| uid.as_ref().map(|u| u == x).unwrap_or(true);
+            let f_pid = |x: &UserID| pid.as_ref().map(|u| u == x).unwrap_or(true);
+            let f_lang = |x: Option<&judger::FileType>| lang.is_none() || lang.as_ref() == x;
             let data = db
                 .iter()
                 .filter(|(_, m)| {
-                    f_uid(&m.uid)
-                        && f_pid(&m.pid)
-                        && m.lang.as_ref().map(|v| f_lang(&v.0)).unwrap_or(false)
+                    f_uid(&m.uid) && f_pid(&m.pid) && f_lang(m.lang.as_ref().map(|v| &v.0))
                 })
                 .skip(offset)
                 .take(max_count.into())
