@@ -4,6 +4,7 @@ use crate::{data::OJData, render_data::statement::IOData, ProblemFullData, Stand
 
 pub fn a_plus_b_statment() -> crate::render_data::Statement {
     crate::render_data::Statement {
+        title: "A + B Problem".into(),
         statement: crate::render_data::statement::Inner::Standard {
             legend: r#"这是一道简单题。
 
@@ -36,7 +37,6 @@ int main() {
             )],
         },
         meta: crate::render_data::statement::StmtMeta {
-            title: "A + B Problem".into(),
             time: None,
             memory: None,
             kind: Some(crate::render_data::ProblemKind::Traditional(

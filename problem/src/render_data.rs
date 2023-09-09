@@ -66,6 +66,8 @@ pub mod statement {
     /// 使用 `[pdf](path)` 的格式插入 pdf
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct Statement {
+        /// 标题
+        pub title: String,
         /// 题面描述
         pub statement: Inner,
         /// 题目元数据
@@ -173,8 +175,6 @@ pub mod statement {
     /// 题目显示时的元数据，在渲染 pdf 题面时也会需要
     #[derive(Debug, Clone, Serialize, Deserialize, TsType)]
     pub struct StmtMeta {
-        /// 标题
-        pub title: String,
         /// 时间限制
         pub time: Option<judger::sandbox::Elapse>,
         /// 空间限制
