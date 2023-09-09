@@ -9,6 +9,7 @@ mod one_off;
 mod report;
 mod store_file;
 pub mod truncstr;
+pub use sha2;
 
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::SyncSender;
@@ -116,7 +117,7 @@ pub mod sha_hash {
     macro_rules! seq_hash {
     [$( $e:expr ),*] => {
         {
-            use sha2::{Sha256, Digest};
+            use $crate::sha2::{Sha256, Digest};
             use $crate::sha_hash::ShaHash;
 			let mut hasher: Sha256 = Sha256::new();
 			$( $e.sha_hash(&mut hasher); )*
