@@ -3,8 +3,8 @@ use std::fmt::Display;
 /// 时间表示（时间和 timestamp）
 use super::*;
 #[derive(Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
-#[cfg_attr(feature = "mysql", derive(SqlType, FromSqlRow, AsExpression))]
-#[cfg_attr(feature = "mysql", diesel(sql_type = BigInt))]
+#[derive(SqlType, FromSqlRow, AsExpression)]
+#[diesel(sql_type = BigInt)]
 pub struct DateTime(
     #[serde(with = "chrono::serde::ts_nanoseconds")] chrono::DateTime<chrono::Utc>,
     i64,
@@ -43,7 +43,6 @@ impl Display for DateTime {
     }
 }
 
-#[cfg(feature = "mysql")]
 mod mysql {
     use super::*;
 

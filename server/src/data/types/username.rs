@@ -1,6 +1,5 @@
 //! 自定义用户名的类型，实现内容正确性检验
 
-#[cfg(feature = "mysql")]
 use super::*;
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
@@ -8,8 +7,8 @@ use std::fmt::Display;
 
 /// 用户名类型，在创建时会进行内容检查，确保没有不合法字符
 #[derive(Debug, Serialize, Clone, Hash, PartialEq, Eq, TsType)]
-#[cfg_attr(feature = "mysql", derive(SqlType, FromSqlRow, AsExpression))]
-#[cfg_attr(feature = "mysql", diesel(sql_type = Text))]
+#[derive(SqlType, FromSqlRow, AsExpression)]
+#[diesel(sql_type = Text)]
 pub struct Username(String);
 
 #[derive(Debug)]
@@ -94,7 +93,6 @@ impl<'de> Deserialize<'de> for Username {
     }
 }
 
-#[cfg(feature = "mysql")]
 mod mysql {
     use super::*;
 

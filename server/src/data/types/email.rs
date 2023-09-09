@@ -8,8 +8,8 @@ use std::{
 
 /// 邮箱类型，在创建时会进行内容检查，确保没有不合法字符
 #[derive(Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
-#[cfg_attr(feature = "mysql", derive(SqlType, FromSqlRow, AsExpression))]
-#[cfg_attr(feature = "mysql", diesel(sql_type = Text))]
+#[derive(SqlType, FromSqlRow, AsExpression)]
+#[diesel(sql_type = Text)]
 pub struct EmailAddress(email_address::EmailAddress);
 
 impl serde_ts_typing::TsType for EmailAddress {
@@ -49,7 +49,6 @@ impl From<email_address::EmailAddress> for EmailAddress {
     }
 }
 
-#[cfg(feature = "mysql")]
 mod mysql {
     use super::*;
 

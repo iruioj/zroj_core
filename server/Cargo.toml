@@ -29,9 +29,9 @@ serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 tempfile = "3.3.0"
 
-diesel = { version = "2.1.0", features = ["r2d2"], optional = true }
-r2d2 = { version = "0.8.9", optional = true }
-r2d2-diesel = { version = "1.0.0", optional = true }
+diesel = { version = "2.1.0", features = ["r2d2", "mysql"] }
+r2d2 = { version = "0.8" }
+# r2d2-diesel = { version = "1.0.0" }
 lazy_static = "1.4.0"
 regex = "1.9.1"
 md-5 = "0.10.5"
@@ -55,4 +55,4 @@ features = [
 ]
 
 [features]
-mysql = ["diesel", "diesel/mysql", "r2d2", "r2d2-diesel"]
+# mysql = ["diesel", "diesel/mysql", "r2d2", "r2d2-diesel"]

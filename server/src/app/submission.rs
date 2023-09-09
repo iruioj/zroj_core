@@ -1,4 +1,4 @@
-use actix_web::{error::ErrorInternalServerError, web::Json};
+use actix_web::web::Json;
 use judger::truncstr::TruncStr;
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
@@ -25,8 +25,6 @@ struct DetailQuery {
     sid: SubmID,
 }
 
-const SOURCE_LIMIT: usize = 100 * 1024;
-
 /// 查询提交记录
 #[api(method = get, path = "/detail")]
 async fn detail(
@@ -35,25 +33,13 @@ async fn detail(
     judger: ServerData<ProblemJudger>,
 ) -> JsonResult<DetailReturn> {
     let logs = judger.get_logs(&payload.sid)?;
-    let meta = subm_db.get(&payload.sid).await?;
+    let info = subm_db.get_info(&payload.sid).await?;
     let raw = subm_db
         .get_raw(&payload.sid)
-        .await?
-        .0
-        .into_iter()
-        .filter(|(_, v)| !matches!(v.file_type, judger::FileType::Binary))
-        .map(|(k, mut v)| {
-            Ok((
-                k,
-                v.file_type.clone(),
-                TruncStr::new(v.read_to_string()?, SOURCE_LIMIT),
-            ))
-        })
-        .collect::<Result<Vec<_>, std::io::Error>>()
-        .map_err(|e| ErrorInternalServerError(e))?;
+        .await?.to_display_vec()?;
 
     Ok(Json(DetailReturn {
-        info: meta.into(),
+        info,
         raw,
         judge: logs.map(|v| v.into_iter().map(|s| s.to_string()).collect()),
     }))

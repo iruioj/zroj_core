@@ -1,18 +1,20 @@
 //! 用户数据库
 
 use super::error::DataError;
+use super::mysql::schema::users;
 use super::types::*;
-use crate::{Override, UserID};
-use async_trait::async_trait;
-#[cfg(feature = "mysql")]
-use diesel::*;
+use crate::data::mysql::{MysqlConfig, MysqlDb};
+use crate::Override;
+use crate::UserID;
+use diesel::{self, prelude::*, Insertable};
 use serde::{Deserialize, Serialize};
+use serde_ts_typing::TsType;
 
+pub type Mysql = DbManager;
 pub type UserDB = dyn Manager + Sync + Send;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "mysql", derive(Queryable, AsChangeset))]
-#[cfg_attr(feature = "mysql", diesel(table_name = database::users))]
+#[derive(Debug, Serialize, Deserialize, Clone, Queryable, AsChangeset)]
+#[diesel(table_name = users)]
 pub struct User {
     /// 用户 id
     pub id: UserID,
@@ -111,26 +113,76 @@ impl crate::Override<User> for UserUpdateInfo {
 }
 
 // Result<Option<...>> pattern: Err 表示出错， None 表示未查到，Some 表示查到的值
-#[async_trait(?Send)]
+// #[async_trait(?Send)]
 pub trait Manager {
-    async fn query_by_username(&self, username: &Username) -> Result<User, DataError>;
-    async fn query_by_userid(&self, uid: UserID) -> Result<User, DataError>;
-    async fn new_user(
+    fn query_by_username(&self, username: &Username) -> Result<User, DataError>;
+    fn query_by_userid(&self, uid: UserID) -> Result<User, DataError>;
+    fn new_user(
         &self,
         username: &Username,
         password_hash: &str,
         email: &EmailAddress,
     ) -> Result<User, DataError>;
-    async fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError>;
+    fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError>;
 }
 
-#[cfg(feature = "mysql")]
-pub use database::DbManager;
+#[derive(Debug, Insertable)]
+#[diesel(table_name = users)]
+pub struct NewUser<'a> {
+    pub username: &'a Username,
+    pub password_hash: &'a str,
+    pub email: &'a EmailAddress,
+    pub register_time: &'a DateTime,
+    pub gender: &'a Gender,
+}
+pub struct DbManager(MysqlDb);
 
-#[cfg(feature = "mysql")]
-mod database;
-
-pub use default::DefaultDB;
-use serde_ts_typing::TsType;
-
-mod default;
+/// 数据库存储
+impl DbManager {
+    pub fn new(cfg: &MysqlConfig) -> Self {
+        Self(MysqlDb::new(cfg))
+    }
+}
+impl Manager for DbManager {
+    fn query_by_username(&self, username: &Username) -> Result<User, DataError> {
+        self.0.transaction(|conn| {
+            Ok(users::table
+                .filter(users::username.eq(username))
+                .first(conn)?)
+        })
+    }
+    fn query_by_userid(&self, uid: UserID) -> Result<User, DataError> {
+        self.0
+            .transaction(|conn| Ok(users::table.filter(users::id.eq(uid)).first(conn)?))
+    }
+    fn new_user(
+        &self,
+        username: &Username,
+        password_hash: &str,
+        email: &EmailAddress,
+    ) -> Result<User, DataError> {
+        self.0.transaction(|conn| {
+            let new_user = NewUser {
+                username,
+                password_hash,
+                email,
+                register_time: &DateTime::now(),
+                gender: &Gender::Private,
+            };
+            diesel::insert_into(users::table)
+                .values(&new_user)
+                .execute(conn)?;
+            Ok(users::table.order(users::id.desc()).first::<User>(conn)?)
+        })
+    }
+    fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError> {
+        self.0.transaction(|conn| {
+            let mut user = users::table.filter(users::id.eq(uid)).first(conn)?;
+            info.over(&mut user);
+            diesel::update(users::table.filter(users::id.eq(uid)))
+                .set(user)
+                .execute(conn)?;
+            Ok(())
+        })
+    }
+}

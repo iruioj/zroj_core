@@ -1,6 +1,7 @@
 //! 主要用于开发
 
 use crate::data::{
+    mysql::MysqlConfig,
     problem_ojdata::{self, OJDataDB},
     problem_statement,
     problem_statement::StmtDB,
@@ -15,7 +16,10 @@ use actix_web::{
     web, App,
 };
 use problem::sample::{a_plus_b_data, a_plus_b_statment};
+use store::Handle;
 use tracing_actix_web::TracingLogger;
+
+pub const MYSQL_TEST: &str = "mysql://test:test@127.0.0.1:3305/test";
 
 /// 将非 `/api` 开头的请求转发到 localhost:3000
 pub fn frontend_rev_proxy(port: u16) -> RevProxy {
@@ -65,20 +69,15 @@ pub fn dev_server(
 /// 存储在文件中的用户数据库
 ///
 /// 预先插入用户名 `testtest`，密码 `testtest` 的用户
-pub async fn test_userdb(dir: &std::path::Path) -> web::Data<dyn user::Manager + Send + Sync> {
-    let dir = &dir.join("user_data");
-    let r = mkdata!(
-        crate::data::user::UserDB,
-        user::DefaultDB::new(dir).unwrap()
-    );
-    tracing::info!("user db created, dir = {:?}", dir);
+pub fn test_userdb(cfg: &MysqlConfig) -> web::Data<dyn user::Manager + Send + Sync> {
+    let db = user::Mysql::new(cfg);
+    let r = mkdata!(crate::data::user::UserDB, db);
     // 预先插入一个用户方便测试
     r.new_user(
         &Username::new("testtest").unwrap(),
         &passwd::register_hash("testtest"),
         &EmailAddress::new("test@test.com").unwrap(),
     )
-    .await
     .unwrap();
     tracing::info!("user 'testtset' added");
     r
@@ -87,30 +86,22 @@ pub async fn test_userdb(dir: &std::path::Path) -> web::Data<dyn user::Manager +
 /// 用于测试的题面数据库
 ///
 /// 预先插入若干个 A + B problem 的题面
-pub async fn test_stmtdb(dir: &std::path::Path) -> web::Data<StmtDB> {
-    let stmt_db = mkdata!(
-        StmtDB,
-        problem_statement::DefaultDB::new(dir.join("ojdata"))
-    );
+pub async fn test_stmtdb(cfg: &MysqlConfig, dir: Handle) -> web::Data<StmtDB> {
+    let stmt_db = mkdata!(StmtDB, problem_statement::Mysql::new(cfg, dir));
     stmt_db
-        .insert(0, a_plus_b_statment())
-        .await
+        .insert_new(a_plus_b_statment())
         .expect("fail to insert A + B Problem");
     stmt_db
-        .insert(1, a_plus_b_statment())
-        .await
+        .insert_new(a_plus_b_statment())
         .expect("fail to insert A + B Problem");
     stmt_db
-        .insert(2, a_plus_b_statment())
-        .await
+        .insert_new(a_plus_b_statment())
         .expect("fail to insert A + B Problem");
     stmt_db
-        .insert(3, a_plus_b_statment())
-        .await
+        .insert_new(a_plus_b_statment())
         .expect("fail to insert A + B Problem");
     stmt_db
-        .insert(4, a_plus_b_statment())
-        .await
+        .insert_new(a_plus_b_statment())
         .expect("fail to insert A + B Problem");
     stmt_db
 }
@@ -126,4 +117,24 @@ pub async fn test_ojdata_db(dir: impl AsRef<std::path::Path>) -> web::Data<OJDat
         .expect("fail to insert A + B Problem data");
 
     db
+}
+
+/// logging configuration for development
+pub fn logging_setup(max_level: &'static tracing::Level) {
+    use tracing_subscriber::{
+        filter, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, Layer,
+    };
+
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .pretty()
+        .with_thread_names(true)
+        .with_filter(filter::filter_fn(|meta| {
+            // the smaller, the more prior
+            meta.level() <= max_level &&
+            // too annoying to verbose
+            !meta
+                .module_path()
+                .is_some_and(|s| s.contains("actix_session::middleware"))
+        }));
+    tracing_subscriber::registry().with(fmt_layer).init();
 }

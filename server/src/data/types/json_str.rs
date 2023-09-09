@@ -9,8 +9,8 @@ use serde_ts_typing::TsType;
 
 /// 使用 serde_json 转化为字符串存储在数据库中
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(feature = "mysql", derive(SqlType, FromSqlRow, AsExpression))]
-#[cfg_attr(feature = "mysql", diesel(sql_type = Text))]
+#[derive(SqlType, FromSqlRow, AsExpression)]
+#[diesel(sql_type = Text)]
 pub struct JsonStr<T: Sized + Serialize + for<'de> Deserialize<'de> + Debug + 'static>(pub T);
 
 impl<'de, T> Deserialize<'de> for JsonStr<T>
@@ -42,7 +42,6 @@ where
 macro_rules! impl_serde_json_sql {
     ($type:ty) => {
         
-#[cfg(feature = "mysql")]
 const _: () = {
     use diesel::mysql::Mysql;
     impl serialize::ToSql<Text, Mysql> for $type {
@@ -65,7 +64,6 @@ const _: () = {
     };
 }
 
-#[cfg(feature = "mysql")]
 const _: () = {
     use diesel::mysql::Mysql;
     impl<T> serialize::ToSql<Text, Mysql> for JsonStr<T>

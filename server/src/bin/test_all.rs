@@ -3,44 +3,48 @@ use actix_web::{web, HttpServer};
 use server::{
     app,
     auth::{middleware::SessionAuth, SessionManager},
-    data::{gravatar::GravatarDB, problem_statement::StmtDB, submission::SubmDB},
+    data::{
+        gravatar::GravatarDB,
+        mysql::{MysqlConfig, MysqlDb},
+        problem_statement::StmtDB,
+        submission::SubmDB,
+    },
     dev,
     manager::{one_off::OneOffManager, problem_judger::ProblemJudger},
     mkdata,
 };
-use tracing_subscriber::{
-    filter, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, Layer,
-};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let fmt_layer = tracing_subscriber::fmt::layer()
-        .pretty()
-        .with_thread_names(true)
-        .with_filter(filter::filter_fn(|meta| {
-            // the smaller, the more prior
-            meta.level() <= &tracing::Level::INFO &&
-            // too annoying to verbose
-            !meta
-                .module_path()
-                .is_some_and(|s| s.contains("actix_session::middleware"))
-        }));
+    // logging setup
+    server::dev::logging_setup(&tracing::Level::INFO);
 
-    tracing_subscriber::registry().with(fmt_layer).init();
-
+    // fs store setup
     let dir = tempfile::tempdir().unwrap();
     tracing::info!("dir = {:?}", dir.path());
 
-    let user_db = dev::test_userdb(dir.path()).await;
+    // sql setup
+    let sql_cfg = MysqlConfig {
+        user: "test".into(),
+        password: "test".into(),
+        host: "127.0.0.1".into(),
+        port: 3306,
+        dbname: "test".into(),
+    };
+    MysqlDb::setup_new(&sql_cfg).expect("setup mysql database");
+
+    let user_db = dev::test_userdb(&sql_cfg);
     tracing::info!("user_db initialized");
 
     let stmt_db = mkdata!(
         StmtDB,
-        server::data::problem_statement::DefaultDB::new("stmt_data")
+        server::data::problem_statement::Mysql::new(
+            &sql_cfg,
+            store::Handle::new(dir.path()).join("stmt_assets")
+        )
     );
     stmt_db
-        .insert(0, problem::sample::a_plus_b_statment())
-        .await
+        .update(0, problem::sample::a_plus_b_statment())
         .expect("insert problem 0");
     tracing::info!("stmt_db initialized (with problem 0)");
 
@@ -68,17 +72,15 @@ async fn main() -> std::io::Result<()> {
             loop {
                 match recv.recv() {
                     Ok((sid, rep)) => {
-                        let r = rt.block_on(async {
-                            subm_db.update(&sid, rep).await
-                        });
+                        let r = rt.block_on(async { subm_db.update(&sid, rep).await });
                         if let Err(e) = r {
                             tracing::warn!("update subm_db: {:?}", e)
                         }
-                    },
+                    }
                     Err(_) => {
                         tracing::warn!("update subm_db thread closed");
-                        return
-                    },
+                        return;
+                    }
                 }
             }
         });

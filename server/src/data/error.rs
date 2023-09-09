@@ -5,7 +5,6 @@ use std::sync::PoisonError;
 /// diesel 的 NotFound 会转换为 DataError::NotFound，进而转换为 404
 #[derive(Debug, thiserror::Error)]
 pub enum DataError {
-    #[cfg(feature = "mysql")]
     #[error("connect to database: {0}")]
     ConnError(#[from] r2d2::Error),
     #[error("lock poisoned")]
@@ -18,12 +17,12 @@ pub enum DataError {
     StoreError(#[from] store::Error),
     #[error("serde json: {0}")]
     SerdeJsonError(#[from] serde_json::Error),
-    #[cfg(feature = "mysql")]
     #[error("diesel: {0}")]
     Diesel(diesel::result::Error),
+    #[error("io: {0}")]
+    IO(#[from] std::io::Error)
 }
 
-#[cfg(feature = "mysql")]
 impl From<diesel::result::Error> for DataError {
     fn from(value: diesel::result::Error) -> Self {
         match value {

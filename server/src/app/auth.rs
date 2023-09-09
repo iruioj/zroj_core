@@ -34,8 +34,7 @@ async fn login(
     use actix_web::cookie::Cookie;
     tracing::info!("login request: {:?}", payload);
     let user = user_data_manager
-        .query_by_username(&payload.username)
-        .await?;
+        .query_by_username(&payload.username)?;
 
     if !passwd::verify(&user.password_hash, &payload.password_hash) {
         Err(error::ErrorBadRequest("password not correct"))
@@ -71,14 +70,12 @@ async fn register(
     eprintln!("register req: {:?}", &payload);
     if user_data_manager
         .query_by_username(&payload.username)
-        .await
         .is_ok()
     {
         return Err(error::ErrorBadRequest("User already exists"));
     }
     let user = user_data_manager
-        .new_user(&payload.username, &payload.password_hash, &payload.email)
-        .await?;
+        .new_user(&payload.username, &payload.password_hash, &payload.email)?;
     dbg!(user);
     Ok("Registration success".to_string())
 }
@@ -95,7 +92,7 @@ async fn inspect(
     user_id: Option<Identity>,
 ) -> JsonResult<AuthInfoRes> {
     if let Some(id) = user_id {
-        let user = user_db.query_by_userid(*id).await?;
+        let user = user_db.query_by_userid(*id)?;
         return Ok(web::Json(AuthInfoRes {
             username: user.username,
             email: user.email,

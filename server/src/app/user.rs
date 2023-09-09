@@ -21,13 +21,13 @@ async fn profile(
     query: QueryParam<ProfileQuery>,
     manager: ServerData<UserDB>,
 ) -> JsonResult<UserDisplayInfo> {
-    let result = manager.query_by_username(&query.username).await?;
+    let result = manager.query_by_username(&query.username)?;
     Ok(Json(UserDisplayInfo::from(result)))
 }
 
 #[api(method = get, path = "/edit")]
 async fn edit_get(uid: Identity, manager: ServerData<UserDB>) -> JsonResult<UserEditInfo> {
-    let result = manager.query_by_userid(*uid).await?;
+    let result = manager.query_by_userid(*uid)?;
     Ok(Json(UserEditInfo::from(result)))
 }
 
@@ -37,7 +37,7 @@ async fn edit_post(
     info: JsonBody<UserUpdateInfo>,
     manager: ServerData<UserDB>,
 ) -> actix_web::Result<String> {
-    manager.update(*uid, info.into_inner()).await?;
+    manager.update(*uid, info.into_inner())?;
     Ok("ok".to_string())
 }
 

@@ -2,7 +2,7 @@ use crate::{
     app::parse_named_file,
     data::{
         problem_ojdata::OJDataDB,
-        problem_statement::{self, StmtDB},
+        problem_statement::{self, StmtDB, StmtMetaDisplay},
         submission::{SubmDB, SubmRaw},
     },
     manager::problem_judger::ProblemJudger,
@@ -11,7 +11,7 @@ use crate::{
 };
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{error, web::Json};
-use problem::{prelude::*, render_data::statement::StmtMeta, ProblemFullData};
+use problem::{prelude::*, ProblemFullData};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
@@ -39,7 +39,7 @@ async fn statement(
     stmt_db: ServerData<StmtDB>,
     query: QueryParam<StmtQuery>,
 ) -> JsonResult<problem_statement::Statement> {
-    Ok(stmt_db.get(query.id).await.map(Json)?)
+    Ok(stmt_db.get(query.id).map(Json)?)
 }
 
 #[derive(Deserialize, TsType)]
@@ -56,17 +56,13 @@ struct ProbMetasQuery {
 async fn metas(
     stmt_db: ServerData<StmtDB>,
     query: QueryParam<ProbMetasQuery>,
-) -> JsonResult<Vec<(ProblemID, StmtMeta)>> {
+) -> JsonResult<Vec<StmtMetaDisplay>> {
     let query = query.into_inner();
-    Ok(Json(
-        stmt_db
-            .get_metas(
-                query.list.max_count,
-                query.list.offset as usize,
-                query.pattern,
-            )
-            .await?,
-    ))
+    Ok(Json(stmt_db.get_metas(
+        query.list.max_count,
+        query.list.offset as usize,
+        query.pattern,
+    )?))
 }
 
 #[derive(Debug, MultipartForm)]
@@ -95,12 +91,17 @@ async fn fulldata(
     let payload = payload.into_inner();
     let file = payload.data.file.into_file();
     let dir = tempdir_unzip(file).map_err(error::ErrorBadRequest)?;
-    let id = payload.id.map(|x| x.0).unwrap_or(stmt_db.max_id().await?);
+    let id = payload.id.map(|x| x.0);
     let fulldata =
         ProblemFullData::open(&Handle::new(dir.path())).map_err(error::ErrorBadRequest)?;
 
+    let id = if let Some(id) = id {
+        stmt_db.update(id, fulldata.statement).map(|_| id)
+    } else {
+        stmt_db.insert_new(fulldata.statement)
+    }?;
     ojdata_db.insert(id, fulldata.data).await?;
-    stmt_db.insert(id, fulldata.statement).await?;
+    // stmt_db.insert(id, fulldata.statement)?;
 
     drop(dir); // 限制 dir 的生命周期
     Ok(Json(PostDataReturn { id }))

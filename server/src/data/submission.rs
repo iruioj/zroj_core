@@ -1,7 +1,6 @@
 use super::{error::DataError, types::*};
 use crate::{manager::problem_judger::FullJudgeReport, ProblemID, SubmID, UserID};
 use async_trait::async_trait;
-#[cfg(feature = "mysql")]
 use diesel::*;
 use judger::StoreFile;
 use serde::{Deserialize, Serialize};
@@ -10,10 +9,31 @@ use std::collections::BTreeMap;
 
 pub struct SubmRaw(pub BTreeMap<String, StoreFile>);
 
+const SOURCE_LIMIT: usize = 100 * 1024;
+
+impl SubmRaw {
+    pub fn to_display_vec(
+        self,
+    ) -> Result<Vec<(String, judger::FileType, judger::truncstr::TruncStr)>, DataError> {
+        self.0
+            .into_iter()
+            .filter(|(_, v)| !matches!(v.file_type, judger::FileType::Binary))
+            .map(|(k, mut v)| {
+                Ok((
+                    k,
+                    v.file_type.clone(),
+                    judger::truncstr::TruncStr::new(v.read_to_string()?, SOURCE_LIMIT),
+                ))
+            })
+            .collect::<Result<Vec<_>, std::io::Error>>()
+            .map_err(DataError::IO)
+    }
+}
+
 /// 提交记录的元信息，不包含源代码、评测日志等
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "mysql", derive(Queryable, AsChangeset))]
-#[cfg_attr(feature = "mysql", diesel(table_name = database::submissions))]
+#[derive(Queryable, AsChangeset)]
+#[diesel(table_name = database::submissions)]
 pub struct Submission {
     pub id: SubmID,
     pub pid: ProblemID,
@@ -37,6 +57,7 @@ pub struct Submission {
 pub struct SubmMeta {
     id: SubmID,
     pid: ProblemID,
+    problem_title: String,
     uid: UserID,
     submit_time: String,
     judge_time: Option<String>,
@@ -52,41 +73,6 @@ pub struct SubmInfo {
     report: Option<FullJudgeReport>,
 }
 
-impl From<Submission> for SubmMeta {
-    fn from(value: Submission) -> Self {
-        Self {
-            id: value.id,
-            pid: value.pid,
-            uid: value.uid,
-            submit_time: value.submit_time.to_string(),
-            judge_time: value.judge_time.map(|s| s.to_string()),
-            lang: value.lang.map(|o| o.0),
-            status: value.status.map(|o| o.0),
-            time: value.time.map(|o| o.0),
-            memory: value.memory.map(|o| o.0),
-        }
-    }
-}
-impl From<Submission> for SubmInfo {
-    fn from(value: Submission) -> Self {
-        Self {
-            meta: SubmMeta {
-                id: value.id,
-                pid: value.pid,
-                uid: value.uid,
-                submit_time: value.submit_time.to_string(),
-                judge_time: value.judge_time.map(|s| s.to_string()),
-                lang: value.lang.map(|o| o.0),
-                status: value.status.map(|o| o.0),
-                time: value.time.map(|o| o.0),
-                memory: value.memory.map(|o| o.0),
-            },
-            report: value.report.map(|o| o.0),
-        }
-    }
-}
-
-#[cfg(feature = "mysql")]
 mod database {
     use diesel::{self, table};
     table! {
@@ -118,7 +104,7 @@ pub trait Manager {
         lang: Option<judger::FileType>,
         raw: &mut SubmRaw,
     ) -> Result<Submission, DataError>;
-    async fn get(&self, sid: &SubmID) -> Result<Submission, DataError>;
+    async fn get_info(&self, sid: &SubmID) -> Result<SubmInfo, DataError>;
     async fn get_raw(&self, sid: &SubmID) -> Result<SubmRaw, DataError>;
     async fn update(&self, sid: &SubmID, report: FullJudgeReport) -> Result<(), DataError>;
     /// get submission meta list
@@ -133,29 +119,21 @@ pub trait Manager {
 }
 
 mod default {
-    use std::{
-        collections::{btree_map::Entry, BTreeMap},
-        sync::RwLock,
-    };
-
-    use store::{FsStore, Handle};
-
-    use crate::SubmID;
-
     use super::*;
+    use crate::{data::fs_store::FsStoreDb, SubmID};
+    use std::collections::{btree_map::Entry, BTreeMap};
+    use store::FsStore;
 
-    pub struct DefaultDB {
-        data: RwLock<BTreeMap<SubmID, Submission>>,
-        dir: RwLock<Handle>,
+    #[derive(FsStore, Default)]
+    pub struct Data {
+        #[meta]
+        data: BTreeMap<SubmID, Submission>,
     }
+    pub struct DefaultDB(FsStoreDb);
 
     impl DefaultDB {
         pub fn new(dir: impl AsRef<std::path::Path>) -> Self {
-            std::fs::create_dir_all(dir.as_ref()).expect("create subm db dir");
-            Self {
-                data: Default::default(),
-                dir: RwLock::new(Handle::new(dir.as_ref())),
-            }
+            Self(FsStoreDb::new(dir))
         }
     }
 
@@ -168,17 +146,16 @@ mod default {
             lang: Option<judger::FileType>,
             raw: &mut SubmRaw,
         ) -> Result<Submission, DataError> {
-            let mut data = self.data.write()?;
-            let id = data.iter().next_back().map(|x| *x.0).unwrap_or(0) + 1;
+            let db = self.0.table::<Data>().get_table()?;
+            let mut dbw = db.write()?;
+            let id = dbw.data.iter().next_back().map(|x| *x.0).unwrap_or(0) + 1;
             let size = raw
                 .0
                 .iter()
                 .fold(0, |acc, cur| acc + cur.1.file.metadata().unwrap().len());
 
-            let g = self.dir.write()?;
-            let raw_dir = g.join(id.to_string());
+            let raw_dir: store::Handle = db.ctx.join(id.to_string());
             FsStore::save(&mut raw.0, &raw_dir)?;
-            drop(g);
 
             let r = Submission {
                 id,
@@ -193,53 +170,50 @@ mod default {
                 time: None,
                 memory: None,
             };
-            data.insert(id, r.clone());
+            dbw.data.insert(id, r.clone());
             Ok(r)
         }
-        async fn get(&self, sid: &SubmID) -> Result<Submission, DataError> {
-            self.data
-                .read()?
-                .get(sid)
-                .cloned()
-                .ok_or(DataError::NotFound)
+        async fn get_info(&self, sid: &SubmID) -> Result<SubmInfo, DataError> {
+            todo!()
         }
         async fn update(&self, sid: &SubmID, report: FullJudgeReport) -> Result<(), DataError> {
-            let mut binding = self.data.write()?;
-            let Entry::Occupied(mut e) = binding.entry(*sid) else {
-                return Err(DataError::NotFound)
-            };
-            let entry = e.get_mut();
-            entry.report = Some(JsonStr(report));
-            Ok(())
+            self.0.table::<Data>().write_transaction(|dbw| {
+                let Entry::Occupied(mut e) = dbw.data.entry(*sid) else {
+                    return Err(DataError::NotFound)
+                };
+                let entry = e.get_mut();
+                entry.report = Some(JsonStr(report));
+                Ok(())
+            })
         }
         async fn get_raw(&self, sid: &SubmID) -> Result<SubmRaw, DataError> {
-            let g = self.dir.read()?;
-            let raw_dir = g.join(sid.to_string());
+            let db = self.0.table::<Data>().get_table()?;
+            let raw_dir = db.ctx.join(sid.to_string());
             let r = FsStore::open(&raw_dir)?;
-            drop(g);
             Ok(SubmRaw(r))
         }
         async fn get_metas(
             &self,
-            max_count: u8,
-            offset: usize,
-            pid: Option<ProblemID>,
-            uid: Option<UserID>,
-            lang: Option<judger::FileType>,
+            _max_count: u8,
+            _offset: usize,
+            _pid: Option<ProblemID>,
+            _uid: Option<UserID>,
+            _lang: Option<judger::FileType>,
         ) -> Result<Vec<SubmMeta>, DataError> {
-            let db = self.data.read()?;
-            let f_uid = |x: &UserID| uid.as_ref().map(|u| u == x).unwrap_or(true);
-            let f_pid = |x: &UserID| pid.as_ref().map(|u| u == x).unwrap_or(true);
-            let f_lang = |x: Option<&judger::FileType>| lang.is_none() || lang.as_ref() == x;
-            let data = db
-                .iter()
-                .filter(|(_, m)| {
-                    f_uid(&m.uid) && f_pid(&m.pid) && f_lang(m.lang.as_ref().map(|v| &v.0))
-                })
-                .skip(offset)
-                .take(max_count.into())
-                .map(|(_, m)| SubmMeta::from(m.clone()));
-            Ok(data.collect())
+            todo!()
+            // let db = self.data.read()?;
+            // let f_uid = |x: &UserID| uid.as_ref().map(|u| u == x).unwrap_or(true);
+            // let f_pid = |x: &UserID| pid.as_ref().map(|u| u == x).unwrap_or(true);
+            // let f_lang = |x: Option<&judger::FileType>| lang.is_none() || lang.as_ref() == x;
+            // let data = db
+            //     .iter()
+            //     .filter(|(_, m)| {
+            //         f_uid(&m.uid) && f_pid(&m.pid) && f_lang(m.lang.as_ref().map(|v| &v.0))
+            //     })
+            //     .skip(offset)
+            //     .take(max_count.into())
+            //     .map(|(_, m)| SubmMeta::from(m.clone()));
+            // Ok(data.collect())
         }
     }
 }

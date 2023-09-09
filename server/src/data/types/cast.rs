@@ -6,8 +6,8 @@ macro_rules! define_cast {
     ($name:ident, $inner:ty, $primitive:ty, $sql_type:ty) => {
 /// 使用 TryFrom 和 TryInto 转换为基础类型
 #[derive(std::fmt::Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "mysql", derive(SqlType, FromSqlRow, AsExpression))]
-#[cfg_attr(feature = "mysql", diesel(sql_type = $sql_type))]
+#[derive(SqlType, FromSqlRow, AsExpression)]
+#[diesel(sql_type = $sql_type)]
 pub struct $name(pub $inner);
 
 impl TsType for $name {
@@ -20,7 +20,6 @@ impl TsType for $name {
     }
 }
 
-#[cfg(feature = "mysql")]
 const _: () = {
     use super::*;
     use diesel::mysql::Mysql;
