@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::HashMap;
 
 macro_rules! impl_scalar_cf {
     ($( $type:ty )*, $v:path) => {
@@ -74,5 +75,27 @@ impl<T: TsType> TsType for Box<T> {
     }
     fn type_def() -> TypeExpr {
         T::type_def()
+    }
+}
+
+impl<K: TsType, V: TsType> TsType for BTreeMap<K, V> {
+    fn register_context(c: &mut Context) {
+        K::register_self_context(c);
+        V::register_self_context(c);
+    }
+
+    fn type_def() -> TypeExpr {
+        TypeExpr::Record(Box::new(K::type_def()), Box::new(V::type_def()))
+    }
+}
+
+impl<K: TsType, V: TsType> TsType for HashMap<K, V> {
+    fn register_context(c: &mut Context) {
+        K::register_self_context(c);
+        V::register_self_context(c);
+    }
+
+    fn type_def() -> TypeExpr {
+        TypeExpr::Record(Box::new(K::type_def()), Box::new(V::type_def()))
     }
 }
