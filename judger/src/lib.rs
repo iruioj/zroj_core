@@ -22,7 +22,7 @@ pub use lang::FileType;
 pub use one_off::OneOff;
 pub use report::*;
 pub use store::Handle;
-pub use store_file::StoreFile;
+pub use store_file::{StoreFile, StoreBytes};
 
 /// Judger 是一个评测服务的上下文，可以提供评测环境的信息，访问相关缓存等等
 ///

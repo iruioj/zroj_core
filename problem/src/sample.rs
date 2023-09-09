@@ -1,4 +1,4 @@
-use judger::StoreFile;
+use judger::{StoreFile, StoreBytes};
 
 use crate::{data::OJData, render_data::statement::IOData, ProblemFullData, StandardProblem};
 
@@ -122,7 +122,7 @@ pub fn a_plus_b_full() -> ProblemFullData {
 
 pub fn a_plus_b_std() -> crate::prelude::TraditionalSubm {
     crate::prelude::TraditionalSubm {
-        source: StoreFile::from_str(
+        source: StoreBytes::from_str(
             r#"
 #include<iostream>
 using namespace std;
@@ -162,7 +162,7 @@ mod tests {
         let mut default_judger = DefaultJudger::new(Handle::new(dir.path()));
 
         let mut subm = TraditionalSubm {
-            source: StoreFile::from_str(
+            source: StoreBytes::from_str(
                 r#"
 #include<iostream>
 using namespace std;

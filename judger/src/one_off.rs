@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use sandbox::{mem, time, unix::Limitation, Elapse, Memory};
 use store::Handle;
 
-use crate::{lang::Compile, Error, Status, StoreFile, TaskReport};
+use crate::{lang::Compile, Error, Status, StoreFile, TaskReport, StoreBytes};
 
 /// OneOff 用于执行自定义测试，流程包含：编译、运行可执行文件。
 ///
@@ -13,7 +13,7 @@ use crate::{lang::Compile, Error, Status, StoreFile, TaskReport};
 /// OneOff 假定你已经在 working_dir（默认当前目录）准备好了相关的原始文件
 #[cfg(unix)]
 pub struct OneOff {
-    file: StoreFile,
+    file: StoreBytes,
     stdin: StoreFile,
     /// 工作目录，默认值为 [`std::env::current_dir()`]
     working_dir: Handle,
@@ -26,7 +26,7 @@ pub struct OneOff {
 
 impl OneOff {
     /// 新建一个 OneOff 评测环境，工作目录默认为 cwd（生成可执行文件的路径），编译语言为 lang
-    pub fn new(file: StoreFile, stdin: StoreFile, sandbox_exec: Option<PathBuf>) -> Self {
+    pub fn new(file: StoreBytes, stdin: StoreFile, sandbox_exec: Option<PathBuf>) -> Self {
         Self {
             file,
             stdin,
@@ -190,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_it() {
-        let source = StoreFile::from_str(
+        let source = StoreBytes::from_str(
             r"
 #include<iostream>
 using namespace std;

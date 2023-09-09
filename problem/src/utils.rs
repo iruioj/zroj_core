@@ -1,11 +1,11 @@
-use judger::StoreFile;
+use judger::{StoreFile, StoreBytes};
 use store::Handle;
 
 use crate::RuntimeError;
 
 /// 自动编译文件，可执行文件名为 name，编译日志为 name.c.log
 pub fn compile_in_wd(
-    file: &mut StoreFile,
+    file: &mut StoreBytes,
     wd: &Handle,
     name: impl AsRef<str>,
 ) -> Result<judger::sandbox::Termination, RuntimeError> {
