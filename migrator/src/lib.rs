@@ -3,7 +3,7 @@ pub mod zroj;
 
 use diesel::{Connection, MysqlConnection};
 
-fn establish_connection(
+pub fn establish_connection(
     user: &str,
     password: &str,
     host: &str,

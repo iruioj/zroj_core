@@ -32,10 +32,9 @@ diesel::table! {
 }
 
 diesel::joinable!(problems_contents -> problems (id));
-
 diesel::allow_tables_to_appear_in_same_query!(problems_contents, problems,);
 
-pub async fn export_problem_statements(db: impl server::data::problem_statement::Manager) {
+pub fn export_problem_statements(db: impl server::data::problem_statement::Manager) {
     eprintln!("try connecting to db");
     let mut conn = establish_connection("root", "Zhengruioi2333", "127.0.0.1", 33060, "zroi");
     eprintln!("connection established");
@@ -52,19 +51,18 @@ pub async fn export_problem_statements(db: impl server::data::problem_statement:
         .expect("query problems_contents");
 
     for (id, title, stmt) in r {
-        db.insert(
+        db.update(
             id as u32,
             Statement {
+                title,
                 statement: Inner::Legacy(stmt.unwrap_or_default()),
                 meta: StmtMeta {
-                    title,
                     time: None,
                     memory: None,
                     kind: None,
                 },
             },
         )
-        .await
         .unwrap();
     }
 }
