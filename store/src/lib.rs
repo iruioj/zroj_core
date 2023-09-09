@@ -156,6 +156,11 @@ pub trait FsStore: Sized {
 
     /// 将该结构体中的信息保存到一个文件（夹）中
     fn save(&mut self, ctx: &Handle) -> Result<(), Error>;
+
+    fn clone_to(&mut self, ctx: &Handle) -> Result<Self, Error> {
+        self.save(ctx)?;
+        FsStore::open(ctx)
+    }
 }
 
 impl FsStore for () {
