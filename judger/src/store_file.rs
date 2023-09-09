@@ -1,28 +1,27 @@
 use crate::FileType;
-use std::{
-    io::{self, BufReader, Read, Seek, Write},
-    string::FromUtf8Error,
-};
+use std::io::{self, Seek, Write};
+use serde::{Serialize, Deserialize};
+use serde_ts_typing::TsType;
 use store::FsStore;
 
 /// 一个带类型的 buffer
-#[derive(Debug)]
-pub struct StoreBytes {
-    pub buf: Vec<u8>,
+#[derive(Debug, Serialize, Deserialize, TsType)]
+pub struct SourceFile {
+    pub source: String,
     pub file_type: FileType,
 }
 
-impl StoreBytes {
+impl SourceFile {
     /// get utf-8 text content
-    pub fn utf8(&self) -> Result<String, FromUtf8Error> {
-        String::from_utf8(self.buf.clone())
+    pub fn utf8(&self) -> String {
+        self.source.clone()
     }
     pub fn from_str(content: impl AsRef<str>, file_type: FileType) -> Self {
-        let buf: Vec<u8> = content.as_ref().as_bytes().to_vec();
-        Self { buf, file_type }
+        let source = content.as_ref().to_string();
+        Self { source, file_type }
     }
     pub fn copy_all(&mut self, dest: &mut impl Write) -> Result<(), std::io::Error> {
-        dest.write(&self.buf)?;
+        dest.write_all(self.source.as_bytes())?;
         Ok(())
     }
     /// 将内容复制到对应路径的文件
@@ -32,21 +31,19 @@ impl StoreBytes {
     }
 }
 
-impl FsStore for StoreBytes {
+impl FsStore for SourceFile {
     fn open(ctx: &store::Handle) -> Result<Self, store::Error> {
-        let mut reader = BufReader::new(ctx.join("buf").open_file()?);
-        let mut buf = Vec::new();
-        reader
-            .read_to_end(&mut buf)
+        let source = std::io::read_to_string(ctx.join("buf").open_file()?)
             .map_err(store::Error::OpenFile)?;
         let file_type = ctx.join("file_type").deserialize()?;
-        Ok(Self { buf, file_type })
+        Ok(Self { source, file_type })
     }
 
     fn save(&mut self, ctx: &store::Handle) -> Result<(), store::Error> {
         ctx.join("file_type").serialize_new_file(&self.file_type)?;
         let mut dest = ctx.join("buf").create_new_file()?;
-        dest.write(&self.buf).expect("writing buf to file");
+        dest.write(&self.source.as_bytes())
+            .expect("writing buf to file");
         Ok(())
     }
 }

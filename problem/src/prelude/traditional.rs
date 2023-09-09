@@ -6,7 +6,7 @@ use judger::{
         unix::{Lim, Singleton},
         Elapse, ExecSandBox, Memory,
     },
-    truncstr::{TruncStr, TRUNCATE_LEN}, StoreBytes,
+    truncstr::{TruncStr, TRUNCATE_LEN}, SourceFile,
 };
 use store::FsStore;
 
@@ -37,7 +37,7 @@ pub struct Task {
 
 #[derive(FsStore, Debug)]
 pub struct Subm {
-    pub source: StoreBytes,
+    pub source: SourceFile,
 }
 
 /// 传统题评测
@@ -149,7 +149,7 @@ mod tests {
     use crate::{data::StoreFile, judger_framework::JudgeTask, Checker};
     use judger::{
         sandbox::{mem, time, Elapse, Memory},
-        DefaultJudger, StoreBytes,
+        DefaultJudger, SourceFile,
     };
     use store::Handle;
 
@@ -169,7 +169,7 @@ mod tests {
             output: StoreFile::from_str("3\n", judger::FileType::Plain),
         };
         let mut subm = Subm {
-            source: StoreBytes::from_str(
+            source: SourceFile::from_str(
                 r#"#include<iostream>
                         using namespace std;
                         int main() {

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod one_off {
-    use judger::{Error, FileType, OneOff, Status, StoreFile, StoreBytes};
+    use judger::{Error, FileType, OneOff, Status, StoreFile, SourceFile};
     use store::Handle;
 
     #[test]
@@ -21,7 +21,7 @@ int main() {
 
         let dir = tempfile::tempdir().unwrap();
 
-        let src = StoreBytes::from_str(a_plus_b_raw, FileType::GnuCpp17O2);
+        let src = SourceFile::from_str(a_plus_b_raw, FileType::GnuCpp17O2);
         let inp = StoreFile::from_str(input_content, FileType::Plain);
 
         let mut one = OneOff::new(src, inp, None);

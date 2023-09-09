@@ -95,8 +95,6 @@ pub enum FileType {
     GnuCpp14O2,
     #[serde(rename = "plain")]
     Plain,
-    #[serde(rename = "binary")]
-    Binary,
     #[serde(rename = "python3")]
     Python,
     #[serde(rename = "rust")]
@@ -113,14 +111,13 @@ impl FileType {
             FileType::GnuCpp17O2 => ".cpp",
             FileType::GnuCpp14O2 => ".cpp",
             FileType::Plain => ".txt",
-            FileType::Binary => ".blob",
             FileType::Python => ".py",
             FileType::Rust => ".rs",
             FileType::Assembly => ".s",
         }
     }
     pub fn compileable(&self) -> bool {
-        !matches!(self, FileType::Plain | FileType::Binary)
+        !matches!(self, FileType::Plain)
     }
 }
 
