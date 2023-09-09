@@ -1,7 +1,7 @@
 <template>
   <div class="w-full">
     <NavBar />
-    <div class="mt-[56px]">
+    <div class="mt-[86px] md:mt-[56px]">
       <NuxtPage />
     </div>
     <FootBar />

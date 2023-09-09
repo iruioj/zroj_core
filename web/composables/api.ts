@@ -15,12 +15,24 @@ export type Code = {lang:(undefined|null|string);meta:(undefined|null|string);va
 export type CustomTestResult = {result:(undefined|TaskReport|null);};
 export type Definition = {identifier:string;label:(undefined|null|string);title:(undefined|null|string);url:string;};
 export type Delete = {children:Node[];};
+export type DetailQuery = {sid:number;};
+export type DetailReturn = {info:SubmInfo;judge:(undefined|null|string[]);raw:[string,FileType,TruncStr][];};
 export type Elapse = number;
 export type Emphasis = {children:Node[];};
 export type FileDescriptor = ("Stdin"|"Stdout"|{Named:string;});
+export type FileType = (FileTypeAssembly|FileTypeBinary|FileTypeGnuCpp14O2|FileTypeGnuCpp17O2|FileTypeGnuCpp20O2|FileTypePlain|FileTypePython|FileTypeRust);
+export type FileTypeAssembly = "gnu_assembly";
+export type FileTypeBinary = "binary";
+export type FileTypeGnuCpp14O2 = "gnu_cpp14_o2";
+export type FileTypeGnuCpp17O2 = "gnu_cpp17_o2";
+export type FileTypeGnuCpp20O2 = "gnu_cpp20_o2";
+export type FileTypePlain = "plain";
+export type FileTypePython = "python3";
+export type FileTypeRust = "rust";
 export type FootnoteDefinition = {children:Node[];identifier:string;label:(undefined|null|string);};
 export type FootnoteReference = {identifier:string;label:(undefined|null|string);};
 export type FullDataMetaQuery = {id:number;};
+export type FullJudgeReport = {data:(undefined|JudgeReport|null);extra:(undefined|JudgeReport|null);pre:(undefined|JudgeReport|null);};
 export type Gender = (GenderFemale|GenderMale|GenderOthers|GenderPrivate);
 export type GenderFemale = "Female";
 export type GenderMale = "Male";
@@ -34,6 +46,10 @@ export type Image = {alt:string;title:(undefined|null|string);url:string;};
 export type ImageReference = {alt:string;identifier:string;label:(undefined|null|string);reference_kind:ReferenceKind;};
 export type InlineCode = {value:string;};
 export type InlineMath = {value:string;};
+export type JudgeDetail = (JudgeDetailSubtask|JudgeDetailTests);
+export type JudgeDetailSubtask = {Subtask:SubtaskReport[];};
+export type JudgeDetailTests = {Tests:(undefined|TaskReport|null)[];};
+export type JudgeReport = {detail:JudgeDetail;meta:TaskMeta;};
 export type JudgeReturn = {sid:number;};
 export type JudgerStatus = (JudgerStatusCompileError|JudgerStatusDangerousSyscall|JudgerStatusGood|JudgerStatusMemoryLimitExceeded|JudgerStatusOutputLimitExceeded|JudgerStatusPresentationError|JudgerStatusRuntimeError|JudgerStatusTimeLimitExceeded|JudgerStatusWrongAnswer);
 export type JudgerStatusCompileError = {name:"compile_error";payload:(undefined|SandboxStatus|null);};
@@ -56,7 +72,6 @@ export type MemoryLimitExceededKind = (MemoryLimitExceededKindReal|MemoryLimitEx
 export type MemoryLimitExceededKindReal = {Real:Memory;};
 export type MemoryLimitExceededKindStack = "Stack";
 export type MemoryLimitExceededKindVirtual = "Virtual";
-export type MetasQuery = {max_count:number;offset:number;pattern:(undefined|null|string);};
 export type Node = (NodeBlockQuote|NodeBreak|NodeCode|NodeDefinition|NodeDelete|NodeEmphasis|NodeFootnoteDefinition|NodeFootnoteReference|NodeHeading|NodeHtml|NodeImage|NodeImageReference|NodeInlineCode|NodeInlineMath|NodeLink|NodeLinkReference|NodeList|NodeListItem|NodeMath|NodeParagraph|NodeRoot|NodeStrong|NodeTable|NodeTableCell|NodeTableRow|NodeText|NodeThematicBreak|NodeToml|NodeTwoColumns|NodeYaml);
 export type NodeBlockQuote = (BlockQuote&{type:"blockquote";});
 export type NodeBreak = (Break&{type:"break";});
@@ -90,6 +105,7 @@ export type NodeTwoColumns = (TwoColumns&{type:"twoColumns";});
 export type NodeYaml = (Yaml&{type:"yaml";});
 export type Paragraph = {children:Node[];};
 export type PostDataReturn = {id:number;};
+export type ProbMetasQuery = {max_count:number;offset:number;pattern:(undefined|null|string);};
 export type ProblemKind = ("Interactive"|"SubmitAnswer"|{Traditional:IOKind;});
 export type ProfileQuery = {username:Username;};
 export type ReferenceKind = (ReferenceKindCollapsed|ReferenceKindFull|ReferenceKindShortcut);
@@ -109,6 +125,10 @@ export type Statement = {meta:StmtMeta;statement:Node;};
 export type StmtMeta = {kind:(undefined|ProblemKind|null);memory:(undefined|Memory|null);time:(undefined|Elapse|null);title:string;};
 export type StmtQuery = {id:number;};
 export type Strong = {children:Node[];};
+export type SubmInfo = {meta:SubmMeta;report:(undefined|FullJudgeReport|null);};
+export type SubmMeta = {id:number;judge_time:(undefined|null|string);lang:(undefined|FileType|null);memory:(undefined|Memory|null);pid:number;status:(undefined|JudgerStatus|null);submit_time:string;time:(undefined|Elapse|null);uid:number;};
+export type SubmMetasQuery = {lang:(undefined|FileType|null);max_count:number;offset:number;pid:(undefined|null|number);uid:(undefined|null|number);};
+export type SubtaskReport = {meta:TaskMeta;tasks:(undefined|TaskReport|null)[];total_score:number;};
 export type Table = {align:AlignKind[];children:Node[];};
 export type TableCell = {children:Node[];};
 export type TableRow = {children:Node[];};
@@ -217,6 +237,19 @@ post: {
     key: "/custom_test:post",
 },
  },
+submission: { detail: { get: { 
+    use: (payload: SubmissionDetailGetPayload | Ref<SubmissionDetailGetPayload>) => callAPI("get", "/submission/detail", payload) as Promise<ExtAsyncData<SubmissionDetailGetReturn | null>>,
+    fetch: (payload: SubmissionDetailGetPayload | Ref<SubmissionDetailGetPayload>) => fetchAPI("get", "/submission/detail", payload) as Promise<SubmissionDetailGetReturn>,
+    key: "/submission/detail:get",
+},
+ },
+metas: { get: { 
+    use: (payload: SubmissionMetasGetPayload | Ref<SubmissionMetasGetPayload>) => callAPI("get", "/submission/metas", payload) as Promise<ExtAsyncData<SubmissionMetasGetReturn | null>>,
+    fetch: (payload: SubmissionMetasGetPayload | Ref<SubmissionMetasGetPayload>) => fetchAPI("get", "/submission/metas", payload) as Promise<SubmissionMetasGetReturn>,
+    key: "/submission/metas:get",
+},
+ },
+ },
  }; }
 export type AuthInfoGetReturn = AuthInfoRes;
 export type AuthLoginPostPayload = LoginPayload;
@@ -228,12 +261,16 @@ export type ProblemFulldataMetaGetPayload = FullDataMetaQuery;
 export type ProblemFulldataMetaGetReturn = any;
 export type ProblemFulldataPostPayload = FormData;
 export type ProblemFulldataPostReturn = PostDataReturn;
-export type ProblemMetasGetPayload = MetasQuery;
+export type ProblemMetasGetPayload = ProbMetasQuery;
 export type ProblemMetasGetReturn = [number,StmtMeta][];
 export type ProblemStatementGetPayload = StmtQuery;
 export type ProblemStatementGetReturn = Statement;
 export type ProblemSubmitPostPayload = FormData;
 export type ProblemSubmitPostReturn = JudgeReturn;
+export type SubmissionDetailGetPayload = DetailQuery;
+export type SubmissionDetailGetReturn = DetailReturn;
+export type SubmissionMetasGetPayload = SubmMetasQuery;
+export type SubmissionMetasGetReturn = SubmMeta[];
 export type UserEditGetReturn = UserEditInfo;
 export type UserEditPostPayload = UserUpdateInfo;
 export type UserGetPayload = ProfileQuery;

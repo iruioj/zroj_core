@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { TaskReport } from "composables/api";
+import type { TaskReport } from "~/composables/api";
 
 const { error } = useMsgStore();
 
@@ -13,11 +13,7 @@ int main() {
 }
 `);
 const inp = ref("1 2");
-const lang = ref({
-  title: "文本",
-  value: "plain",
-  editorlang: "plain",
-});
+const lang = ref<typeof langs[0] | null>(null);
 
 const langs = [
   {
@@ -31,17 +27,13 @@ const langs = [
     editorlang: "python",
   },
 ];
-const onChangeLang = (item: Pick<(typeof langs)[0], "title" | "value">) => {
-  // console.log(item);
-  lang.value = langs.find((o) => o.value === item.value)!;
-};
 
 const isJudging = useState('oneoff_is_judging', () => false);
 const judgeResult = useState<TaskReport | null>('oneoff_report', () => null);
 
 const onSubmit = async () => {
   const data = new FormData();
-  const srcFile = new File([value.value], `main.${lang.value.value}.cpp`);
+  const srcFile = new File([value.value], `main.${lang.value!.value}.cpp`);
   const inpFile = new File([inp.value], `input.txt`);
 
   data.append("source", srcFile);
@@ -81,7 +73,7 @@ const onSubmit = async () => {
         :items="langs"
         placeholder="选择语言"
         class="w-32"
-        @change="onChangeLang"
+        v-model="lang"
       />
       <UBtn class="mx-2" @click="onSubmit">提交</UBtn>
     </div>

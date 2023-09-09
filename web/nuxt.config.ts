@@ -18,7 +18,9 @@ export default defineNuxtConfig({
     },
   },
 
-  devServer: {},
+  devServer: {
+    port: 3456,
+  },
 
   vite: {
     plugins: [wasm(), topLevelAwait()],

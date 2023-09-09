@@ -18,7 +18,7 @@ const { list } = useMsgStore();
       <div class="print:hidden hidden sm:flex">
         <NavButton to="/problemset">Problems</NavButton>
         <NavButton to="/contests">Contests</NavButton>
-        <NavButton to="/submission/2">Submissions</NavButton>
+        <NavButton to="/submissions">Submissions</NavButton>
         <NavButton to="/oneoff">Customtest</NavButton>
       </div>
       <div class="grow"></div>
@@ -32,7 +32,7 @@ const { list } = useMsgStore();
     <div class="text-xs mx-2 print:hidden sm:hidden border-t border-theme">
       <NavButton to="/problemset">Problems</NavButton>
       <NavButton to="/contests">Contests</NavButton>
-      <NavButton to="/submission/2">Submissions</NavButton>
+      <NavButton to="/submissions">Submissions</NavButton>
       <NavButton to="/oneoff">Customtest</NavButton>
     </div>
     <TransitionGroup name="msg-list" tag="div">
