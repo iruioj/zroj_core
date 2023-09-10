@@ -1,40 +1,17 @@
 use super::job_runner::JobRunner;
-use crate::SubmID;
+use crate::{SubmID, data::types::FullJudgeReport};
 use actix_web::error;
-use judger::{JudgeReport, LogMessage, MpscJudger};
+use judger::{LogMessage, MpscJudger};
 use problem::{
     data::OJData,
     judger_framework::{self, JudgeTask},
     Override,
 };
-use serde::{Deserialize, Serialize};
-use serde_ts_typing::TsType;
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
 use store::{FsStore, Handle};
-
-#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
-pub struct FullJudgeReport {
-    pub pre: Option<JudgeReport>,
-    pub data: Option<JudgeReport>,
-    pub extra: Option<JudgeReport>,
-}
-
-impl FullJudgeReport {
-    fn update(&mut self, other: FullJudgeReport) {
-        if let Some(pre) = other.pre {
-            self.pre.replace(pre);
-        }
-        if let Some(data) = other.data {
-            self.data.replace(data);
-        }
-        if let Some(extra) = other.extra {
-            self.extra.replace(extra);
-        }
-    }
-}
 
 fn update_state_data(
     state: &mut HashMap<SubmID, Result<FullJudgeReport, String>>,

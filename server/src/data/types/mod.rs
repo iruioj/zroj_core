@@ -11,6 +11,8 @@ mod gender;
 mod json_str;
 mod username;
 mod cast;
+mod subm_raw;
+mod full_judge_report;
 
 pub use datetime::DateTime;
 pub use email::EmailAddress;
@@ -18,3 +20,5 @@ pub use gender::Gender;
 pub use json_str::JsonStr;
 pub use username::Username;
 pub use cast::{CastElapse, CastMemory};
+pub use subm_raw::SubmRaw;
+pub use full_judge_report::FullJudgeReport;

@@ -1,5 +1,4 @@
 use actix_web::web::Json;
-use judger::truncstr::TruncStr;
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
@@ -14,8 +13,6 @@ use crate::{
 #[derive(TsType, Serialize)]
 struct DetailReturn {
     info: SubmInfo,
-    /// 提交记录的源文件内容
-    raw: Vec<(String, judger::FileType, TruncStr)>,
     /// 如果正在评测，就返回评测日志
     judge: Option<Vec<String>>,
 }
@@ -33,14 +30,11 @@ async fn detail(
     judger: ServerData<ProblemJudger>,
 ) -> JsonResult<DetailReturn> {
     let logs = judger.get_logs(&payload.sid)?;
-    let info = subm_db.get_info(&payload.sid).await?;
-    let raw = subm_db
-        .get_raw(&payload.sid)
-        .await?.to_display_vec()?;
+    let info = subm_db.get_info(&payload.sid)?;
+    // let raw = subm_db.get_raw(&payload.sid)?.to_display_vec();
 
     Ok(Json(DetailReturn {
         info,
-        raw,
         judge: logs.map(|v| v.into_iter().map(|s| s.to_string()).collect()),
     }))
 }
@@ -62,17 +56,13 @@ async fn metas(
     query: QueryParam<SubmMetasQuery>,
 ) -> JsonResult<Vec<SubmMeta>> {
     let query = query.into_inner();
-    Ok(Json(
-        subm_db
-            .get_metas(
-                query.list.max_count,
-                query.list.offset as usize,
-                query.pid,
-                query.uid,
-                query.lang,
-            )
-            .await?,
-    ))
+    Ok(Json(subm_db.get_metas(
+        query.list.max_count,
+        query.list.offset as usize,
+        query.pid,
+        query.uid,
+        query.lang,
+    )?))
 }
 
 /// 提供 problem 相关服务

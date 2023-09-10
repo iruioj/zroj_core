@@ -3,7 +3,7 @@ use crate::{
     data::{
         problem_ojdata::OJDataDB,
         problem_statement::{self, StmtDB, StmtMetaDisplay},
-        submission::{SubmDB, SubmRaw},
+        submission::SubmDB, types::SubmRaw,
     },
     manager::problem_judger::ProblemJudger,
     marker::*,
@@ -155,15 +155,13 @@ async fn judge(
 
     let sid = match stddata {
         problem::StandardProblem::Traditional(ojdata) => {
-            let subm_record = subm_db
-                .insert_new(
-                    *uid,
-                    pid,
-                    raw.0.get("source").map(|x| x.file_type.clone()),
-                    // must insert_new before consuming raw
-                    &mut raw,
-                )
-                .await?;
+            let subm_id = subm_db.insert_new(
+                *uid,
+                pid,
+                raw.0.get("source").map(|x| x.file_type.clone()),
+                // must insert_new before consuming raw
+                &raw,
+            )?;
 
             let subm = TraditionalSubm {
                 source: raw
@@ -171,8 +169,8 @@ async fn judge(
                     .remove("source")
                     .ok_or(error::ErrorBadRequest("source file not found"))?,
             };
-            judger.add_test::<_, _, _, Traditional>(subm_record.id, ojdata, subm)?;
-            subm_record.id
+            judger.add_test::<_, _, _, Traditional>(subm_id, ojdata, subm)?;
+            subm_id
         }
     };
 

@@ -6,7 +6,7 @@ pub mod problem;
 pub mod submission;
 pub mod user;
 
-use judger::StoreFile;
+use judger::SourceFile;
 use serde::Deserialize;
 use serde_ts_typing::TsType;
 use serde_with::{serde_as, DisplayFromStr};
@@ -24,22 +24,19 @@ use serde_with::{serde_as, DisplayFromStr};
 //     HttpResponse::NotFound().body(r)
 // }
 
-/// 将命名格式为 `name.type.suffix` 的文件解析为 StoreFile
+/// 将命名格式为 `name.type.suffix` 的文件解析为 SourceFile
 /// 主要用于 one_off 和 problem::submit 解析 payload
-fn parse_named_file(nf: &actix_multipart::form::tempfile::TempFile) -> Option<(String, StoreFile)> {
+fn parse_named_file(
+    nf: &actix_multipart::form::tempfile::TempFile,
+) -> Option<(String, SourceFile)> {
     let binding = nf.file_name.as_ref()?;
     let lang: Vec<&str> = binding.trim().split('.').collect();
     let name = lang.get(0)?;
     let ty = lang.get(1)?;
     let file_type: judger::FileType = serde_json::from_value(serde_json::json!(ty)).ok()?;
     tracing::info!("parse_named_file name = {name}, type = {file_type:?}");
-    Some((
-        name.to_string(),
-        StoreFile {
-            file: nf.file.reopen().ok()?,
-            file_type,
-        },
-    ))
+    let source = std::io::read_to_string(nf.file.reopen().ok()?).ok()?;
+    Some((name.to_string(), SourceFile { source, file_type }))
 }
 
 // ref: https://docs.rs/serde_qs/0.12.0/serde_qs/index.html#flatten-workaround

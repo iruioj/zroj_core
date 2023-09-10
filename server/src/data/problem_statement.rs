@@ -1,13 +1,13 @@
 use super::{
     error::DataError,
-    mysql::{MysqlConfig, MysqlDb},
+    mysql::{MysqlConfig, MysqlDb, last_insert_id, schema_model::ProblemStatement},
 };
 use crate::{
     data::{mysql::schema::problem_statements, types::JsonStr},
     ProblemID,
 };
 use actix_files::NamedFile;
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, *};
+use diesel::*;
 use problem::render_data::{self, statement::StmtMeta, Mdast};
 use serde::Serialize;
 use serde_ts_typing::TsType;
@@ -15,15 +15,6 @@ use std::sync::RwLock;
 use store::Handle;
 
 pub type StmtDB = dyn Manager + Sync + Send;
-
-#[derive(Debug, Clone, Queryable, AsChangeset, Insertable)]
-#[diesel(table_name = problem_statements)]
-struct ProblemStatement {
-    pid: ProblemID,
-    title: String,
-    content: JsonStr<Mdast>,
-    meta: JsonStr<StmtMeta>,
-}
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = problem_statements)]
@@ -78,9 +69,6 @@ pub trait Manager {
         pattern: Option<String>,
     ) -> Result<Vec<StmtMetaDisplay>, DataError>;
 }
-
-// use diesel::sql_types::{Integer, Unsigned};
-sql_function! { fn last_insert_id() -> Unsigned<BigInt>; }
 
 pub struct Mysql(MysqlDb, RwLock<Handle>);
 

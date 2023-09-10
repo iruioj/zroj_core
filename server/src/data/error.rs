@@ -20,7 +20,9 @@ pub enum DataError {
     #[error("diesel: {0}")]
     Diesel(diesel::result::Error),
     #[error("io: {0}")]
-    IO(#[from] std::io::Error)
+    IO(#[from] std::io::Error),
+    #[error("from utf8: {0}")]
+    Utf8Error(#[from] std::string::FromUtf8Error)
 }
 
 impl From<diesel::result::Error> for DataError {

@@ -58,29 +58,23 @@ async fn main() -> std::io::Result<()> {
         )
     );
     let judger = web::Data::new(ProblemJudger::new(dir.path().join("problem_judge")));
-    let subm_db = mkdata!(
-        SubmDB,
-        server::data::submission::DefaultDB::new(dir.path().join("subm_db"))
-    );
+    let subm_db = mkdata!(SubmDB, server::data::submission::Mysql::new(&sql_cfg));
 
     // once finish judging, update submission database
     {
         let subm_db = subm_db.clone().into_inner();
         let recv = judger.reciver();
-        std::thread::spawn(move || {
-            let rt = actix_rt::Runtime::new().expect("init actix runtime");
-            loop {
-                match recv.recv() {
-                    Ok((sid, rep)) => {
-                        let r = rt.block_on(async { subm_db.update(&sid, rep).await });
-                        if let Err(e) = r {
-                            tracing::warn!("update subm_db: {:?}", e)
-                        }
+        std::thread::spawn(move || loop {
+            match recv.recv() {
+                Ok((sid, rep)) => {
+                    let r = subm_db.update(&sid, rep);
+                    if let Err(e) = r {
+                        tracing::warn!("update subm_db: {:?}", e)
                     }
-                    Err(_) => {
-                        tracing::warn!("update subm_db thread closed");
-                        return;
-                    }
+                }
+                Err(_) => {
+                    tracing::warn!("update subm_db thread closed");
+                    return;
                 }
             }
         });

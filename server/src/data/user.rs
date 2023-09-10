@@ -2,6 +2,7 @@
 
 use super::error::DataError;
 use super::mysql::schema::users;
+use super::mysql::schema_model::User;
 use super::types::*;
 use crate::data::mysql::{MysqlConfig, MysqlDb};
 use crate::Override;
@@ -13,26 +14,6 @@ use serde_ts_typing::TsType;
 pub type Mysql = DbManager;
 pub type UserDB = dyn Manager + Sync + Send;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Queryable, AsChangeset)]
-#[diesel(table_name = users)]
-pub struct User {
-    /// 用户 id
-    pub id: UserID,
-    /// 用户名
-    pub username: Username,
-    /// 密码的 hash 值
-    pub password_hash: String,
-    /// 真实姓名
-    pub name: String,
-    /// 邮箱
-    pub email: EmailAddress,
-    /// 格言
-    pub motto: String,
-    /// 注册时间
-    pub register_time: DateTime,
-    /// 性别
-    pub gender: Gender,
-}
 
 #[derive(Serialize, TsType)]
 pub struct UserDisplayInfo {

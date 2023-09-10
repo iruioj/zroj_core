@@ -1,6 +1,7 @@
 //! some utils for mysql database
 
 pub mod schema;
+pub mod schema_model;
 // pub use schema::users;
 
 use crate::data::error::DataError;
@@ -51,22 +52,22 @@ impl MysqlDb {
 
         let r = Self::new(cfg);
         r.transaction(|conn| {
-            for cmd in include_str!("./drop_tables.sql").split(";").map(str::trim) {
-                if !cmd.is_empty() {
-                    tracing::debug!("executing: {}", cmd);
-                    diesel::sql_query(cmd).execute(conn)?;
-                }
-            }
+            // for cmd in include_str!("./drop_tables.sql").split(";").map(str::trim) {
+            //     if !cmd.is_empty() {
+            //         tracing::debug!("executing: {}", cmd);
+            //         diesel::sql_query(cmd).execute(conn)?;
+            //     }
+            // }
 
-            for cmd in include_str!("./create_tables.sql")
-                .split(";")
-                .map(str::trim)
-            {
-                if !cmd.is_empty() {
-                    tracing::debug!("executing: {}", cmd);
-                    diesel::sql_query(cmd).execute(conn)?;
-                }
-            }
+            // for cmd in include_str!("./create_tables.sql")
+            //     .split(";")
+            //     .map(str::trim)
+            // {
+            //     if !cmd.is_empty() {
+            //         tracing::debug!("executing: {}", cmd);
+            //         diesel::sql_query(cmd).execute(conn)?;
+            //     }
+            // }
             Ok(())
         })?;
 
@@ -115,3 +116,6 @@ pub fn setup_database(cfg: &MysqlConfig, flag: SetupDatabaseFlag) -> Result<(), 
         Ok(())
     })
 }
+
+// mysql only
+sql_function! { fn last_insert_id() -> Unsigned<BigInt>; }

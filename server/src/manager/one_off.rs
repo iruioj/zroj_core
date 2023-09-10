@@ -1,6 +1,6 @@
 use crate::UserID;
 use actix_web::error;
-use judger::{OneOff, StoreFile, TaskReport};
+use judger::{OneOff, StoreFile, TaskReport, SourceFile};
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
@@ -46,7 +46,7 @@ impl OneOffManager {
     pub fn add_test(
         &self,
         uid: UserID,
-        source: StoreFile,
+        source: SourceFile,
         input: StoreFile,
     ) -> actix_web::Result<()> {
         let base = self.get_user_folder(&uid);
@@ -92,7 +92,7 @@ mod tests {
         let dir = tempfile::TempDir::new().unwrap();
         let oneoff = OneOffManager::new(dir.path());
 
-        let source = StoreFile::from_str(
+        let source = SourceFile::from_str(
             r"
 #include<iostream>
 using namespace std;
