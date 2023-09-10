@@ -4,19 +4,9 @@
 
 This project is currently under active development.
 
-## VSCode Config
+Diesel:
 
-```json
-{
-  "editor.tabSize": 4,
-  "rust-analyzer.check.features": [
-    "server/mysql"
-  ],
-  "rust-analyzer.cargo.cfgs": {
-    "feature": "mysql"
-  },
-  "rust-analyzer.cargo.features": [
-    "server/mysql"
-  ]
-}
+```
+diesel migration run/redo
+diesel print-schema > server/src/data/mysql/schema.rs
 ```

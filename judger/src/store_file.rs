@@ -5,7 +5,7 @@ use serde_ts_typing::TsType;
 use store::FsStore;
 
 /// 一个带类型的 buffer
-#[derive(Debug, Serialize, Deserialize, TsType)]
+#[derive(Debug, Serialize, Deserialize, TsType, Clone)]
 pub struct SourceFile {
     pub source: String,
     pub file_type: FileType,
