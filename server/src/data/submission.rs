@@ -2,7 +2,7 @@ use super::{
     error::DataError,
     mysql::{
         last_insert_id,
-        schema::{problem_statements, submission_details, submission_metas},
+        schema::{submission_details, submission_metas, problems},
         schema_model::SubmissionMeta,
         MysqlConfig, MysqlDb,
     },
@@ -132,9 +132,9 @@ impl Manager for Mysql {
                 .filter(submission_metas::id.eq(*sid))
                 .first(conn)?;
             let detail: SubmissionDetail = SubmissionDetail::belonging_to(&meta).first(conn)?;
-            let title: String = problem_statements::table
-                .select(problem_statements::title)
-                .filter(problem_statements::pid.eq(meta.pid))
+            let title: String = problems::table
+                .select(problems::title)
+                .filter(problems::id.eq(meta.pid))
                 .first(conn)?;
             Ok(SubmInfo {
                 meta: SubmMeta::from((meta, title)),
@@ -175,9 +175,9 @@ impl Manager for Mysql {
             if let Some(lang) = lang {
                 table = table.filter(submission_metas::lang.eq(JsonStr(lang)));
             }
-            let table = table.inner_join(problem_statements::table);
+            let table = table.inner_join(problems::table);
             let res: Vec<(SubmissionMeta, String)> = table
-                .select((SubmissionMeta::as_select(), problem_statements::title))
+                .select((SubmissionMeta::as_select(), problems::title))
                 .load::<(SubmissionMeta, String)>(conn)?;
             Ok(res.into_iter().map(SubmMeta::from).collect())
         })

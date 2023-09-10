@@ -1,6 +1,6 @@
 -- Your SQL goes here
 CREATE TABLE submission_details (
-    id integer unsigned NOT NULL AUTO_INCREMENT,
+    id integer unsigned NOT NULL AUTO_INCREMENT, -- useless
     sid integer unsigned NOT NULL,
     raw mediumtext NOT NULL,
     report mediumtext,

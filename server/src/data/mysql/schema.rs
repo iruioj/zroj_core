@@ -1,11 +1,19 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    problem_statements (pid) {
+    problem_statements (id) {
+        id -> Unsigned<Integer>,
         pid -> Unsigned<Integer>,
-        title -> Tinytext,
         content -> Mediumtext,
         meta -> Mediumtext,
+    }
+}
+
+diesel::table! {
+    problems (id) {
+        id -> Unsigned<Integer>,
+        title -> Tinytext,
+        tags -> Mediumtext,
     }
 }
 
@@ -45,12 +53,14 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(problem_statements -> problems (pid));
 diesel::joinable!(submission_details -> submission_metas (sid));
-diesel::joinable!(submission_metas -> problem_statements (pid));
+diesel::joinable!(submission_metas -> problems (pid));
 diesel::joinable!(submission_metas -> users (uid));
 
 diesel::allow_tables_to_appear_in_same_query!(
     problem_statements,
+    problems,
     submission_details,
     submission_metas,
     users,

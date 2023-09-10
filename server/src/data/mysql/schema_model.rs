@@ -2,12 +2,11 @@
 
 use super::super::types::*;
 use super::schema::*;
-use crate::{ProblemID, UserID, SubmID};
+use crate::{ProblemID, SubmID, UserID};
 use diesel::*;
 use problem::render_data::{statement::StmtMeta, Mdast};
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Identifiable, Clone, Queryable, AsChangeset)]
+#[derive(Debug, Identifiable, Clone, Queryable, AsChangeset)]
 #[diesel(table_name = users)]
 pub struct User {
     /// 用户 id
@@ -28,18 +27,26 @@ pub struct User {
     pub gender: Gender,
 }
 
-#[derive(Debug, Clone, Queryable, AsChangeset, Insertable)]
+#[derive(Debug, Clone, Queryable, Identifiable, AsChangeset, Selectable)]
+#[diesel(table_name = problems)]
+pub struct Problem {
+    pub id: ProblemID,
+    pub title: String,
+    pub tags: String,
+}
+
+#[derive(Debug, Clone, Queryable, Associations, Identifiable, AsChangeset, Selectable)]
+#[diesel(belongs_to(Problem, foreign_key = pid))]
 #[diesel(table_name = problem_statements)]
 pub struct ProblemStatement {
+    pub id: u32, // useless
     pub pid: ProblemID,
-    pub title: String,
     pub content: JsonStr<Mdast>,
     pub meta: JsonStr<StmtMeta>,
 }
 
-
 /// 提交记录的元信息
-#[derive(Debug, Serialize, Deserialize, Clone, Identifiable, Queryable, AsChangeset, Selectable)]
+#[derive(Debug, Clone, Identifiable, Queryable, AsChangeset, Selectable)]
 #[diesel(table_name = submission_metas)]
 // #[diesel(belongs_to(User, foreign_key = uid))]
 // #[diesel(belongs_to(ProblemStatement, foreign_key = pid))]
@@ -49,7 +56,6 @@ pub struct SubmissionMeta {
     pub uid: UserID,
     pub submit_time: DateTime,
     // raw: SubmRaw,
-
     pub judge_time: Option<DateTime>,
     /// 不是每一个提交记录都有确定的源文件语言
     pub lang: Option<JsonStr<judger::FileType>>,
@@ -63,7 +69,7 @@ pub struct SubmissionMeta {
     // report: Option<FullJudgeReport>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Associations, Identifiable, Clone, Queryable, AsChangeset, Selectable)]
+#[derive(Debug, Associations, Identifiable, Clone, Queryable, AsChangeset, Selectable)]
 #[diesel(belongs_to(SubmissionMeta, foreign_key = sid))]
 #[diesel(table_name = submission_details)]
 pub struct SubmissionDetail {

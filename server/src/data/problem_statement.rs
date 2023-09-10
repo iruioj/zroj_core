@@ -1,6 +1,11 @@
 use super::{
     error::DataError,
-    mysql::{MysqlConfig, MysqlDb, last_insert_id, schema_model::ProblemStatement},
+    mysql::{
+        last_insert_id,
+        schema::problems,
+        schema_model::{Problem, ProblemStatement},
+        MysqlConfig, MysqlDb,
+    },
 };
 use crate::{
     data::{mysql::schema::problem_statements, types::JsonStr},
@@ -17,9 +22,16 @@ use store::Handle;
 pub type StmtDB = dyn Manager + Sync + Send;
 
 #[derive(Debug, Insertable)]
-#[diesel(table_name = problem_statements)]
-pub struct NewProblemStatement<'a> {
+#[diesel(table_name = problems)]
+struct NewProblem<'a> {
     title: &'a String,
+    tags: &'a String,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = problem_statements)]
+struct NewProblemStatement<'a> {
+    pid: ProblemID,
     content: &'a JsonStr<Mdast>,
     meta: &'a JsonStr<StmtMeta>,
 }
@@ -41,11 +53,11 @@ impl From<&render_data::Statement> for Statement {
     }
 }
 
-#[derive(Debug, Serialize, TsType)]
-pub struct StmtMetaDisplay {
-    pid: ProblemID,
-    title: String,
-    meta: StmtMeta,
+#[derive(Serialize, TsType)]
+pub struct ProblemMeta {
+    pub id: ProblemID,
+    pub title: String,
+    pub tags: String,
 }
 
 pub trait Manager {
@@ -67,7 +79,7 @@ pub trait Manager {
         max_count: u8,
         offset: usize,
         pattern: Option<String>,
-    ) -> Result<Vec<StmtMetaDisplay>, DataError>;
+    ) -> Result<Vec<ProblemMeta>, DataError>;
 }
 
 pub struct Mysql(MysqlDb, RwLock<Handle>);
@@ -83,42 +95,47 @@ impl Mysql {
 impl Manager for Mysql {
     fn get(&self, id: ProblemID) -> Result<Statement, DataError> {
         self.0.transaction(|conn| {
-            let r: ProblemStatement = problem_statements::table
-                .filter(problem_statements::pid.eq(id))
-                .first(conn)?;
+            let problem: Problem = problems::table.filter(problems::id.eq(id)).first(conn)?;
+            let statement: ProblemStatement =
+                ProblemStatement::belonging_to(&problem).first(conn)?;
             Ok(Statement {
-                title: r.title,
-                statement: r.content.0,
-                meta: r.meta.0,
+                title: problem.title,
+                statement: statement.content.0,
+                meta: statement.meta.0,
             })
         })
     }
 
     fn insert_new(&self, stmt: render_data::Statement) -> Result<ProblemID, DataError> {
         self.0.transaction(|conn| {
-            let val = NewProblemStatement {
-                title: &stmt.title,
-                content: &JsonStr(stmt.statement.render_mdast()),
-                meta: &JsonStr(stmt.meta),
-            };
-            diesel::insert_into(problem_statements::table)
-                .values(&val)
+            diesel::insert_into(problems::table)
+                .values(NewProblem {
+                    title: &stmt.title,
+                    tags: &String::new(),
+                })
                 .execute(conn)?;
             // https://github.com/diesel-rs/diesel/issues/1011
             let pid: u64 = diesel::select(last_insert_id()).first(conn)?;
+            diesel::insert_into(problem_statements::table)
+                .values(NewProblemStatement {
+                    pid: pid as ProblemID,
+                    content: &JsonStr(stmt.statement.render_mdast()),
+                    meta: &JsonStr(stmt.meta),
+                })
+                .execute(conn)?;
             Ok(pid as ProblemID)
         })
     }
     fn update(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), DataError> {
         self.0.transaction(|conn| {
-            let val = ProblemStatement {
-                pid: id,
-                title: stmt.title,
-                content: JsonStr(stmt.statement.render_mdast()),
-                meta: JsonStr(stmt.meta),
-            };
-            diesel::replace_into(problem_statements::table)
-                .values(&val)
+            diesel::update(problem_statements::table.filter(problem_statements::pid.eq(id)))
+                .set((
+                    problem_statements::content.eq(JsonStr(stmt.statement.render_mdast())),
+                    problem_statements::meta.eq(JsonStr(stmt.meta)),
+                ))
+                .execute(conn)?;
+            diesel::update(problems::table.filter(problems::id.eq(id)))
+                .set(problems::title.eq(stmt.title))
                 .execute(conn)?;
             Ok(())
         })
@@ -148,23 +165,18 @@ impl Manager for Mysql {
         max_count: u8,
         offset: usize,
         pattern: Option<String>,
-    ) -> Result<Vec<StmtMetaDisplay>, DataError> {
+    ) -> Result<Vec<ProblemMeta>, DataError> {
         self.0.transaction(|conn| {
-            let r = problem_statements::table
-                .select((
-                    problem_statements::pid,
-                    problem_statements::title,
-                    problem_statements::meta,
-                ))
-                .filter(problem_statements::title.like(pattern.unwrap_or("%".into())))
+            Ok(problems::table
+                .filter(problems::title.like(pattern.unwrap_or("%".into())))
                 .offset(offset as i64)
                 .limit(max_count as i64)
-                .load::<(ProblemID, String, JsonStr<StmtMeta>)>(conn)?;
-            Ok(r.into_iter()
-                .map(|(pid, title, meta)| StmtMetaDisplay {
-                    pid,
-                    title,
-                    meta: meta.0,
+                .load::<Problem>(conn)?
+                .into_iter()
+                .map(|p| ProblemMeta {
+                    id: p.id,
+                    title: p.title,
+                    tags: p.tags,
                 })
                 .collect())
         })

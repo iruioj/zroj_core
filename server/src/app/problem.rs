@@ -2,8 +2,8 @@ use crate::{
     app::parse_named_file,
     data::{
         problem_ojdata::OJDataDB,
-        problem_statement::{self, StmtDB, StmtMetaDisplay},
-        submission::SubmDB, types::SubmRaw,
+        problem_statement::{self, StmtDB, ProblemMeta},
+        submission::SubmDB, types::SubmRaw
     },
     manager::problem_judger::ProblemJudger,
     marker::*,
@@ -56,7 +56,7 @@ struct ProbMetasQuery {
 async fn metas(
     stmt_db: ServerData<StmtDB>,
     query: QueryParam<ProbMetasQuery>,
-) -> JsonResult<Vec<StmtMetaDisplay>> {
+) -> JsonResult<Vec<ProblemMeta>> {
     let query = query.into_inner();
     Ok(Json(stmt_db.get_metas(
         query.list.max_count,

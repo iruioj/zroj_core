@@ -52,6 +52,7 @@ impl MysqlDb {
 
         let r = Self::new(cfg);
         r.transaction(|conn| {
+            todo!();
             // for cmd in include_str!("./drop_tables.sql").split(";").map(str::trim) {
             //     if !cmd.is_empty() {
             //         tracing::debug!("executing: {}", cmd);
