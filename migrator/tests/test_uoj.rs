@@ -1,5 +1,5 @@
-use migrator::uoj::load_data;
-use store::Handle;
+// use migrator::uoj::load_data;
+// use store::Handle;
 
 const CONFIG_CONTENT: &str = r#"use_builtin_judger on
 use_builtin_checker ncmp
@@ -49,6 +49,8 @@ subtask_dependence_4 3
 #[test]
 fn test_uoj() {
     let config = migrator::uoj::parse_config(CONFIG_CONTENT_SUBTASK).unwrap();
+
+    dbg!(CONFIG_CONTENT);
 
     dbg!(&config);
     // let data = load_data(&config, Handle::new("tests/testdata/1676")).unwrap();

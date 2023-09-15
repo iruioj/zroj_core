@@ -7,7 +7,7 @@ pub type Error = error::StoreError;
 use serde::{de::DeserializeOwned, Serialize};
 
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fmt::Debug,
     io::Seek,
     path::{Path, PathBuf},
@@ -161,6 +161,12 @@ pub trait FsStore: Sized {
         self.save(ctx)?;
         FsStore::open(ctx)
     }
+
+    /// Save data to the destination and reopen it at new location.
+    fn save_as(&mut self, ctx: &Handle) -> Result<(), Error> {
+        *self = self.clone_to(ctx)?;
+        Ok(())
+    }
 }
 
 impl FsStore for () {
@@ -270,6 +276,25 @@ where
     fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
         self.iter_mut()
             .try_fold((), |_, (k, v)| v.save(&ctx.join(k.to_string())))
+    }
+}
+
+impl<V> FsStore for BTreeSet<V>
+where
+    V: ToString + FromStr + Ord,
+    <V as FromStr>::Err: Debug,
+{
+    fn open(ctx: &Handle) -> Result<Self, Error> {
+        let data: BTreeSet<String> = ctx.deserialize()?;
+        Ok(data
+            .into_iter()
+            .map(|s| FromStr::from_str(&s).expect("invalid string"))
+            .collect::<BTreeSet<V>>())
+    }
+
+    fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
+        let data: BTreeSet<String> = self.iter().map(|x| x.to_string()).collect();
+        ctx.serialize_new_file(&data)
     }
 }
 

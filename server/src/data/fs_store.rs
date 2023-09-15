@@ -34,7 +34,7 @@ where
 {
     fn drop(&mut self) {
         let v = self.0.deref_mut();
-        v.save(self.1).expect("value should be saved");
+        v.save_as(self.1).expect("value should be saved");
     }
 }
 
@@ -92,6 +92,9 @@ impl<V> FsStoreTable<V>
 where
     V: FsStore + Default + 'static + Send + Sync,
 {
+    pub fn get_handle(&self) -> &Handle {
+        &self.0
+    }
     fn init_table(&self) -> Result<FsStoreLock<V>, DataError> {
         let tid = TypeId::of::<V>();
         let hash = judger::seq_hash!(format!("{:?}", tid));

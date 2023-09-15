@@ -2,8 +2,9 @@ use crate::{
     app::parse_named_file,
     data::{
         problem_ojdata::OJDataDB,
-        problem_statement::{self, StmtDB, ProblemMeta},
-        submission::SubmDB, types::SubmRaw
+        problem_statement::{self, ProblemMeta, StmtDB},
+        submission::SubmDB,
+        types::SubmRaw,
     },
     manager::problem_judger::ProblemJudger,
     marker::*,
@@ -100,7 +101,7 @@ async fn fulldata(
     } else {
         stmt_db.insert_new(fulldata.statement)
     }?;
-    ojdata_db.insert(id, fulldata.data).await?;
+    ojdata_db.insert(id, fulldata.data)?;
     // stmt_db.insert(id, fulldata.statement)?;
 
     drop(dir); // 限制 dir 的生命周期
@@ -117,9 +118,9 @@ async fn fulldata_meta(
     query: QueryParam<FullDataMetaQuery>,
     db: ServerData<OJDataDB>,
 ) -> AnyResult<String> {
-    db.get_meta(query.id)
-        .await
+    db.get(query.id)
         .map_err(error::ErrorInternalServerError)
+        .map(|p| p.meta_description())
 }
 
 #[derive(Debug, MultipartForm)]
@@ -151,7 +152,7 @@ async fn judge(
     tracing::info!("request parsed");
 
     let pid = payload.pid.0;
-    let stddata = ojdata_db.get(pid).await?;
+    let stddata = ojdata_db.get(pid)?;
 
     let sid = match stddata {
         problem::StandardProblem::Traditional(ojdata) => {

@@ -51,26 +51,26 @@ impl MysqlDb {
         tracing::debug!(?cfg, "create database");
 
         let r = Self::new(cfg);
-        r.transaction(|conn| {
-            todo!();
-            // for cmd in include_str!("./drop_tables.sql").split(";").map(str::trim) {
-            //     if !cmd.is_empty() {
-            //         tracing::debug!("executing: {}", cmd);
-            //         diesel::sql_query(cmd).execute(conn)?;
-            //     }
-            // }
+        // r.transaction(|conn| {
+        //     todo!();
+        //     // for cmd in include_str!("./drop_tables.sql").split(";").map(str::trim) {
+        //     //     if !cmd.is_empty() {
+        //     //         tracing::debug!("executing: {}", cmd);
+        //     //         diesel::sql_query(cmd).execute(conn)?;
+        //     //     }
+        //     // }
 
-            // for cmd in include_str!("./create_tables.sql")
-            //     .split(";")
-            //     .map(str::trim)
-            // {
-            //     if !cmd.is_empty() {
-            //         tracing::debug!("executing: {}", cmd);
-            //         diesel::sql_query(cmd).execute(conn)?;
-            //     }
-            // }
-            Ok(())
-        })?;
+        //     // for cmd in include_str!("./create_tables.sql")
+        //     //     .split(";")
+        //     //     .map(str::trim)
+        //     // {
+        //     //     if !cmd.is_empty() {
+        //     //         tracing::debug!("executing: {}", cmd);
+        //     //         diesel::sql_query(cmd).execute(conn)?;
+        //     //     }
+        //     // }
+        //     Ok(())
+        // })?;
 
         Ok(r)
     }

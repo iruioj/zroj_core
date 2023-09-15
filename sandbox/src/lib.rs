@@ -194,6 +194,10 @@ impl Elapse {
     pub fn ms(self) -> u64 {
         self.0
     }
+    /// pretty print
+    pub fn pretty(self) -> String {
+        format!("{self}ms")
+    }
 }
 
 impl Display for Elapse {
@@ -258,6 +262,16 @@ impl Memory {
     /// 输出以字节为单位的时间
     pub fn byte(self) -> u64 {
         self.0
+    }
+    /// pretty print
+    pub fn pretty(self) -> String {
+        if self.0 < 1000 {
+            format!("{self}bytes")
+        } else if self.0 < 1_000_000 {
+            format!("{}kb", (self.0 as f64) / 1000.0)
+        } else {
+            format!("{}mb", (self.0 as f64) / 1000000.0)
+        }
     }
 }
 

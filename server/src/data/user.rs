@@ -14,7 +14,6 @@ use serde_ts_typing::TsType;
 pub type Mysql = DbManager;
 pub type UserDB = dyn Manager + Sync + Send;
 
-
 #[derive(Serialize, TsType)]
 pub struct UserDisplayInfo {
     id: u32,
@@ -110,11 +109,13 @@ pub trait Manager {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = users)]
 pub struct NewUser<'a> {
-    pub username: &'a Username,
-    pub password_hash: &'a str,
-    pub email: &'a EmailAddress,
-    pub register_time: &'a DateTime,
-    pub gender: &'a Gender,
+    username: &'a Username,
+    password_hash: &'a str,
+    email: &'a EmailAddress,
+    register_time: &'a DateTime,
+    gender: &'a Gender,
+    name: &'a str,
+    motto: &'a str,
 }
 pub struct DbManager(MysqlDb);
 
@@ -149,6 +150,8 @@ impl Manager for DbManager {
                 email,
                 register_time: &DateTime::now(),
                 gender: &Gender::Private,
+                name: "",
+                motto: "",
             };
             diesel::insert_into(users::table)
                 .values(&new_user)

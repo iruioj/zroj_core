@@ -5,7 +5,7 @@ use server::{
     auth::{middleware::SessionAuth, SessionManager},
     data::{
         gravatar::GravatarDB,
-        mysql::{MysqlConfig, MysqlDb},
+        mysql::MysqlConfig,
         problem_statement::StmtDB,
         submission::SubmDB,
     },
@@ -31,7 +31,8 @@ async fn main() -> std::io::Result<()> {
         port: 3306,
         dbname: "test".into(),
     };
-    MysqlDb::setup_new(&sql_cfg).expect("setup mysql database");
+    // by diesel migration we dont need to setup manually
+    // MysqlDb::setup_new(&sql_cfg).expect("setup mysql database");
 
     let user_db = dev::test_userdb(&sql_cfg);
     tracing::info!("user_db initialized");

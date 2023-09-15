@@ -73,13 +73,18 @@ pub fn test_userdb(cfg: &MysqlConfig) -> web::Data<dyn user::Manager + Send + Sy
     let db = user::Mysql::new(cfg);
     let r = mkdata!(crate::data::user::UserDB, db);
     // 预先插入一个用户方便测试
-    r.new_user(
-        &Username::new("testtest").unwrap(),
-        &passwd::register_hash("testtest"),
-        &EmailAddress::new("test@test.com").unwrap(),
-    )
-    .unwrap();
-    tracing::info!("user 'testtset' added");
+    if r.query_by_username(&Username::new("testtest").unwrap()).is_err() {
+        let user = r
+            .new_user(
+                &Username::new("testtest").unwrap(),
+                &passwd::register_hash("testtest"),
+                &EmailAddress::new("test@test.com").unwrap(),
+            )
+            .unwrap();
+        tracing::info!(?user, "user 'testtset' added");
+    } else {
+        tracing::info!("user 'testtset' already exists");
+    }
     r
 }
 
@@ -113,7 +118,6 @@ pub async fn test_ojdata_db(dir: impl AsRef<std::path::Path>) -> web::Data<OJDat
     );
 
     db.insert(0, a_plus_b_data())
-        .await
         .expect("fail to insert A + B Problem data");
 
     db
