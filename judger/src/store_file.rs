@@ -1,7 +1,7 @@
 use crate::FileType;
-use std::io::{self, Seek, Write};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
+use std::io::{self, Seek, Write};
 use store::FsStore;
 
 /// 一个带类型的 buffer
@@ -42,7 +42,7 @@ impl FsStore for SourceFile {
     fn save(&mut self, ctx: &store::Handle) -> Result<(), store::Error> {
         ctx.join("file_type").serialize_new_file(&self.file_type)?;
         let mut dest = ctx.join("buf").create_new_file()?;
-        dest.write(&self.source.as_bytes())
+        dest.write_all(self.source.as_bytes())
             .expect("writing buf to file");
         Ok(())
     }

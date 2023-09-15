@@ -2,7 +2,7 @@ use crate::{
     data::{
         gravatar::GravatarDB,
         types::*,
-        user::{UserDB, UserEditInfo, UserUpdateInfo, UserDisplayInfo},
+        user::{UserDB, UserDisplayInfo, UserEditInfo, UserUpdateInfo},
     },
     marker::*,
 };

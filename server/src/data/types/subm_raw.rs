@@ -1,10 +1,9 @@
-use std::collections::BTreeMap;
-use judger::SourceFile;
 use super::*;
+use judger::SourceFile;
 use serde_ts_typing::TsType;
+use std::collections::BTreeMap;
 
-#[derive(Serialize, Deserialize, TsType, Debug, Clone)]
-#[derive(SqlType, FromSqlRow, AsExpression)]
+#[derive(Serialize, Deserialize, TsType, Debug, Clone, SqlType, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Text)]
 pub struct SubmRaw(pub BTreeMap<String, SourceFile>);
 
@@ -25,4 +24,4 @@ impl SubmRaw {
     }
 }
 
-impl_serde_json_sql!{SubmRaw}
+impl_serde_json_sql! {SubmRaw}

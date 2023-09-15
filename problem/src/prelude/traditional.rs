@@ -6,7 +6,8 @@ use judger::{
         unix::{Lim, Singleton},
         Elapse, ExecSandBox, Memory,
     },
-    truncstr::{TruncStr, TRUNCATE_LEN}, SourceFile,
+    truncstr::{TruncStr, TRUNCATE_LEN},
+    SourceFile,
 };
 use store::FsStore;
 

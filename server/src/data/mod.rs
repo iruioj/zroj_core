@@ -1,6 +1,6 @@
 pub mod error;
-pub mod mysql;
 mod fs_store;
+pub mod mysql;
 pub mod types;
 
 // database

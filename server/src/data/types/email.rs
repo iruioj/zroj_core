@@ -7,8 +7,9 @@ use std::{
 };
 
 /// 邮箱类型，在创建时会进行内容检查，确保没有不合法字符
-#[derive(Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
-#[derive(SqlType, FromSqlRow, AsExpression)]
+#[derive(
+    Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq, SqlType, FromSqlRow, AsExpression,
+)]
 #[diesel(sql_type = Text)]
 pub struct EmailAddress(email_address::EmailAddress);
 

@@ -101,7 +101,7 @@ fn gen_field(
         field
             .ident
             .map(|ident| ctxt.rename_field(ident.to_string()))
-            .map_or(FieldKind::Unnamed, |s| FieldKind::Named(s))
+            .map_or(FieldKind::Unnamed, FieldKind::Named)
     };
     let ty = if ctxt.serialize_with || ctxt.with {
         let Some(ty_str) = ts_ctxt.as_type else {

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod one_off {
-    use judger::{Error, FileType, OneOff, Status, StoreFile, SourceFile};
+    use judger::{Error, FileType, OneOff, SourceFile, Status, StoreFile};
     use store::Handle;
 
     #[test]

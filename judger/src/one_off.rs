@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use sandbox::{mem, time, unix::Limitation, Elapse, Memory};
 use store::Handle;
 
-use crate::{lang::Compile, Error, Status, StoreFile, TaskReport, SourceFile};
+use crate::{lang::Compile, Error, SourceFile, Status, StoreFile, TaskReport};
 
 /// OneOff 用于执行自定义测试，流程包含：编译、运行可执行文件。
 ///

@@ -6,8 +6,7 @@ use serde_ts_typing::TsType;
 /// 性别类型
 ///
 /// TODO: 更多的性别
-#[derive(Debug, Serialize, Deserialize, Clone, TsType)]
-#[derive(SqlType, FromSqlRow, AsExpression)]
+#[derive(Debug, Serialize, Deserialize, Clone, TsType, SqlType, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Text)]
 pub enum Gender {
     Male,
@@ -16,4 +15,4 @@ pub enum Gender {
     Private,
 }
 
-impl_serde_json_sql!{Gender}
+impl_serde_json_sql! {Gender}

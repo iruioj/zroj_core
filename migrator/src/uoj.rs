@@ -152,7 +152,12 @@ impl std::fmt::Display for LoadError {
 impl std::error::Error for LoadError {}
 
 impl Config {
-    fn _get_task(&self, dir: &store::Handle, prefix: &str, cur: u64) -> Result<TraditionalTask, LoadError> {
+    fn _get_task(
+        &self,
+        dir: &store::Handle,
+        prefix: &str,
+        cur: u64,
+    ) -> Result<TraditionalTask, LoadError> {
         Ok(TraditionalTask {
             input: StoreFile {
                 file: dir

@@ -1,4 +1,7 @@
-use server::data::{mysql::{MysqlConfig, MysqlDb}, problem_statement::{self, Manager}};
+use server::data::{
+    mysql::{MysqlConfig, MysqlDb},
+    problem_statement::{self, Manager},
+};
 use store::Handle;
 
 #[test]
@@ -22,8 +25,10 @@ fn test_db() {
     let stmt_db =
         problem_statement::Mysql::new(&sql_cfg, Handle::new(dir.path()).join("stmt_assets"));
     tracing::debug!("create stmt database");
-    
-    let r = stmt_db.insert_new(problem::sample::a_plus_b_statment()).unwrap();
+
+    let r = stmt_db
+        .insert_new(problem::sample::a_plus_b_statment())
+        .unwrap();
     let stmt = stmt_db.get(r).unwrap();
     tracing::info!(?stmt, "get statement")
 }

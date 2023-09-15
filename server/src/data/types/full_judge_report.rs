@@ -24,20 +24,16 @@ impl FullJudgeReport {
         }
     }
     pub(crate) fn max_memory(&self) -> Memory {
-        let get = |d: &Option<judger::JudgeReport>| {
-            d.as_ref()
-                .map(|d| d.meta.memory.clone())
-                .unwrap_or_default()
-        };
+        let get =
+            |d: &Option<judger::JudgeReport>| d.as_ref().map(|d| d.meta.memory).unwrap_or_default();
         let m_data = get(&self.data);
         let m_pre = get(&self.pre);
         let m_extra = get(&self.extra);
         m_data.max(m_pre.max(m_extra))
     }
     pub(crate) fn max_time(&self) -> Elapse {
-        let get = |d: &Option<judger::JudgeReport>| {
-            d.as_ref().map(|d| d.meta.time.clone()).unwrap_or_default()
-        };
+        let get =
+            |d: &Option<judger::JudgeReport>| d.as_ref().map(|d| d.meta.time).unwrap_or_default();
         let m_data = get(&self.data);
         let m_pre = get(&self.pre);
         let m_extra = get(&self.extra);

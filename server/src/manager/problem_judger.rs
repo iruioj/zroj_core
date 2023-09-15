@@ -1,5 +1,5 @@
 use super::job_runner::JobRunner;
-use crate::{SubmID, data::types::FullJudgeReport};
+use crate::{data::types::FullJudgeReport, SubmID};
 use actix_web::error;
 use judger::{LogMessage, MpscJudger};
 use problem::{

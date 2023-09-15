@@ -1,4 +1,4 @@
-use judger::{StoreFile, SourceFile};
+use judger::{SourceFile, StoreFile};
 
 use crate::{data::OJData, render_data::statement::IOData, ProblemFullData, StandardProblem};
 
@@ -143,10 +143,7 @@ mod tests {
     use judger::DefaultJudger;
     use store::Handle;
 
-    use crate::{
-        judger_framework,
-        prelude::*,
-    };
+    use crate::{judger_framework, prelude::*};
 
     use super::*;
 

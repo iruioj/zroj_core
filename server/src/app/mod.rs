@@ -31,7 +31,7 @@ fn parse_named_file(
 ) -> Option<(String, SourceFile)> {
     let binding = nf.file_name.as_ref()?;
     let lang: Vec<&str> = binding.trim().split('.').collect();
-    let name = lang.get(0)?;
+    let name = lang.first()?;
     let ty = lang.get(1)?;
     let file_type: judger::FileType = serde_json::from_value(serde_json::json!(ty)).ok()?;
     tracing::info!("parse_named_file name = {name}, type = {file_type:?}");

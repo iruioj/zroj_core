@@ -6,8 +6,9 @@ use serde_ts_typing::TsType;
 use std::fmt::Display;
 
 /// 用户名类型，在创建时会进行内容检查，确保没有不合法字符
-#[derive(Debug, Serialize, Clone, Hash, PartialEq, Eq, TsType)]
-#[derive(SqlType, FromSqlRow, AsExpression)]
+#[derive(
+    Debug, Serialize, Clone, Hash, PartialEq, Eq, TsType, SqlType, FromSqlRow, AsExpression,
+)]
 #[diesel(sql_type = Text)]
 pub struct Username(String);
 

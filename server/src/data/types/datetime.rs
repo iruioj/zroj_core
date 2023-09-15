@@ -2,8 +2,9 @@ use std::fmt::Display;
 
 /// 时间表示（时间和 timestamp）
 use super::*;
-#[derive(Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
-#[derive(SqlType, FromSqlRow, AsExpression)]
+#[derive(
+    Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq, SqlType, FromSqlRow, AsExpression,
+)]
 #[diesel(sql_type = BigInt)]
 pub struct DateTime(
     #[serde(with = "chrono::serde::ts_nanoseconds")] chrono::DateTime<chrono::Utc>,

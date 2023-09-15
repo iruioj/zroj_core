@@ -1,7 +1,7 @@
 use std::sync::PoisonError;
 
 /// 数据查询过程中出现的错误（不包括权限控制）
-/// 
+///
 /// diesel 的 NotFound 会转换为 DataError::NotFound，进而转换为 404
 #[derive(Debug, thiserror::Error)]
 pub enum DataError {
@@ -22,14 +22,14 @@ pub enum DataError {
     #[error("io: {0}")]
     IO(#[from] std::io::Error),
     #[error("from utf8: {0}")]
-    Utf8Error(#[from] std::string::FromUtf8Error)
+    Utf8Error(#[from] std::string::FromUtf8Error),
 }
 
 impl From<diesel::result::Error> for DataError {
     fn from(value: diesel::result::Error) -> Self {
         match value {
             diesel::result::Error::NotFound => Self::NotFound,
-            e => Self::Diesel(e)
+            e => Self::Diesel(e),
         }
     }
 }

@@ -1,4 +1,4 @@
-use judger::{StoreFile, SourceFile};
+use judger::{SourceFile, StoreFile};
 use store::Handle;
 
 use crate::RuntimeError;
