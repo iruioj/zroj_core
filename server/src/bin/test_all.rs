@@ -3,12 +3,7 @@ use actix_web::{web, HttpServer};
 use server::{
     app,
     auth::{middleware::SessionAuth, SessionManager},
-    data::{
-        gravatar::GravatarDB,
-        mysql::MysqlConfig,
-        problem_statement::StmtDB,
-        submission::SubmDB,
-    },
+    data::{gravatar::GravatarDB, mysql::MysqlConfig, submission::SubmDB},
     dev,
     manager::{one_off::OneOffManager, problem_judger::ProblemJudger},
     mkdata,
@@ -37,17 +32,7 @@ async fn main() -> std::io::Result<()> {
     let user_db = dev::test_userdb(&sql_cfg);
     tracing::info!("user_db initialized");
 
-    let stmt_db = mkdata!(
-        StmtDB,
-        server::data::problem_statement::Mysql::new(
-            &sql_cfg,
-            store::Handle::new(dir.path()).join("stmt_assets")
-        )
-    );
-    stmt_db
-        .update(0, problem::sample::a_plus_b_statment())
-        .expect("insert problem 0");
-    tracing::info!("stmt_db initialized (with problem 0)");
+    let stmt_db = dev::test_stmtdb(&sql_cfg, store::Handle::new(dir.path()).join("stmt_assets"));
 
     let ojdata_db = dev::test_ojdata_db(dir.path()).await;
     let oneoff = web::Data::new(OneOffManager::new(dir.path().join("oneoff")));

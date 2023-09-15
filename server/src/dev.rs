@@ -73,7 +73,9 @@ pub fn test_userdb(cfg: &MysqlConfig) -> web::Data<dyn user::Manager + Send + Sy
     let db = user::Mysql::new(cfg);
     let r = mkdata!(crate::data::user::UserDB, db);
     // 预先插入一个用户方便测试
-    if r.query_by_username(&Username::new("testtest").unwrap()).is_err() {
+    if r.query_by_username(&Username::new("testtest").unwrap())
+        .is_err()
+    {
         let user = r
             .new_user(
                 &Username::new("testtest").unwrap(),
@@ -91,23 +93,15 @@ pub fn test_userdb(cfg: &MysqlConfig) -> web::Data<dyn user::Manager + Send + Sy
 /// 用于测试的题面数据库
 ///
 /// 预先插入若干个 A + B problem 的题面
-pub async fn test_stmtdb(cfg: &MysqlConfig, dir: Handle) -> web::Data<StmtDB> {
+pub fn test_stmtdb(cfg: &MysqlConfig, dir: Handle) -> web::Data<StmtDB> {
     let stmt_db = mkdata!(StmtDB, problem_statement::Mysql::new(cfg, dir));
-    stmt_db
-        .insert_new(a_plus_b_statment())
-        .expect("fail to insert A + B Problem");
-    stmt_db
-        .insert_new(a_plus_b_statment())
-        .expect("fail to insert A + B Problem");
-    stmt_db
-        .insert_new(a_plus_b_statment())
-        .expect("fail to insert A + B Problem");
-    stmt_db
-        .insert_new(a_plus_b_statment())
-        .expect("fail to insert A + B Problem");
-    stmt_db
-        .insert_new(a_plus_b_statment())
-        .expect("fail to insert A + B Problem");
+    if stmt_db.get(1).is_err() {
+        let id = stmt_db
+            .insert_new(a_plus_b_statment())
+            .expect("fail to insert A + B Problem");
+        assert!(id == 1);
+    }
+    tracing::info!("test statement db initialized");
     stmt_db
 }
 
@@ -117,7 +111,7 @@ pub async fn test_ojdata_db(dir: impl AsRef<std::path::Path>) -> web::Data<OJDat
         problem_ojdata::DefaultDB::new(dir.as_ref().join("stmt_data")).unwrap()
     );
 
-    db.insert(0, a_plus_b_data())
+    db.insert(1, a_plus_b_data())
         .expect("fail to insert A + B Problem data");
 
     db

@@ -62,13 +62,13 @@ const onSearch = () => {
             </TableHeaderRow>
           </thead>
           <tbody v-if="data">
-            <TableRow v-for="p in data" :key="p[0]">
-              <td class="text-center py-2">{{ p[0] }}</td>
+            <TableRow v-for="p in data" :key="p.id">
+              <td class="text-center py-2">{{ p.id }}</td>
               <!-- <td class="text-center py-2">
                 <NuxtIcon v-if="p.accepted" class="inline-block align-middle text-brand" name="check" />
               </td> -->
               <td class="py-2">
-                <TextLink :to="'/problem/' + p[0]">{{ p[1].title }}</TextLink>
+                <TextLink :to="'/problem/' + p.id">{{ p.title }}</TextLink>
               </td>
               <!-- <td class="text-center py-2">{{ p.accepts }}</td> -->
             </TableRow>

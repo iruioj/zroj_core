@@ -2,7 +2,7 @@ use super::{
     error::DataError,
     mysql::{
         last_insert_id,
-        schema::{submission_details, submission_metas, problems},
+        schema::{problems, submission_details, submission_metas},
         schema_model::SubmissionMeta,
         MysqlConfig, MysqlDb,
     },
@@ -61,7 +61,7 @@ pub struct NewSubmissionMeta {
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = submission_details)]
-pub struct NewSubmissionDetail {
+struct NewSubmissionDetail {
     sid: SubmID,
     raw: SubmRaw,
 }
@@ -145,9 +145,21 @@ impl Manager for Mysql {
     }
 
     fn update(&self, sid: &SubmID, report: FullJudgeReport) -> Result<(), DataError> {
+        let memory = CastMemory(report.max_memory());
+        let time = CastElapse(report.max_time());
+        let status = report.status().map(JsonStr);
+
         self.0.transaction(|conn| {
             diesel::update(submission_details::table.filter(submission_details::sid.eq(*sid)))
                 .set(submission_details::report.eq(report))
+                .execute(conn)?;
+            diesel::update(submission_metas::table.filter(submission_metas::id.eq(*sid)))
+                .set((
+                    submission_metas::judge_time.eq(DateTime::now()),
+                    submission_metas::memory.eq(memory),
+                    submission_metas::time.eq(time),
+                    submission_metas::status.eq(status),
+                ))
                 .execute(conn)?;
             Ok(())
         })

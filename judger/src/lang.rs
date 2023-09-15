@@ -77,7 +77,7 @@ impl Compile for GnuCpp {
                     real_memory: mem!(4gb).into(),
                     stack_memory: mem!(4gb).into(),
                     output_memory: mem!(1gb).into(),
-                    fileno: 50.into(),
+                    fileno: 200.into(),
                 })
                 .stderr(log),
         )
