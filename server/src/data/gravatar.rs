@@ -5,7 +5,6 @@ use std::time::Duration;
 
 use actix_files::NamedFile;
 use async_trait::async_trait;
-use md5::{Digest, Md5};
 use store::Handle;
 
 use super::error::DataError;
@@ -40,10 +39,7 @@ impl DefaultDB {
 }
 
 fn hash(email: &EmailAddress) -> String {
-    let mut md5 = Md5::new();
-    md5.update(email.to_string().to_lowercase());
-    let hash = hex::encode(md5.finalize().as_slice());
-    hash
+    passwd::md5_hash(&email.to_string().to_lowercase())
 }
 
 #[async_trait(?Send)]

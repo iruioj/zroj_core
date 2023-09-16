@@ -17,6 +17,13 @@ fn sha_hash(plain: &str) -> String {
     general_purpose::STANDARD.encode(res)
 }
 
+/// convert to md5 hex string
+pub fn md5_hash(plain: &str) -> String {
+    let mut md5 = md5::Md5::new();
+    md5.update(plain);
+    hex::encode(md5.finalize().as_slice())
+}
+
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub fn register_hash(plain: &str) -> String {
     sha_hash(plain)

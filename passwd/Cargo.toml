@@ -16,6 +16,8 @@ argon2 = { version = "0.5.0" }
 rand_core = { version = "0.6.3", features = ["getrandom"] }
 getrandom = { version = "0.2" }
 wasm-bindgen = { version = "0.2", optional = true }
+md-5 = "0.10.5"
+hex = "0.4"
 
 [features]
 # 密码哈希的前端 WASM 生成（开发时用）
