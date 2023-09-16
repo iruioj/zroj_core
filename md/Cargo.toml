@@ -10,5 +10,5 @@ serde_ts_typing = { path = "../serde_ts_typing" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 # to update to latest commit, run `cargo update`
-markdown = { git = "https://github.com/sshwy/markdown-rs.git", branch = "fix_serde", features = ["serde"]}
-# markdown = { path = "/home/sshwy/Desktop/markdown-rs", features = ["serde"] }
+# markdown = { git = "https://github.com/sshwy/markdown-rs.git", branch = "fix_serde", features = ["serde"]}
+markdown = { version = "1.0.0-alpha.13", features = ["serde"] }

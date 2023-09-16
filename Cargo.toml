@@ -24,3 +24,4 @@ authors = ["ZROJ Team"]
 edition = "2021"
 keywords = ["Online Judge", "Sandbox"]
 version = "0.1.0"
+repository = "https://github.com/iruioj/zroj_core"
