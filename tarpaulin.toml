@@ -1,0 +1,13 @@
+[run-types]
+workspace = true
+
+tests = true
+count = true
+examples = true
+
+all-features = true
+line = true
+fail-fast = false
+
+[report]
+out = ["Json"]
