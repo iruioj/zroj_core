@@ -1,5 +1,6 @@
 use crate::{
     app::parse_named_file,
+    block_it,
     data::{
         problem_ojdata::OJDataDB,
         problem_statement::{self, ProblemMeta, StmtDB},
@@ -40,7 +41,7 @@ async fn statement(
     stmt_db: ServerData<StmtDB>,
     query: QueryParam<StmtQuery>,
 ) -> JsonResult<problem_statement::Statement> {
-    Ok(stmt_db.get(query.id).map(Json)?)
+    Ok(Json(block_it!(stmt_db.get(query.id))?))
 }
 
 #[derive(Deserialize, TsType)]
@@ -59,11 +60,11 @@ async fn metas(
     query: QueryParam<ProbMetasQuery>,
 ) -> JsonResult<Vec<ProblemMeta>> {
     let query = query.into_inner();
-    Ok(Json(stmt_db.get_metas(
+    Ok(Json(block_it!(stmt_db.get_metas(
         query.list.max_count,
         query.list.offset as usize,
         query.pattern,
-    )?))
+    ))?))
 }
 
 #[derive(Debug, MultipartForm)]
@@ -96,11 +97,11 @@ async fn fulldata(
     let fulldata =
         ProblemFullData::open(&Handle::new(dir.path())).map_err(error::ErrorBadRequest)?;
 
-    let id = if let Some(id) = id {
+    let id = block_it!(if let Some(id) = id {
         stmt_db.update(id, fulldata.statement).map(|_| id)
     } else {
         stmt_db.insert_new(fulldata.statement)
-    }?;
+    })?;
     ojdata_db.insert(id, fulldata.data)?;
     // stmt_db.insert(id, fulldata.statement)?;
 
@@ -118,9 +119,7 @@ async fn fulldata_meta(
     query: QueryParam<FullDataMetaQuery>,
     db: ServerData<OJDataDB>,
 ) -> AnyResult<String> {
-    db.get(query.id)
-        .map_err(error::ErrorInternalServerError)
-        .map(|p| p.meta_description())
+    Ok(db.get(query.id)?.meta_description())
 }
 
 #[derive(Debug, MultipartForm)]
@@ -156,13 +155,14 @@ async fn judge(
 
     let sid = match stddata {
         problem::StandardProblem::Traditional(ojdata) => {
-            let subm_id = subm_db.insert_new(
+            let raw2 = raw.clone();
+            let subm_id = block_it!(subm_db.insert_new(
                 *uid,
                 pid,
-                raw.0.get("source").map(|x| x.file_type.clone()),
+                raw2.0.get("source").map(|x| x.file_type.clone()),
                 // must insert_new before consuming raw
-                &raw,
-            )?;
+                &raw2,
+            ))?;
 
             let subm = TraditionalSubm {
                 source: raw

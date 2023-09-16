@@ -1,6 +1,7 @@
 //! 用户数据库
 
 use super::error::DataError;
+use super::mysql::last_insert_id;
 use super::mysql::schema::users;
 use super::mysql::schema_model::User;
 use super::types::*;
@@ -102,7 +103,7 @@ pub trait Manager {
         username: &Username,
         password_hash: &str,
         email: &EmailAddress,
-    ) -> Result<User, DataError>;
+    ) -> Result<UserID, DataError>;
     fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError>;
 }
 
@@ -142,7 +143,7 @@ impl Manager for DbManager {
         username: &Username,
         password_hash: &str,
         email: &EmailAddress,
-    ) -> Result<User, DataError> {
+    ) -> Result<UserID, DataError> {
         self.0.transaction(|conn| {
             let new_user = NewUser {
                 username,
@@ -156,7 +157,8 @@ impl Manager for DbManager {
             diesel::insert_into(users::table)
                 .values(&new_user)
                 .execute(conn)?;
-            Ok(users::table.order(users::id.desc()).first::<User>(conn)?)
+            let id: u64 = diesel::select(last_insert_id()).first(conn)?;
+            Ok(id as UserID)
         })
     }
     fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError> {

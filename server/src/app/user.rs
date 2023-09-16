@@ -1,4 +1,5 @@
 use crate::{
+    block_it,
     data::{
         gravatar::GravatarDB,
         types::*,
@@ -19,15 +20,15 @@ struct ProfileQuery {
 #[api(method = get, path = "")]
 async fn profile(
     query: QueryParam<ProfileQuery>,
-    manager: ServerData<UserDB>,
+    user_db: ServerData<UserDB>,
 ) -> JsonResult<UserDisplayInfo> {
-    let result = manager.query_by_username(&query.username)?;
+    let result = block_it!(user_db.query_by_username(&query.username))?;
     Ok(Json(UserDisplayInfo::from(result)))
 }
 
 #[api(method = get, path = "/edit")]
-async fn edit_get(uid: Identity, manager: ServerData<UserDB>) -> JsonResult<UserEditInfo> {
-    let result = manager.query_by_userid(*uid)?;
+async fn edit_get(uid: Identity, user_db: ServerData<UserDB>) -> JsonResult<UserEditInfo> {
+    let result = block_it!(user_db.query_by_userid(*uid))?;
     Ok(Json(UserEditInfo::from(result)))
 }
 
@@ -35,9 +36,9 @@ async fn edit_get(uid: Identity, manager: ServerData<UserDB>) -> JsonResult<User
 async fn edit_post(
     uid: Identity,
     info: JsonBody<UserUpdateInfo>,
-    manager: ServerData<UserDB>,
+    user_db: ServerData<UserDB>,
 ) -> actix_web::Result<String> {
-    manager.update(*uid, info.into_inner())?;
+    block_it!(user_db.update(*uid, info.into_inner()))?;
     Ok("ok".to_string())
 }
 

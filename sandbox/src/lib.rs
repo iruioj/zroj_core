@@ -268,9 +268,9 @@ impl Memory {
         if self.0 < 1000 {
             format!("{self}bytes")
         } else if self.0 < 1_000_000 {
-            format!("{}kb", (self.0 as f64) / 1000.0)
+            format!("{}kb", (self.0 as f64) / 1024.0)
         } else {
-            format!("{}mb", (self.0 as f64) / 1000000.0)
+            format!("{}mb", (self.0 as f64) / 1024.0 / 1024.0)
         }
     }
 }

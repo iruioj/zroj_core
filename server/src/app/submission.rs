@@ -4,6 +4,7 @@ use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
 
 use crate::{
+    block_it,
     data::submission::{SubmDB, SubmInfo, SubmMeta},
     manager::problem_judger::ProblemJudger,
     marker::*,
@@ -30,8 +31,7 @@ async fn detail(
     judger: ServerData<ProblemJudger>,
 ) -> JsonResult<DetailReturn> {
     let logs = judger.get_logs(&payload.sid)?;
-    let info = subm_db.get_info(&payload.sid)?;
-    // let raw = subm_db.get_raw(&payload.sid)?.to_display_vec();
+    let info = block_it!(subm_db.get_info(&payload.sid))?;
 
     Ok(Json(DetailReturn {
         info,
@@ -56,13 +56,13 @@ async fn metas(
     query: QueryParam<SubmMetasQuery>,
 ) -> JsonResult<Vec<SubmMeta>> {
     let query = query.into_inner();
-    Ok(Json(subm_db.get_metas(
+    Ok(Json(block_it!(subm_db.get_metas(
         query.list.max_count,
         query.list.offset as usize,
         query.pid,
         query.uid,
         query.lang,
-    )?))
+    ))?))
 }
 
 /// 提供 problem 相关服务

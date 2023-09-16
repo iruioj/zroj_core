@@ -37,6 +37,14 @@ pub(crate) mod marker {
     pub type FormData<T> = actix_multipart::form::MultipartForm<T>;
     /// 标记一个 API 需要利用用户的身份信息
     pub type Identity = web::ReqData<crate::UserID>;
+
+    /// convenient shortcut for web::block
+    #[macro_export]
+    macro_rules! block_it {
+        {$( $line:stmt );*} => {
+            actix_web::web::block(move || { $( $line );* }).await?
+        };
+    }
 }
 
 #[derive(Debug)]

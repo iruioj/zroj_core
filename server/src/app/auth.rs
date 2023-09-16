@@ -3,8 +3,8 @@ use crate::data::{
     types::{EmailAddress, Username},
     user::UserDB,
 };
-use crate::marker::*;
 use crate::SessionID;
+use crate::{block_it, marker::*};
 use actix_session::Session;
 use actix_web::{error, web, HttpResponse};
 use serde::{Deserialize, Serialize};
@@ -28,12 +28,13 @@ pub struct LoginPayload {
 async fn login(
     payload: JsonBody<LoginPayload>,
     session_container: ServerData<SessionManager>,
-    user_data_manager: ServerData<UserDB>,
+    user_db: ServerData<UserDB>,
     session: Session,
 ) -> actix_web::Result<HttpResponse> {
     use actix_web::cookie::Cookie;
     tracing::info!("login request: {:?}", payload);
-    let user = user_data_manager.query_by_username(&payload.username)?;
+    let username = payload.username.clone();
+    let user = block_it!(user_db.query_by_username(&username))?;
 
     if !passwd::verify(&user.password_hash, &payload.password_hash) {
         Err(error::ErrorBadRequest("password not correct"))
@@ -63,20 +64,18 @@ pub struct RegisterPayload {
 #[api(method = post, path = "/register")]
 async fn register(
     payload: JsonBody<RegisterPayload>,
-    user_data_manager: ServerData<UserDB>,
+    user_db: ServerData<UserDB>,
 ) -> actix_web::Result<String> {
     eprintln!("handle register");
     eprintln!("register req: {:?}", &payload);
-    if user_data_manager
-        .query_by_username(&payload.username)
-        .is_ok()
-    {
-        return Err(error::ErrorBadRequest("User already exists"));
-    }
-    let user =
-        user_data_manager.new_user(&payload.username, &payload.password_hash, &payload.email)?;
-    dbg!(user);
-    Ok("Registration success".to_string())
+    let id = block_it! {
+        if user_db.query_by_username(&payload.username).is_ok() {
+            Err(crate::data::error::DataError::Conflict)
+        } else {
+            user_db.new_user(&payload.username, &payload.password_hash, &payload.email)
+        }
+    }?;
+    Ok(format!("successfully register user with id {id}"))
 }
 
 #[derive(Serialize, TsType)]
@@ -91,13 +90,13 @@ async fn inspect(
     user_id: Option<Identity>,
 ) -> JsonResult<AuthInfoRes> {
     if let Some(id) = user_id {
-        let user = user_db.query_by_userid(*id)?;
+        let user = block_it!(user_db.query_by_userid(*id))?;
         return Ok(web::Json(AuthInfoRes {
             username: user.username,
             email: user.email,
         }));
     }
-    Err(error::ErrorBadRequest("user not found"))
+    Err(error::ErrorBadRequest("invalid identity"))
 }
 
 #[api(method = post, path = "/logout")]

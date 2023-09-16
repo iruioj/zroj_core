@@ -11,8 +11,10 @@ pub enum DataError {
     PoisonError,
     #[error("data not found")]
     NotFound,
+    #[error("try to insert new but already exists")]
+    Conflict,
     #[error("send request: {0}")]
-    SendRequestError(#[from] awc::error::SendRequestError),
+    SendRequestError(String),
     #[error("store: {0}")]
     StoreError(#[from] store::Error),
     #[error("serde json: {0}")]

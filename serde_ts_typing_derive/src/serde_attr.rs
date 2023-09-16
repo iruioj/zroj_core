@@ -195,21 +195,15 @@ macro_rules! sep_value_sep_ret {
             let mut serialize = None;
             let mut deserialize = None;
             for meta in metas.0 {
-                let Meta::NameValue(meta) = meta else {
-                                    panic!("invalid meta in serde attr")
-                                };
+                let Meta::NameValue(meta) = meta else { panic!("invalid meta in serde attr") };
                 if meta.path.is_ident("serialize") {
-                    let Expr::Lit(syn::ExprLit { lit, .. }) = &meta.value else {
-                                        panic!("invalid meta in serde attr")
-                                    };
+                    let Expr::Lit(syn::ExprLit { lit, .. }) = &meta.value else { panic!("invalid meta in serde attr") };
                     if let Lit::Str(s) = lit {
                         serialize = Some(s.value().into())
                     }
                 }
                 if meta.path.is_ident("deserialize") {
-                    let Expr::Lit(syn::ExprLit { lit, .. }) = &meta.value else {
-                                        panic!("invalid meta in serde attr")
-                                    };
+                    let Expr::Lit(syn::ExprLit { lit, .. }) = &meta.value else { panic!("invalid meta in serde attr") };
                     if let Lit::Str(s) = lit {
                         deserialize = Some(s.value().into())
                     }
