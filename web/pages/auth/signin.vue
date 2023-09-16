@@ -24,7 +24,7 @@ const onSubmit = async (e: Event) => {
             passwordHash: pwd.login_hash(passwd.value),
           }),
           credentials: "include",
-        }
+        },
       );
       if (res.status === 200) {
         msg.value = "登陆成功";

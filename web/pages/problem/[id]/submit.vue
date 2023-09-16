@@ -14,48 +14,61 @@ const langs = [
   {
     title: "Python 3",
     value: "python",
-  }
+  },
 ];
 
-const lang = ref<typeof langs[0] | null>(null);
+const lang = ref<(typeof langs)[0] | null>(null);
 
-const submission = ref<Submission | null>(null)
+const submission = ref<Submission | null>(null);
 const onChangeSubmission = (subm: Submission) => {
-  submission.value = subm
-}
+  submission.value = subm;
+};
 
 const onSubmit = async () => {
-  const s = submission.value
-  if (!s) return
+  const s = submission.value;
+  if (!s) return;
 
-  const form = new FormData
+  const form = new FormData();
   form.append("pid", r.params.id as string);
   // append will not override existing key-value pair
-  if(s.type === "source") {
-    form.append("files", new File([s.payload], `source.${lang.value!.value}.cpp`))
+  if (s.type === "source") {
+    form.append(
+      "files",
+      new File([s.payload], `source.${lang.value!.value}.cpp`),
+    );
   } else {
-    form.append("files", new File([s.payload], `source.${lang.value!.value}.cpp`))
+    form.append(
+      "files",
+      new File([s.payload], `source.${lang.value!.value}.cpp`),
+    );
   }
 
-  const ret = await useAPI().problem.submit.post.fetch(form)
-  console.log(ret.sid)
-}
+  const ret = await useAPI().problem.submit.post.fetch(form);
+  console.log(ret.sid);
+};
 </script>
 
 <script lang="ts">
-export type Submission = {
-  type: 'source',
-  payload: string
-} | {
-  type: 'file',
-  payload: File
-};
+export type Submission =
+  | {
+      type: "source";
+      payload: string;
+    }
+  | {
+      type: "file";
+      payload: File;
+    };
 </script>
 
 <template>
   <div>
     <div class="flex mt-2 mb-4">
-      <InputSelect :items="langs" placeholder="选择语言" class="w-32" v-model="lang" />
+      <InputSelect
+        v-model="lang"
+        :items="langs"
+        placeholder="选择语言"
+        class="w-32"
+      />
       <UBtn class="mx-2" @click="onSubmit">提交</UBtn>
       <div class="grow"></div>
       <RouterTabsBar

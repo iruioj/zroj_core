@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import Node from "./Node.vue";
 import { NodeParagraph } from "composables/api";
+import Node from "./Node.vue";
 
 defineProps<{
   data: NodeParagraph;

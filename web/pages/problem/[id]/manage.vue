@@ -5,7 +5,7 @@ const props = defineProps<{
 const { error, info } = useMsgStore();
 
 const file = ref<File | null>(null);
-const { data: fulldata_meta } = await useAPI().problem.fulldata_meta.get.use({
+const { data: fulldataMeta } = await useAPI().problem.fulldata_meta.get.use({
   id: props.pid,
 });
 
@@ -31,7 +31,7 @@ const onSubmit = async (e: Event) => {
 
 <template>
   <div>
-    <CodeBlock v-if="fulldata_meta" :raw="String(fulldata_meta)" lang="" />
+    <CodeBlock v-if="fulldataMeta" :raw="String(fulldataMeta)" lang="" />
     <div v-else>暂无数据</div>
     <div class="my-1">上传题目文件</div>
     <InputFile class="my-1" @change="onChange" />

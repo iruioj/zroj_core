@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import CodeBlock from "../CodeBlock.vue";
 import { NodeCode } from "composables/api";
+import CodeBlock from "../CodeBlock.vue";
 
 defineProps<{
   data: NodeCode;

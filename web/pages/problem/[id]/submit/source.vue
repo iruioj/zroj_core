@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import type { Submission } from '../submit.vue';
+import type { Submission } from "../submit.vue";
 const source = ref("");
 
 const emit = defineEmits<{
-  (e: 'change', payload: Submission): void
-}>()
+  (e: "change", payload: Submission): void;
+}>();
 
-watch([source], ([source]) => {
-  emit('change', { type: 'source', payload: source })
-}, {
-  immediate: true
-})
-
+watch(
+  [source],
+  ([source]) => {
+    emit("change", { type: "source", payload: source });
+  },
+  {
+    immediate: true,
+  },
+);
 </script>
 <template>
   <textarea

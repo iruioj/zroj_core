@@ -6,7 +6,7 @@ const data = {
 
 async function* allfiles(
   dirHandle: any,
-  prefix = ""
+  prefix = "",
 ): AsyncGenerator<[string, FileSystemFileHandle]> {
   prefix += dirHandle.name + "/";
   for await (const [_, value] of dirHandle.entries()) {

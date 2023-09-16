@@ -13,7 +13,7 @@ int main() {
 }
 `);
 const inp = ref("1 2");
-const lang = ref<typeof langs[0] | null>(null);
+const lang = ref<(typeof langs)[0] | null>(null);
 
 const langs = [
   {
@@ -28,8 +28,8 @@ const langs = [
   },
 ];
 
-const isJudging = useState('oneoff_is_judging', () => false);
-const judgeResult = useState<TaskReport | null>('oneoff_report', () => null);
+const isJudging = useState("oneoff_is_judging", () => false);
+const judgeResult = useState<TaskReport | null>("oneoff_report", () => null);
 
 const onSubmit = async () => {
   const data = new FormData();
@@ -70,10 +70,10 @@ const onSubmit = async () => {
     <div class="mt-8 mb-4 text-2xl text-brand font-medium">自定义测试</div>
     <div class="flex my-2">
       <InputSelect
+        v-model="lang"
         :items="langs"
         placeholder="选择语言"
         class="w-32"
-        v-model="lang"
       />
       <UBtn class="mx-2" @click="onSubmit">提交</UBtn>
     </div>

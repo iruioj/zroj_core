@@ -3,9 +3,6 @@ import { defineStore } from "pinia";
 // todo: https://github.com/damien-hl/nuxt3-auth-example/blob/main/composables/auth/useAuth.ts
 export const useAuth = defineStore("auth_store", () => {
   const username = ref<null | string>(null);
-  if (process.client) {
-    refresh();
-  }
 
   async function refresh() {
     if (process.client) {
@@ -17,7 +14,7 @@ export const useAuth = defineStore("auth_store", () => {
             "Content-Type": "application/json",
           },
           mode: "cors",
-        }
+        },
       );
       if (res.ok) {
         const data = await res.json();
@@ -26,6 +23,10 @@ export const useAuth = defineStore("auth_store", () => {
         username.value = null;
       }
     }
+  }
+
+  if (process.client) {
+    refresh();
   }
 
   return {

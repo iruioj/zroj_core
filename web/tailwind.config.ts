@@ -82,12 +82,12 @@ const config: Partial<Config> = {
             " inset !important",
           "-webkit-text-fill-color": `${front.replace(
             "<alpha-value>",
-            "1"
+            "1",
           )} !important`,
         },
         html: {
           color: "rgb(var(--theme-pri))",
-          'background-color': back.replace("<alpha-value>", "1")
+          "background-color": back.replace("<alpha-value>", "1"),
         },
         // '@media (prefers-color-scheme: dark)': {
         //   'html': {

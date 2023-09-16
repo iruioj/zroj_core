@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ProbMetasQuery } from '~/composables/api';
+import { ProbMetasQuery } from "~/composables/api";
 
 const route = useRoute();
 const router = useRouter();
@@ -33,47 +33,51 @@ const onSearch = () => {
 </script>
 <template>
   <PageContainer>
-      <div class="md:flex justify-center">
-        <div class="flex py-1">
-          <div class="mx-1">
-            <UBtn :disable="query.offset <= 0" @click="toPrevPage">上一页</UBtn>
-          </div>
-          <div class="mx-1">
-            <UBtn :disable="(data?.length || 0) < query.max_count" @click="toNextPage">下一页</UBtn>
-          </div>
+    <div class="md:flex justify-center">
+      <div class="flex py-1">
+        <div class="mx-1">
+          <UBtn :disable="query.offset <= 0" @click="toPrevPage">上一页</UBtn>
         </div>
-        <div class="flex py-1">
-          <form class="mx-1" @submit.prevent="onSearch">
-            <InputText v-model="pattern" />
-          </form>
-          <div class="mx-1">
-            <UBtn @click="onSearch">搜索</UBtn>
-          </div>
+        <div class="mx-1">
+          <UBtn
+            :disable="(data?.length || 0) < query.max_count"
+            @click="toNextPage"
+            >下一页</UBtn
+          >
         </div>
       </div>
-      <div class="py-2">
-        <table class="w-full">
-          <thead>
-            <TableHeaderRow>
-              <th class="pb-2">ID</th>
-              <!-- <th class="w-7 pb-2"></th> -->
-              <th class="pb-2 text-left">题目</th>
-              <!-- <th class="pb-2">通过数</th> -->
-            </TableHeaderRow>
-          </thead>
-          <tbody v-if="data">
-            <TableRow v-for="p in data" :key="p.id">
-              <td class="text-center py-2">{{ p.id }}</td>
-              <!-- <td class="text-center py-2">
+      <div class="flex py-1">
+        <form class="mx-1" @submit.prevent="onSearch">
+          <InputText v-model="pattern" />
+        </form>
+        <div class="mx-1">
+          <UBtn @click="onSearch">搜索</UBtn>
+        </div>
+      </div>
+    </div>
+    <div class="py-2">
+      <table class="w-full">
+        <thead>
+          <TableHeaderRow>
+            <th class="pb-2">ID</th>
+            <!-- <th class="w-7 pb-2"></th> -->
+            <th class="pb-2 text-left">题目</th>
+            <!-- <th class="pb-2">通过数</th> -->
+          </TableHeaderRow>
+        </thead>
+        <tbody v-if="data">
+          <TableRow v-for="p in data" :key="p.id">
+            <td class="text-center py-2">{{ p.id }}</td>
+            <!-- <td class="text-center py-2">
                 <NuxtIcon v-if="p.accepted" class="inline-block align-middle text-brand" name="check" />
               </td> -->
-              <td class="py-2">
-                <TextLink :to="'/problem/' + p.id">{{ p.title }}</TextLink>
-              </td>
-              <!-- <td class="text-center py-2">{{ p.accepts }}</td> -->
-            </TableRow>
-          </tbody>
-        </table>
-      </div>
+            <td class="py-2">
+              <TextLink :to="'/problem/' + p.id">{{ p.title }}</TextLink>
+            </td>
+            <!-- <td class="text-center py-2">{{ p.accepts }}</td> -->
+          </TableRow>
+        </tbody>
+      </table>
+    </div>
   </PageContainer>
 </template>

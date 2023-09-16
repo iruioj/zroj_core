@@ -1,7 +1,7 @@
 <script lang="ts" setup>
+import { NodeTwoColumns } from "composables/api";
 import Node from "./Node.vue";
 import Code from "./Code.vue";
-import { NodeTwoColumns } from "composables/api";
 
 defineProps<{
   data: NodeTwoColumns;

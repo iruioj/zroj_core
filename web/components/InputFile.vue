@@ -1,5 +1,9 @@
 <!-- 单个文件读入 -->
 <script lang="ts" setup>
+const emit = defineEmits<{
+  (e: "change", payload: File): void;
+}>();
+
 const fileinput = ref<HTMLInputElement | null>(null);
 const cur = ref<File | null>(null);
 const onFileChange = () => {
@@ -9,10 +13,6 @@ const onFileChange = () => {
     emit("change", cur.value);
   }
 };
-
-const emit = defineEmits<{
-  (e: "change", payload: File): void;
-}>();
 </script>
 
 <template>

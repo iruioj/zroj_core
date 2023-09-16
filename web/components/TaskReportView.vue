@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { TaskReport } from 'composables/api';
+import { TaskReport } from "composables/api";
 
 defineProps<{
-  data: TaskReport,
-  collapse?: boolean,
-}>()
-
+  data: TaskReport;
+  collapse?: boolean;
+}>();
 
 const statusTitle = {
   good: "Accepted",
@@ -19,7 +18,7 @@ const statusTitle = {
   runtime_error: "Runtime Error",
   time_limit_exceeded: "Time Limited Exceeded",
   wrong_answer: "Wrong Answer",
-}
+};
 </script>
 
 <template>
@@ -36,7 +35,9 @@ const statusTitle = {
           <div v-if="ctnt.str.length" class="px-2 py-1">
             <div>
               <span>{{ name }}</span>
-              <span class="text-secondary font-mono" v-if="ctnt.truncated"> ({{ ctnt.truncated }} characters truncated)</span>
+              <span v-if="ctnt.truncated" class="text-secondary font-mono">
+                ({{ ctnt.truncated }} characters truncated)</span
+              >
             </div>
             <CodeBlock :raw="ctnt.str" lang="" />
           </div>

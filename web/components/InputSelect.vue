@@ -6,11 +6,10 @@ type Item = {
 </script>
 
 <script setup lang="ts">
-
 const props = defineProps<{
   items: Item[];
   placeholder?: string;
-  modelValue?: Item | null
+  modelValue?: Item | null;
 }>();
 
 const emit = defineEmits<{
