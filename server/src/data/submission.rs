@@ -2,7 +2,7 @@ use super::{
     error::DataError,
     mysql::{
         last_insert_id,
-        schema::{problems, submission_details, submission_metas},
+        schema::{problems, submission_details, submission_metas, users},
         schema_model::SubmissionMeta,
         MysqlConfig, MysqlDb,
     },
@@ -19,6 +19,7 @@ pub struct SubmMeta {
     pid: ProblemID,
     problem_title: String,
     uid: UserID,
+    username: Username,
     submit_time: String,
     judge_time: Option<String>,
     lang: Option<judger::FileType>,
@@ -27,13 +28,14 @@ pub struct SubmMeta {
     memory: Option<problem::Memory>,
 }
 
-impl From<(SubmissionMeta, String)> for SubmMeta {
-    fn from((s, title): (SubmissionMeta, String)) -> Self {
+impl From<(SubmissionMeta, String, Username)> for SubmMeta {
+    fn from((s, problem_title, username): (SubmissionMeta, String, Username)) -> Self {
         Self {
             id: s.id,
             pid: s.pid,
-            problem_title: title,
+            problem_title,
             uid: s.uid,
+            username,
             submit_time: s.submit_time.to_string(),
             judge_time: s.judge_time.map(|o| o.to_string()),
             lang: s.lang.map(|o| o.0),
@@ -136,8 +138,12 @@ impl Manager for Mysql {
                 .select(problems::title)
                 .filter(problems::id.eq(meta.pid))
                 .first(conn)?;
+            let username: Username = users::table
+                .select(users::username)
+                .filter(users::id.eq(meta.uid))
+                .first(conn)?;
             Ok(SubmInfo {
-                meta: SubmMeta::from((meta, title)),
+                meta: SubmMeta::from((meta, title, username)),
                 raw: detail.raw,
                 report: detail.report,
             })
@@ -187,10 +193,14 @@ impl Manager for Mysql {
             if let Some(lang) = lang {
                 table = table.filter(submission_metas::lang.eq(JsonStr(lang)));
             }
-            let table = table.inner_join(problems::table);
-            let res: Vec<(SubmissionMeta, String)> = table
-                .select((SubmissionMeta::as_select(), problems::title))
-                .load::<(SubmissionMeta, String)>(conn)?;
+            let table = table.inner_join(problems::table).inner_join(users::table);
+            let res: Vec<(SubmissionMeta, String, Username)> = table
+                .select((
+                    SubmissionMeta::as_select(),
+                    problems::title,
+                    users::username,
+                ))
+                .load::<(SubmissionMeta, String, Username)>(conn)?;
             Ok(res.into_iter().map(SubmMeta::from).collect())
         })
     }

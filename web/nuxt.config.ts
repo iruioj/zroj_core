@@ -29,4 +29,12 @@ export default defineNuxtConfig({
   devtools: {
     enabled: true,
   },
+
+  typescript: {
+    tsConfig: {
+      compilerOptions: {
+        moduleResolution: 'bundler'
+      }
+    }
+  }
 });

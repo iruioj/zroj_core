@@ -89,6 +89,6 @@ const onSubmit = async () => {
       class="bg-back border border-slate-400 w-full overflow-y-auto font-mono p-2 h-32 outline-brand rounded"
     ></textarea>
     <div v-if="isJudging">评测中...</div>
-    <TaskReportView v-else-if="judgeResult" :data="judgeResult" />
+    <ReportTask v-else-if="judgeResult" :data="judgeResult" expand />
   </PageContainer>
 </template>

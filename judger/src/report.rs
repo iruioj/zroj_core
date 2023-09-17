@@ -136,6 +136,7 @@ pub struct SubtaskReport {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TsType)]
+#[serde(tag = "type", content = "tasks")]
 pub enum JudgeDetail {
     Subtask(Vec<SubtaskReport>),
     Tests(Vec<Option<TaskReport>>),

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { red } from 'tailwindcss/colors';
+
 const r = useRoute();
 
 if (r.name === "problem-id-submit") {
@@ -44,7 +46,9 @@ const onSubmit = async () => {
   }
 
   const ret = await useAPI().problem.submit.post.fetch(form);
-  console.log(ret.sid);
+
+  navigateTo('/submission/' + ret.sid)
+  // console.log(ret.sid);
 };
 </script>
 

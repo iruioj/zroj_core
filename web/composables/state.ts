@@ -34,7 +34,6 @@ export const useAuth = defineStore("auth_store", () => {
     refresh,
   };
 });
-//  () => useAPI().auth.info.get(); //useAPI("get:/auth/info")
 
 type Message = {
   id: number;
@@ -63,3 +62,5 @@ export const useMsgStore = defineStore("message_list", () => {
 
   return { info, error, list };
 });
+
+export const useSubmExpandID = () => useState('subm_expand_id', () => '')
