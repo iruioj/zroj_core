@@ -25,7 +25,7 @@ async fn custom_test_post(
     uid: Identity,
 ) -> AnyResult<String> {
     let Some((_, source)) = parse_named_file(&payload.source) else {
-        return Err(ErrorBadRequest("invalid payload file"))
+        return Err(ErrorBadRequest("invalid payload file"));
     };
     if !source.file_type.compileable() {
         return Err(ErrorBadRequest("file not compilable"));

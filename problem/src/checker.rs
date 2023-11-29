@@ -13,7 +13,9 @@ fn compare_byline(
     let outs = output.lines().map_while(Result::ok).enumerate();
     let mut anss = answer.lines().map_while(Result::ok);
     for (id, out) in outs {
-        let Some(ans) = anss.next() else { return Err("incorrect number of lines".into()); };
+        let Some(ans) = anss.next() else {
+            return Err("incorrect number of lines".into());
+        };
         f(id, out, ans)?
     }
     Ok(())
@@ -96,7 +98,9 @@ impl Checker {
         output: Handle,
         answer: Handle,
     ) -> Result<String, String> {
-        let Ok(fout) = output.open_file() else { return Err("can not open output file".into()) };
+        let Ok(fout) = output.open_file() else {
+            return Err("can not open output file".into());
+        };
         let fout = BufReader::new(fout);
         let fans = BufReader::new(answer.open_file().expect("can not open answer file"));
 

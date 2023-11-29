@@ -35,12 +35,7 @@ impl EntryRoot {
             .0
             .iter()
             .map(|s| s.gen_code(&String::new()))
-            .reduce(|acc, cur| {
-                (
-                    acc.0 + &cur.0,
-                    acc.1.into_iter().chain(cur.1.into_iter()).collect(),
-                )
-            })
+            .reduce(|acc, cur| (acc.0 + &cur.0, acc.1.into_iter().chain(cur.1).collect()))
             .unwrap();
 
         format!(
@@ -67,7 +62,9 @@ impl EntryNode {
         let mut children: Vec<EntryNode> = children
             .into_iter()
             .map(|c| {
-                let EntryNode::Path { slug, children } = c else { return c };
+                let EntryNode::Path { slug, children } = c else {
+                    return c;
+                };
                 if slug == slugs[0] {
                     flag = true;
                     EntryNode::Path {
@@ -145,12 +142,7 @@ impl EntryNode {
                 let inner = children
                     .iter()
                     .map(|c| c.gen_code(&(path.clone() + "/" + slug)))
-                    .reduce(|acc, cur| {
-                        (
-                            acc.0 + &cur.0,
-                            acc.1.into_iter().chain(cur.1.into_iter()).collect(),
-                        )
-                    })
+                    .reduce(|acc, cur| (acc.0 + &cur.0, acc.1.into_iter().chain(cur.1).collect()))
                     .unwrap();
                 (format!("{slug}: {{ {} }},\n", inner.0), inner.1)
             }

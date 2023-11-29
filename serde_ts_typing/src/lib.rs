@@ -91,12 +91,18 @@ impl TypeExpr {
         TypeExpr::Struct(BTreeMap::new())
     }
     pub fn struct_insert(&mut self, k: String, v_type: TypeExpr) {
-        let Self::Struct(s) = self else { panic!("invalid struct to insert") };
+        let Self::Struct(s) = self else {
+            panic!("invalid struct to insert")
+        };
         s.insert(k, v_type);
     }
     pub fn struct_merge(&mut self, v_type: TypeExpr) {
-        let Self::Struct(s) = self else { panic!("invalid struct to merge") };
-        let Self::Struct(t) = v_type else { panic!("invalid struct to be merged {:?}", v_type) };
+        let Self::Struct(s) = self else {
+            panic!("invalid struct to merge")
+        };
+        let Self::Struct(t) = v_type else {
+            panic!("invalid struct to be merged {:?}", v_type)
+        };
         t.into_iter().for_each(|(k, v)| {
             s.insert(k, v);
         });

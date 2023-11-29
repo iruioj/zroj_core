@@ -61,10 +61,16 @@ int main() {
         let mut v = vec![];
 
         for _ in 0..3 {
-            let Ok(ok_exec) = cache.get_exec(&FileType::GnuCpp17O2, &ok) else { panic!(); };
-            let Err(ce_info) = cache.get_exec(&FileType::GnuCpp17O2, &ce) else { panic!(); };
+            let Ok(ok_exec) = cache.get_exec(&FileType::GnuCpp17O2, &ok) else {
+                panic!();
+            };
+            let Err(ce_info) = cache.get_exec(&FileType::GnuCpp17O2, &ce) else {
+                panic!();
+            };
 
-            let  judger::Error::CacheCE(Stat::RuntimeError(x, s)) = ce_info else { panic!(); };
+            let judger::Error::CacheCE(Stat::RuntimeError(x, s)) = ce_info else {
+                panic!();
+            };
 
             dbg!(ok_exec.display());
             assert!(regex.is_match(&format!("{}", ok_exec.display())));

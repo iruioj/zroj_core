@@ -63,10 +63,10 @@ impl<T: PartialOrd + FromStr> FromStr for Lim<T> {
         match a.as_slice() {
             [s, h] => {
                 let Ok(s) = s.parse() else {
-                    return Ok(Self::None)
+                    return Ok(Self::None);
                 };
                 let Ok(h) = h.parse() else {
-                    return Ok(Self::Single(s))
+                    return Ok(Self::Single(s));
                 };
                 Ok(Self::Double(s, h))
             }
