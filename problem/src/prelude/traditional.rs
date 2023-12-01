@@ -1,3 +1,5 @@
+use std::{ffi::CString, os::unix::ffi::OsStrExt};
+
 use crate::{
     data::StoreFile, judger_framework::JudgeTask, utils::*, Checker, Override, RuntimeError,
 };
@@ -85,21 +87,22 @@ impl JudgeTask for Traditional {
         copy_in_wd(&mut task.input, &wd, "input")?;
         copy_in_wd(&mut task.output, &wd, "answer")?;
 
-        let s = Singleton::new(wd.join("main"))
-            .stdin(wd.join("input"))
-            .stdout(wd.join("output"))
-            .stderr(wd.join("log"))
-            .set_limits(|_| judger::sandbox::unix::Limitation {
-                real_time: Lim::Double(meta.time_limit, Elapse::from(meta.time_limit.ms() * 2)),
-                cpu_time: meta.time_limit.into(),
-                virtual_memory: meta.memory_limit.into(),
-                real_memory: meta.memory_limit.into(),
-                stack_memory: meta.memory_limit.into(),
-                output_memory: meta.output_limit.into(),
-                fileno: 5.into(),
-            });
+        let s =
+            Singleton::new(CString::new(wd.join("main").as_ref().as_os_str().as_bytes()).unwrap())
+                .stdin(CString::new(wd.join("input").as_ref().as_os_str().as_bytes()).unwrap())
+                .stdout(CString::new(wd.join("output").as_ref().as_os_str().as_bytes()).unwrap())
+                .stderr(CString::new(wd.join("log").as_ref().as_os_str().as_bytes()).unwrap())
+                .set_limits(|_| judger::sandbox::unix::Limitation {
+                    real_time: Lim::Double(meta.time_limit, Elapse::from(meta.time_limit.ms() * 2)),
+                    cpu_time: meta.time_limit.into(),
+                    virtual_memory: meta.memory_limit.into(),
+                    real_memory: meta.memory_limit.into(),
+                    stack_memory: meta.memory_limit.into(),
+                    output_memory: meta.output_limit.into(),
+                    fileno: 5.into(),
+                });
 
-        let term = s.exec_fork()?;
+        let term = s.exec_sandbox().unwrap();
         let term_status = term.status.clone();
 
         let mut report = judger::TaskReport {

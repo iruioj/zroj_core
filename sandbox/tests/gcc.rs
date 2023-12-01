@@ -1,10 +1,18 @@
 use std::io::Write;
 use tempfile::tempdir;
 
+macro_rules! cstring {
+    ($e:expr) => {
+        std::ffi::CString::new($e.as_bytes().to_vec()).unwrap()
+    };
+}
+
 #[test]
 #[cfg(unix)]
 #[cfg_attr(not(target_os = "linux"), ignore = "not linux")]
-fn test_gcc_linux() -> Result<(), sandbox::SandboxError> {
+fn test_gcc_linux() -> anyhow::Result<()> {
+    use std::os::unix::ffi::OsStrExt;
+
     use sandbox::{
         unix::{Lim, Limitation, Singleton},
         ExecSandBox, Status,
@@ -16,13 +24,15 @@ fn test_gcc_linux() -> Result<(), sandbox::SandboxError> {
     let mut file = std::fs::File::create(filepath).unwrap();
     let source = include_str!("asserts/stress.txt");
     file.write_all(source.as_bytes()).unwrap();
-    let s = Singleton::new("/usr/bin/g++")
-        .push_arg("g++")
-        .push_arg(filepath)
-        .push_arg("-o")
-        .push_arg(execpath)
-        .push_arg("-O2")
-        .push_env("PATH=/user/local/bin:/usr/bin")
+    let s = Singleton::new(cstring!("/usr/bin/g++"))
+        .push_arg([
+            cstring!("g++"),
+            cstring!(filepath.as_os_str()),
+            cstring!("-o"),
+            cstring!(execpath.as_os_str()),
+            cstring!("-O2"),
+        ])
+        .push_env([cstring!("PATH=/user/local/bin:/usr/bin")])
         .set_limits(|_| Limitation {
             real_time: Lim::Single(7000.into()),
             cpu_time: Lim::Single(7000.into()),
@@ -32,7 +42,7 @@ fn test_gcc_linux() -> Result<(), sandbox::SandboxError> {
             output_memory: Lim::Single((64 << 20).into()),
             fileno: Lim::Single(30),
         });
-    let term = s.exec_fork()?;
+    let term = s.exec_sandbox()?;
     assert_eq!(term.status, Status::Ok);
     dbg!(&term);
     Ok(())

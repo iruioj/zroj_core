@@ -8,15 +8,11 @@
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use std::{
-    ffi::{CString, NulError},
     fmt::{Debug, Display},
     str::FromStr,
     time::Duration,
 };
 
-/// 沙盒运行过程中产生的错误（系统错误）
-pub mod error;
-pub use error::SandboxError;
 /// Unix 系统下的沙盒 API
 #[cfg(unix)]
 pub mod unix;
@@ -69,13 +65,6 @@ impl Status {
     }
 }
 
-#[cfg(unix)]
-impl From<nix::sys::signal::Signal> for Status {
-    fn from(signal: nix::sys::signal::Signal) -> Self {
-        Self::RuntimeError(0, Some(signal.to_string()))
-    }
-}
-
 /// 终止时的信息
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Termination {
@@ -89,88 +78,13 @@ pub struct Termination {
     pub memory: Memory,
 }
 
-#[cfg(unix)]
-impl From<nix::sys::signal::Signal> for Termination {
-    fn from(signal: nix::sys::signal::Signal) -> Self {
-        // 存在优化的可能，即通过 signal 判断状态
-        Self {
-            status: Status::from(signal),
-            real_time: Elapse::default(),
-            cpu_time: Elapse::default(),
-            memory: Memory::default(),
-        }
-    }
-}
-
-fn vec_str_to_vec_cstr(strs: &[String]) -> Result<Vec<CString>, NulError> {
-    strs.iter().map(|s| CString::new(s.clone())).collect()
-}
-
 /// 在沙箱中执行一系列的任务，返回相应的结果
 pub trait ExecSandBox {
     /// 在实现时需要考虑 async-signal-safe，详见
     ///
     /// <https://docs.rs/nix/latest/nix/unistd/fn.fork.html#safety>
     ///
-    fn exec_sandbox(&self) -> Result<Termination, SandboxError>;
-
-    /// Unix Only: 在执行 exec_fork 内部执行此函数，如果失败会直接返回 Error，子进程会返回异常
-    #[cfg(unix)]
-    fn exec_sandbox_fork(&self, result_file: &mut std::fs::File) -> Result<(), SandboxError> {
-        use std::io::Write;
-
-        result_file
-            .write_all(
-                serde_json::to_string(&self.exec_sandbox())
-                    .expect("error serializing execution result")
-                    .as_bytes(),
-            )
-            .expect("error writing result to file");
-        Ok(())
-    }
-
-    /// Unix only: 先 fork 一个子进程再执行程序，避免主进程终止导致整个进程终止
-    ///
-    /// 避免 getrusage 出现累加的情况
-    #[cfg(unix)]
-    fn exec_fork(&self) -> Result<Termination, SandboxError> {
-        use std::io::{Seek, SeekFrom};
-        use tempfile::tempfile;
-
-        use nix::sys::wait::{waitpid, WaitStatus};
-        use nix::unistd::fork;
-        use nix::unistd::ForkResult;
-
-        let mut tmp = tempfile().unwrap();
-
-        match unsafe { fork() } {
-            Err(e) => Err(SandboxError::Fork(e)),
-            Ok(ForkResult::Parent { child, .. }) => {
-                match waitpid(child, None).expect("wait pid failed") {
-                    WaitStatus::Signaled(pid, signal, _) => {
-                        panic!("主进程被杀死，pid = {}, signal = {}", pid, signal)
-                    }
-                    WaitStatus::Stopped(pid, signal) => {
-                        panic!("主进程被停止，pid = {}, signal = {}", pid, signal)
-                    }
-                    WaitStatus::Exited(pid, code) => {
-                        if code != 0 {
-                            panic!("主进程异常，code = {}，pid = {}", code, pid);
-                        }
-                        // 从开头读取
-                        tmp.seek(SeekFrom::Start(0))
-                            .expect("error seek start from tmp file");
-                        serde_json::from_reader(tmp).expect("error reading termination result")
-                    }
-                    _ => panic!("未知的等待结果"),
-                }
-            }
-            Ok(ForkResult::Child) => match self.exec_sandbox_fork(&mut tmp) {
-                Ok(_) => unsafe { nix::libc::_exit(0) },
-                Err(_) => unsafe { nix::libc::_exit(1) },
-            },
-        }
-    }
+    fn exec_sandbox(&self) -> anyhow::Result<Termination>;
 }
 
 /// 时间表示，数值单位为 ms
@@ -182,6 +96,14 @@ pub struct Elapse(u64);
 impl From<Elapse> for u64 {
     fn from(value: Elapse) -> Self {
         value.0
+    }
+}
+
+impl std::ops::Add<Elapse> for Elapse {
+    type Output = Elapse;
+
+    fn add(self, rhs: Elapse) -> Self::Output {
+        Elapse(self.0 + rhs.0)
     }
 }
 
@@ -273,6 +195,16 @@ impl Memory {
             format!("{}mb", (self.0 as f64) / 1024.0 / 1024.0)
         }
     }
+}
+
+/// copy from nix, create a null-terminate c-style string array.
+/// This function is not necessarily async-signal safe
+fn to_exec_array(args: Vec<std::ffi::CString>) -> Vec<*mut std::ffi::c_char> {
+    use std::iter::once;
+    args.into_iter()
+        .map(|s| s.into_raw())
+        .chain(once(std::ptr::null_mut()))
+        .collect()
 }
 
 #[allow(unused_imports)]

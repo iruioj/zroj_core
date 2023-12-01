@@ -2,6 +2,8 @@ use sandbox::unix::{Lim, Limitation, Singleton};
 use sandbox::{mem, time, Elapse, ExecSandBox, Memory};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
+use std::ffi::CString;
+use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -63,13 +65,26 @@ impl Compile for GnuCpp {
             envs.push(format!("{}={}", key, value));
         }
         Box::new(
-            Singleton::new(&self.gpp_path)
-                .push_arg("g++")
-                .push_arg(&self.extra_args)
-                .push_arg(source.as_ref())
-                .push_arg("-o")
-                .push_arg(dest.as_ref())
-                .push_env(envs)
+            Singleton::new(CString::new(self.gpp_path.as_os_str().as_bytes()).unwrap())
+                .push_arg([CString::new("g++").unwrap()])
+                .push_arg(
+                    self.extra_args
+                        .iter()
+                        .map(|s| CString::new(s.as_bytes()))
+                        .collect::<Result<Vec<CString>, _>>()
+                        .unwrap(),
+                )
+                .push_arg([
+                    CString::new(source.as_ref().as_os_str().as_bytes()).unwrap(),
+                    CString::new("-o").unwrap(),
+                    CString::new(dest.as_ref().as_os_str().as_bytes()).unwrap(),
+                ])
+                .push_env(
+                    envs.iter()
+                        .map(|s| CString::new(s.as_bytes()))
+                        .collect::<Result<Vec<CString>, _>>()
+                        .unwrap(),
+                )
                 .set_limits(|_| Limitation {
                     real_time: Lim::Double(time!(10s), time!(20s)),
                     cpu_time: time!(10s).into(),
@@ -79,7 +94,7 @@ impl Compile for GnuCpp {
                     output_memory: mem!(1gb).into(),
                     fileno: 200.into(),
                 })
-                .stderr(log),
+                .stderr(CString::new(log.as_ref().as_os_str().as_bytes()).unwrap()),
         )
     }
 }

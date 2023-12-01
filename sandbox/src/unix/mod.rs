@@ -1,8 +1,10 @@
+pub(crate) mod share_mem;
+pub(crate) mod signal_safe;
 pub(crate) mod singleton;
+
 use std::fmt::Display;
 use std::str::FromStr;
 
-pub use singleton::Arg;
 pub use singleton::Singleton;
 
 use serde::{Deserialize, Serialize};

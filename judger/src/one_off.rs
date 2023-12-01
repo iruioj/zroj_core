@@ -49,7 +49,7 @@ impl OneOff {
             unix::{Lim, Singleton},
             ExecSandBox,
         };
-        use std::process::Command;
+        use std::{ffi::CString, os::unix::ffi::OsStrExt, process::Command};
 
         let src = self
             .working_dir
@@ -85,7 +85,8 @@ impl OneOff {
                 .file
                 .file_type
                 .compile_sandbox(&src, &dest, &clog)
-                .exec_fork()?;
+                .exec_sandbox()
+                .unwrap();
             let st = term.status.clone();
             if st != sandbox::Status::Ok {
                 let r = TaskReport::new(TaskMeta {
@@ -145,7 +146,7 @@ impl OneOff {
             let term_file = term_f.open_file().unwrap();
             serde_json::from_reader(&term_file).unwrap()
         } else {
-            let s = Singleton::new(dest)
+            let s = Singleton::new(CString::new(dest.as_ref().as_os_str().as_bytes()).unwrap())
                 .set_limits(|_| Limitation {
                     real_time: Lim::Double(self.time_limit, Elapse::from(self.time_limit.ms() * 2)),
                     cpu_time: self.time_limit.into(),
@@ -155,12 +156,12 @@ impl OneOff {
                     output_memory: self.output_limit.into(),
                     fileno: self.fileno_limit.into(),
                 })
-                .stdout(&out)
-                .stderr(&log)
-                .stdin(input);
+                .stdout(CString::new(out.as_ref().as_os_str().as_bytes()).unwrap())
+                .stderr(CString::new(log.as_ref().as_os_str().as_bytes()).unwrap())
+                .stdin(CString::new(input.as_ref().as_os_str().as_bytes()).unwrap());
             eprintln!("开始运行选手程序");
             // 为了避免 getrusage 数值累加，使用 exec_fork
-            let term = s.exec_fork()?;
+            let term = s.exec_sandbox().unwrap();
             eprintln!("程序运行结束");
             term
         };

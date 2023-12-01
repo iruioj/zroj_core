@@ -1,5 +1,3 @@
-use judger::sandbox;
-
 /// 在评测题目时出现的错误，注意这里是指评测错误，不包括选手程序的错误
 #[derive(thiserror::Error, Debug)]
 pub enum RuntimeError {
@@ -8,6 +6,4 @@ pub enum RuntimeError {
     IO(#[from] std::io::Error),
     #[error("store: {0}")]
     Store(#[from] store::Error),
-    #[error("sandbox: {0}")]
-    Sandbox(#[from] sandbox::error::SandboxError),
 }

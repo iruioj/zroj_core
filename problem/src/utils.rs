@@ -19,7 +19,8 @@ pub fn compile_in_wd(
     let term = file
         .file_type
         .compile_sandbox(&src, &exec, &clog)
-        .exec_fork()?;
+        .exec_sandbox()
+        .unwrap();
     Ok(term)
 }
 pub fn copy_in_wd(

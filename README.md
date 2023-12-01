@@ -28,3 +28,14 @@ cargo run --bin test_all -- nocapture
 cargo clippy --fix --allow-dirty --all-features -- --allow "clippy::type_complexity"
 cargo fmt
 ```
+
+## Add Hooks before commit
+
+editing `.git/hooks/pre-commit`:
+
+```sh
+#!/bin/zsh
+
+cargo clippy --fix --allow-dirty --all-features -- --allow "clippy::type_complexity"
+cargo fmt
+```
