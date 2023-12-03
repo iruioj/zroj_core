@@ -118,9 +118,9 @@ impl From<sandbox::Status> for Status {
     fn from(value: sandbox::Status) -> Self {
         match value {
             sandbox::Status::Ok => Status::Good,
-            sandbox::Status::RuntimeError(_, _) => Status::RuntimeError,
-            sandbox::Status::MemoryLimitExceeded(_) => Status::MemoryLimitExceeded,
-            sandbox::Status::TimeLimitExceeded(_) => Status::TimeLimitExceeded,
+            sandbox::Status::RuntimeError(_) => Status::RuntimeError,
+            sandbox::Status::MemoryLimitExceeded => Status::MemoryLimitExceeded,
+            sandbox::Status::TimeLimitExceeded => Status::TimeLimitExceeded,
             sandbox::Status::OutputLimitExceeded => Status::OutputLimitExceeded,
             sandbox::Status::DangerousSyscall => Status::DangerousSyscall,
         }

@@ -20,38 +20,18 @@ pub mod unix;
 #[cfg(windows)]
 pub mod windows;
 
-/// TLE 的具体类型
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, TsType)]
-pub enum TimeLimitExceededKind {
-    /// 内核时间与用户时间之和
-    Cpu(Elapse),
-    /// 进程的实际执行时间
-    Real,
-}
-
-/// MLE 的具体类型
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, TsType)]
-pub enum MemoryLimitExceededKind {
-    /// 虚拟内存
-    Virtual,
-    /// 实际使用内存（默认）
-    Real(Memory),
-    /// 栈空间
-    Stack,
-}
-
 /// 执行的结果状态，只是一个初步的分析，适用于绝大多数情况
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, TsType)]
 #[ts(name = "SandboxStatus")]
 pub enum Status {
     /// All Correct
     Ok,
-    /// with error code and signal name
-    RuntimeError(i32, Option<String>),
+    /// with status code
+    RuntimeError(i32),
     /// 超出内存限制
-    MemoryLimitExceeded(MemoryLimitExceededKind),
+    MemoryLimitExceeded,
     /// 超出时间限制
-    TimeLimitExceeded(TimeLimitExceededKind),
+    TimeLimitExceeded,
     /// 输出文件大小超出限制
     OutputLimitExceeded,
     /// 调用了被禁止的系统调用

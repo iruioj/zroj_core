@@ -1,6 +1,6 @@
 use crate::{
     unix::{share_mem, signal_safe, Limitation},
-    Elapse, Memory, MemoryLimitExceededKind, Status, Termination, TimeLimitExceededKind,
+    Elapse, Memory, Status, Termination,
 };
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
@@ -33,8 +33,6 @@ impl Singleton {
         prev_mask: u32,
         shared: share_mem::GlobalShared,
     ) -> Result<(), signal_safe::Errno> {
-        signal_safe::print_str(b"start exec child\n\x00");
-
         // at this time, all signals are blocked, so we can fork directly
         let pid_child = signal_safe::fork()?;
         // fork another child process to execute program
@@ -44,18 +42,16 @@ impl Singleton {
             if let Some(stdin) = &self.stdin {
                 let fd = signal_safe::open_read(stdin)?;
                 signal_safe::dup2(fd, signal_safe::STDIN_FILENO);
-                signal_safe::print_str(b"stdin redirected\n\x00");
             }
             if let Some(stdout) = &self.stdout {
                 let fd = signal_safe::open_write(stdout)?;
                 signal_safe::dup2(fd, signal_safe::STDOUT_FILENO);
-                signal_safe::print_str(b"stdout redirected\n\x00");
             }
             if let Some(stderr) = &self.stderr {
                 let fd = signal_safe::open_write(stderr)?;
                 signal_safe::dup2(fd, signal_safe::STDERR_FILENO);
             } else {
-                signal_safe::print_str(b"stderr not redirected\n\x00");
+                signal_safe::print_cstr(b"stderr not redirected\n\x00");
             }
 
             signal_safe::sigblockall();
@@ -83,7 +79,7 @@ impl Singleton {
             setlim!(output_memory, RLIMIT_FSIZE, byte);
             setlim!(fileno, RLIMIT_NOFILE, into);
             if self.stderr.is_none() {
-                signal_safe::print_str(b"resource limited\n\x00");
+                signal_safe::print_cstr(b"resource limited\n\x00");
             }
             signal_safe::sigsetmask(prev_mask); // unblock signals
                                                 // todo: set syscall limit
@@ -111,7 +107,9 @@ impl Singleton {
             signal_safe::sigsuspend(prev_mask);
             loop {
                 // since all signals are blocked, SIGCHLD will not interrupt
-                match signal_safe::waitpid(-1, signal_safe::WNOHANG | signal_safe::WEXITED) {
+                let r = signal_safe::waitpid(-1, signal_safe::WNOHANG);
+
+                match r {
                     Ok((pid, status)) => {
                         if pid_timer.is_some_and(|pid_timer| pid_timer == pid) {
                             // normally the timer should be killed by signal. thus if timer returned first -> TLE
@@ -119,6 +117,9 @@ impl Singleton {
                                 timer_first = true;
                                 // at this time, child hasn't been reaped, thus it's pid is not freed
                                 if let Err(e) = signal_safe::kill(pid_child, signal_safe::SIGKILL) {
+                                    if self.stderr.is_none() {
+                                        signal_safe::print_cstr(b"timer kill child failed\n\x00");
+                                    }
                                     break 'outer Err(e);
                                 }
                             } // otherwise timer is killed, ignored
@@ -131,6 +132,9 @@ impl Singleton {
                                     if let Err(e) =
                                         signal_safe::kill(pid_timer, signal_safe::SIGKILL)
                                     {
+                                        if self.stderr.is_none() {
+                                            signal_safe::print_cstr(b"kill timer failed\n\x00");
+                                        }
                                         break 'outer Err(e);
                                     }
                                 }
@@ -147,6 +151,9 @@ impl Singleton {
                             // no child to wait
                             break 'outer share_mem::get_rusage();
                         } else {
+                            if self.stderr.is_none() {
+                                signal_safe::print_cstr(b"child wait child failed\n\x00");
+                            }
                             break 'outer Err(errno);
                         }
                     }
@@ -159,10 +166,9 @@ impl Singleton {
             timer_first: if timer_first { 1 } else { 0 },
             status: child_status.map(|a| a.0).unwrap_or(-1),
         }) {
-            signal_safe::print_str(b"set shared memory error\n\x00");
+            signal_safe::print_cstr(b"set shared memory error\n\x00");
             signal_safe::exit(1);
         }
-        signal_safe::print_str(b"set shared memory\n\x00");
         Ok(())
     }
     fn exec_parent(
@@ -175,15 +181,17 @@ impl Singleton {
         // do something before waiting for child process
         signal_safe::sigsetmask(prev_mask);
 
-        #[cfg(target_os = "macos")]
-        let (_, child_status) = signal_safe::waitpid(child, 0).expect("waitpid error");
-        #[cfg(not(target_os = "macos"))]
-        let (_, child_status) = signal_safe::waitpid(child, todo!()).expect("waitpid error");
+        let (_, child_status) =
+            signal_safe::waitpid(child, 0).context("parent wait child error")?;
 
-        if !child_status.exited() && child_status.exitstatus() == 0 {
-            panic!("child process error")
-        }
         let real_time = start.elapsed().into();
+
+        if !(child_status.exited() && child_status.exitstatus() == 0) {
+            return Err(anyhow::anyhow!(
+                "child (parent) not normally terminated, with status {}",
+                child_status.0
+            ));
+        }
         let share_mem::global_shared_t {
             rusage,
             timer_first,
@@ -206,25 +214,25 @@ impl Singleton {
             println!("子进程正常退出");
             let exit_code = child_status.exitstatus();
             if !self.limits.real_memory.check(&memory) {
-                Status::MemoryLimitExceeded(MemoryLimitExceededKind::Real(memory))
+                Status::MemoryLimitExceeded
             } else if timer_first != 0 || real_tle!() {
-                Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
+                Status::TimeLimitExceeded
             } else if exit_code != 0 {
-                Status::RuntimeError(exit_code, None)
+                Status::RuntimeError(child_status.0)
             } else {
                 Status::Ok
             }
         } else {
             if !child_status.signaled() {
-                panic!("unknown child status")
+                return Err(anyhow::anyhow!("unknown child status {}", child_status.0));
             }
             println!("子进程被信号终止");
             let signal = child_status.termsig();
             if signal == signal_safe::SIGKILL || real_tle!() {
                 println!("子进程被计时线程终止");
-                Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
+                Status::TimeLimitExceeded
             } else {
-                Status::RuntimeError(0, Some(signal.to_string()))
+                Status::RuntimeError(child_status.0)
             }
         };
         println!("主进程正常结束");
@@ -251,11 +259,12 @@ impl crate::ExecSandBox for Singleton {
             Ok(0) => {
                 let err = self.exec_child(self.exec_path.as_c_str(), &args, &env, prev, shared);
                 if let Err(err) = err {
-                    signal_safe::print_str(b"exec_sandbox child: errno = \x00");
+                    signal_safe::print_cstr(b"exec_sandbox child: errno = \x00");
                     signal_safe::print_i64(err.0 as i64);
-                    signal_safe::print_str(b"\n\x00");
+                    signal_safe::print_cstr(b"\n\x00");
                     signal_safe::exit(1);
                 }
+                signal_safe::sigsetmask(prev); // unblock signals to handle pending signals
                 signal_safe::exit(0);
             }
             Ok(pid) => self.exec_parent(pid, start, prev, &shared),
@@ -327,8 +336,6 @@ mod tests {
     use super::*;
     use crate::unix::Lim;
     use crate::ExecSandBox;
-    use crate::TimeLimitExceededKind;
-    // use super::un
 
     macro_rules! cstring {
         ($e:expr) => {
@@ -376,10 +383,7 @@ mod tests {
             });
 
         let term = singleton.exec_sandbox()?;
-        assert_eq!(
-            term.status,
-            Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
-        );
+        assert_eq!(term.status, Status::TimeLimitExceeded);
         // println!("termination: {:?}", term);
         Ok(())
     }
@@ -404,20 +408,18 @@ mod tests {
     #[test]
     fn singleton_loop() -> anyhow::Result<()> {
         let dir = tempfile::TempDir::new().unwrap();
-        let main_path = dir.path().join("main.cpp");
+        let main_path = dir.path().join("main.c");
         let exec_path = dir.path().join("main");
         std::fs::write(
             &main_path,
             r"
-#include<iostream>
-using namespace std;
 int main() {
     for(;;);
 }
 ",
         )
         .unwrap();
-        let mut p = Command::new("g++")
+        let mut p = Command::new("gcc")
             .arg(&main_path)
             .arg("-o")
             .arg(&exec_path)
@@ -434,10 +436,7 @@ int main() {
                 l
             })
             .exec_sandbox()?;
-        assert_eq!(
-            term.status,
-            Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
-        );
+        assert_eq!(term.status, Status::TimeLimitExceeded);
         let term = Singleton::new(cstring!(exec_path.as_os_str()))
             .set_limits(|mut l| {
                 l.cpu_time = Lim::Double(1000.into(), 3000.into());
@@ -445,10 +444,7 @@ int main() {
                 l
             })
             .exec_sandbox()?;
-        assert_eq!(
-            term.status,
-            Status::TimeLimitExceeded(TimeLimitExceededKind::Real)
-        );
+        assert_eq!(term.status, Status::TimeLimitExceeded);
 
         drop(dir);
         Ok(())

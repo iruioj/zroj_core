@@ -68,14 +68,13 @@ int main() {
                 panic!();
             };
 
-            let judger::Error::CacheCE(Stat::RuntimeError(x, s)) = ce_info else {
+            let judger::Error::CacheCE(Stat::RuntimeError(x)) = ce_info else {
                 panic!();
             };
 
             dbg!(ok_exec.display());
             assert!(regex.is_match(&format!("{}", ok_exec.display())));
             assert_eq!(x, 1);
-            assert_eq!(s, None);
 
             v.push(now.elapsed().as_nanos());
         }

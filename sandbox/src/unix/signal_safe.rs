@@ -46,6 +46,7 @@ fn error_exit(msg: &[u8]) -> ! {
 }
 
 pub fn dprint(fd: i32, s: &[u8]) -> isize {
+    debug_assert!(*s.last().unwrap() == 0);
     unsafe { cbind::sio_dputs(fd as i32, s.as_ptr() as *const i8) }
 }
 
@@ -55,19 +56,18 @@ pub fn dprint_i64(fd: i32, num: i64) -> isize {
 
 /// For async-signal-safety, you should use `b"..."` to declare a byte string.
 /// make sure to add the \x00 for null-termination.
-pub fn print_str(s: &[u8]) -> isize {
-    // unsafe { cbind::sio_puts(s.as_ptr() as *const i8) }
-    dprint(STDOUT_FILENO, s)
+pub fn print_cstr(s: &[u8]) -> isize {
+    dprint(STDERR_FILENO, s)
 }
 
 pub fn print_i64(num: i64) -> isize {
-    dprint_i64(STDOUT_FILENO, num)
+    dprint_i64(STDERR_FILENO, num)
 }
 
 pub fn dup2(to: i32, from: i32) {
     unsafe {
         if cbind::dup2(to, from) < 0 {
-            print_str(b"warning: dup failed\n\x00");
+            print_cstr(b"warning: dup failed\n\x00");
         }
     }
 }
@@ -227,15 +227,15 @@ mod tests {
         unsafe {
             let pid = cbind::fork();
             if pid < 0 {
-                super::print_str(b"fork failed\n\x00");
+                super::print_cstr(b"fork failed\n\x00");
             }
             if pid == 0 {
-                super::print_str(b"child\n\x00");
+                super::print_cstr(b"child\n\x00");
                 cbind::_exit(0);
             } else {
                 let mut status = 0;
                 let pid = cbind::wait(&mut status as *mut i32);
-                super::print_str(b"parent\n\x00");
+                super::print_cstr(b"parent\n\x00");
                 println!("pid = {pid}");
             }
         }
