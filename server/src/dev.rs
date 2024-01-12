@@ -1,5 +1,7 @@
 //! 主要用于开发
 
+use std::sync::Arc;
+
 use crate::data::{
     mysql::MysqlConfig,
     problem_ojdata::{self, OJDataDB},
@@ -33,9 +35,8 @@ pub fn frontend_rev_proxy(port: u16) -> RevProxy {
     })
 }
 
-/// - 默认将请求转发到前端代理
-/// - 日志输出到终端
-/// - 启用 SessionMiddleware 用于鉴权
+/// - register a default service that forward unmatched request to frontend server
+/// - authenticate using SessionMiddleware
 pub fn dev_server(
     session_key: actix_web::cookie::Key,
     frontend_proxy: web::Data<RevProxy>,
@@ -50,9 +51,9 @@ pub fn dev_server(
 > {
     App::new()
         .app_data(frontend_proxy)
+        .app_data(web::Data::new(awc::Client::new()))
         .default_service(web::route().to(crate::rev_proxy::handler::rev_proxy))
         .wrap(TracingLogger::default())
-        // .wrap(Logger::new(r#"%a "%r" %s "%{Referer}i" %T"#).exclude_regex("/_nuxt/**"))
         .wrap(
             actix_session::SessionMiddleware::builder(
                 actix_session::storage::CookieSessionStore::default(),
@@ -118,12 +119,12 @@ pub async fn test_ojdata_db(dir: impl AsRef<std::path::Path>) -> web::Data<OJDat
 }
 
 /// logging configuration for development
-pub fn logging_setup(max_level: &'static tracing::Level) {
+pub fn logging_setup(max_level: &'static tracing::Level, log_file: Option<String>) {
     use tracing_subscriber::{
         filter, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt, Layer,
     };
 
-    let fmt_layer = tracing_subscriber::fmt::layer()
+    let terminal_log = tracing_subscriber::fmt::layer()
         .pretty()
         .with_thread_names(true)
         .with_filter(filter::filter_fn(|meta| {
@@ -134,5 +135,26 @@ pub fn logging_setup(max_level: &'static tracing::Level) {
                 .module_path()
                 .is_some_and(|s| s.contains("actix_session::middleware"))
         }));
-    tracing_subscriber::registry().with(fmt_layer).init();
+
+    let file_log = log_file
+        .and_then(|log_file| std::fs::File::create(log_file).ok())
+        .map(|file| {
+            let file = Arc::new(std::sync::Mutex::new(Arc::new(file)));
+            tracing_subscriber::fmt::layer()
+                .json()
+                .with_thread_names(true)
+                .with_writer(move || file.clone().lock().unwrap().clone())
+                .with_filter(filter::filter_fn(|meta| {
+                    // the smaller, the more prior
+                    meta.level() <= max_level &&
+            // too annoying to verbose
+            !meta
+                .module_path()
+                .is_some_and(|s| s.contains("actix_session::middleware"))
+                }))
+        });
+    tracing_subscriber::registry()
+        .with(file_log)
+        .with(terminal_log)
+        .init();
 }

@@ -6,7 +6,7 @@ use store::Handle;
 
 #[test]
 fn test_db() {
-    server::dev::logging_setup(&tracing::Level::DEBUG);
+    server::dev::logging_setup(&tracing::Level::DEBUG, None);
 
     // sql setup
     let sql_cfg = MysqlConfig {

@@ -12,7 +12,7 @@ use server::{
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // logging setup
-    server::dev::logging_setup(&tracing::Level::INFO);
+    server::dev::logging_setup(&tracing::Level::INFO, Some("runtime.log".into()));
 
     // fs store setup
     let dir = tempfile::tempdir().unwrap();
@@ -50,20 +50,24 @@ async fn main() -> std::io::Result<()> {
     {
         let subm_db = subm_db.clone().into_inner();
         let recv = judger.reciver();
-        std::thread::spawn(move || loop {
-            match recv.recv() {
-                Ok((sid, rep)) => {
-                    let r = subm_db.update(&sid, rep);
-                    if let Err(e) = r {
-                        tracing::warn!("update subm_db: {:?}", e)
+
+        // this thread is implicitly detached, thus no resource leak
+        std::thread::Builder::new()
+            .name("judgereport".into())
+            .spawn(move || loop {
+                match recv.recv() {
+                    Ok((sid, rep)) => {
+                        let r = subm_db.update(&sid, rep);
+                        if let Err(e) = r {
+                            tracing::info!("update subm_db: {:?}", e)
+                        }
+                    }
+                    Err(_) => {
+                        tracing::info!("close judge report thread");
+                        return;
                     }
                 }
-                Err(_) => {
-                    tracing::warn!("update subm_db thread closed");
-                    return;
-                }
-            }
-        });
+            })?;
     }
 
     let session_key = actix_web::cookie::Key::generate();
@@ -71,6 +75,7 @@ async fn main() -> std::io::Result<()> {
 
     let addr = "localhost:8080";
     tracing::info!("server listen at http://{addr}");
+    println!("server listen at http://{addr}");
 
     let session_container = SessionManager::default();
     HttpServer::new(move || {

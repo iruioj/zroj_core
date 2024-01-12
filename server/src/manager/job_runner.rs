@@ -19,7 +19,7 @@ impl JobRunner {
                     }
                     Err(_) => {
                         // closed
-                        tracing::debug!("close job thread");
+                        tracing::info!("close job thread");
                         return;
                     }
                 }
@@ -35,7 +35,9 @@ impl JobRunner {
         let job = Box::new(f);
         self.sender.send(job)
     }
-    /// wait for job thread to finish and then close it
+    /// Wait for job thread to finish and then close it. Its ok if you don't
+    /// call it, since the thread automatically becomes detached after dropping
+    /// its handle.
     pub fn terminate(self) {
         drop(self.sender); // explicitly drop sender to close job thread
         self.handle.join().unwrap();

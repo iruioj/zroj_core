@@ -9,3 +9,4 @@ web/.yarn
 web/.nuxt
 passwd/pkg
 .vscode
+*.log
