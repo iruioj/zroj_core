@@ -47,11 +47,11 @@ fn error_exit(msg: &[u8]) -> ! {
 
 pub fn dprint(fd: i32, s: &[u8]) -> isize {
     debug_assert!(*s.last().unwrap() == 0);
-    unsafe { cbind::sio_dputs(fd as i32, s.as_ptr() as *const i8) }
+    unsafe { cbind::sio_dputs(fd, s.as_ptr() as *const i8) }
 }
 
 pub fn dprint_i64(fd: i32, num: i64) -> isize {
-    unsafe { cbind::sio_dputl(fd as i32, num) }
+    unsafe { cbind::sio_dputl(fd, num) }
 }
 
 /// For async-signal-safety, you should use `b"..."` to declare a byte string.
@@ -205,10 +205,8 @@ pub fn waitpid(pid: i32, options: u32) -> Result<(i32, WaitStatus), Errno> {
 pub fn sigsuspend(sigmask: Sigset) {
     unsafe {
         let rc = cbind::sigsuspend(&sigmask as *const Sigset);
-        if rc < 0 {
-            if cbind::get_errno() as u32 == cbind::EFAULT {
-                error_exit(b"sigsuspend: invalid sigmask\n\x00")
-            }
+        if rc < 0 && cbind::get_errno() as u32 == cbind::EFAULT {
+            error_exit(b"sigsuspend: invalid sigmask\n\x00")
         }
     }
 }

@@ -32,7 +32,7 @@ impl Display for Error {
 impl std::error::Error for Error {}
 
 impl Username {
-    /// 检查字符串内容并新建一个用户名
+    /// Check sanity and create a new username object
     pub fn new(value: impl AsRef<str>) -> Result<Self, Error> {
         let value = value.as_ref().to_string();
         if value.len() < 6 {

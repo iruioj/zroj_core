@@ -3,6 +3,8 @@ use judger::SourceFile;
 use serde_ts_typing::TsType;
 use std::collections::BTreeMap;
 
+/// Raw content of user submission is stored on file system.
+/// This struct provides entries of files in the submission.
 #[derive(Serialize, Deserialize, TsType, Debug, Clone, SqlType, FromSqlRow, AsExpression)]
 #[diesel(sql_type = Text)]
 pub struct SubmRaw(pub BTreeMap<String, SourceFile>);

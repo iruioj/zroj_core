@@ -13,6 +13,7 @@ actix-multipart = { version = "0.6" }
 actix-rt = "2.8"
 actix-session = { version = "0.8", features = ["cookie-session"] }
 actix-web = "4"
+anyhow = "1.0.79"
 async-trait = "0.1"
 awc = "3.1"
 chrono = { version = "0.4", features = ["serde"] }

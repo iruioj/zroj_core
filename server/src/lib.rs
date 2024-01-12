@@ -38,7 +38,9 @@ pub(crate) mod marker {
     /// 标记一个 API 需要利用用户的身份信息
     pub type Identity = web::ReqData<crate::UserID>;
 
-    /// convenient shortcut for web::block
+    /// Convenient shortcut for [`web::block`], which executes blocking
+    /// function on a thread pool, returns future that resolves to result
+    /// of the function execution.
     #[macro_export]
     macro_rules! block_it {
         {$( $line:stmt );*} => {

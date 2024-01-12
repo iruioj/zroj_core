@@ -3,7 +3,7 @@ use crate::impl_serde_json_sql;
 use super::*;
 use serde_ts_typing::TsType;
 
-/// 性别类型
+/// Gender type
 ///
 /// TODO: 更多的性别
 #[derive(Debug, Serialize, Deserialize, Clone, TsType, SqlType, FromSqlRow, AsExpression)]

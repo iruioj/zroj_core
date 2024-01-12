@@ -1,12 +1,11 @@
-//! 自定义用户名的类型，实现内容正确性检验
-
 use super::*;
 use std::{
     borrow::{Borrow, BorrowMut},
     str::FromStr,
 };
 
-/// 邮箱类型，在创建时会进行内容检查，确保没有不合法字符
+/// EmailAddress internally use [`email_address::EmailAddress`], which is a
+/// new-type struct of [`String`]. It check the sanity when calling [`EmailAddress::new`].
 #[derive(
     Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq, SqlType, FromSqlRow, AsExpression,
 )]
@@ -24,7 +23,7 @@ impl serde_ts_typing::TsType for EmailAddress {
 }
 
 impl EmailAddress {
-    /// 检查字符串内容并新建一个用户名
+    /// Check sanity and create it
     pub fn new(value: impl AsRef<str>) -> Result<Self, email_address::Error> {
         email_address::EmailAddress::from_str(value.as_ref()).map(Self)
     }
