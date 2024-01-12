@@ -1,8 +1,11 @@
 #include "share.h"
 #include "sigutils.h"
+#include <asm-generic/errno-base.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/mman.h>
+#include <sys/resource.h>
+#include <unistd.h>
 
 #define MAXLINE 1024 /* max line size */
 
@@ -50,16 +53,13 @@ void sio_copy(char *s, const char *const fmt, size_t len) {
 }
 
 /* Public Sio functions */
-/* Put string */
-ssize_t sio_puts(const char *const s) { return sio_dputs(STDOUT_FILENO, s); }
 
+/* Put string */
 ssize_t sio_dputs(int fd, const char *const s) {
   return write(fd, s, sio_strlen(s));
 }
 
 /* Put long */
-ssize_t sio_putl(long v) { return sio_dputl(STDOUT_FILENO, v); }
-
 ssize_t sio_dputl(int fd, long v) {
   char s[128];
 
@@ -69,10 +69,10 @@ ssize_t sio_dputl(int fd, long v) {
 
 /* Put error message with errno and exit */
 void sio_error(const char *const s) {
-  sio_puts(s);
-  sio_puts(" (errno = ");
-  sio_putl(errno);
-  sio_puts(")\n");
+  sio_dputs(STDERR_FILENO, s);
+  sio_dputs(STDERR_FILENO, " (errno = ");
+  sio_dputl(STDERR_FILENO, errno);
+  sio_dputs(STDERR_FILENO, ")\n");
   _exit(1);
 }
 
@@ -114,17 +114,29 @@ int wrap_WIFSIGNALED(int status) { return WIFSIGNALED(status); }
 int wrap_WEXITSTATUS(int status) { return WEXITSTATUS(status); }
 int wrap_WTERMSIG(int status) { return WTERMSIG(status); }
 
-global_shared_t* init_shared() {
-  global_shared_t * global_shared = mmap(NULL, sizeof *global_shared, PROT_READ | PROT_WRITE,
-                       MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+global_shared_t *init_shared() {
+  global_shared_t *global_shared =
+      mmap(NULL, sizeof *global_shared, PROT_READ | PROT_WRITE,
+           MAP_SHARED | MAP_ANONYMOUS, -1, 0);
   if (global_shared == MAP_FAILED) {
     sio_error("mmap error");
   }
   return global_shared;
 }
 
-void free_shared(global_shared_t* global_shared) {
+void free_shared(global_shared_t *global_shared) {
   if (munmap(global_shared, sizeof *global_shared) < 0)
     sio_error("munmap error");
   global_shared = NULL;
 }
+int get_children_rusage(rusage_t *ru) {
+  struct rusage r;
+  int rc = getrusage(RUSAGE_CHILDREN, &r);
+  ru->ru_stime = r.ru_stime;
+  ru->ru_utime = r.ru_utime;
+  ru->ru_maxrss = r.ru_maxrss;
+  return rc;
+}
+
+void signal_echo_handler(int signo) { psignal(signo, "receve signal"); }
+void *signal_echo(int signo) { return signal(signo, signal_echo_handler); }

@@ -2,7 +2,7 @@
 //!
 //! MAKE SURE all exposed functions are async-signal-safe
 
-mod cbind {
+pub mod cbind {
     #![allow(non_upper_case_globals)]
     #![allow(non_camel_case_types)]
     #![allow(non_snake_case)]
@@ -112,10 +112,12 @@ pub fn open_write(path: &CStr) -> Result<i32, Errno> {
     }
 }
 
-pub fn sigblockall() -> u32 {
+pub type Sigset = cbind::sigset_t;
+
+pub fn sigblockall() -> Sigset {
     unsafe { cbind::sigblockall() }
 }
-pub fn sigsetmask(mask: u32) {
+pub fn sigsetmask(mask: Sigset) {
     unsafe {
         cbind::Sigsetmask(mask);
     }
@@ -133,11 +135,22 @@ pub fn fork() -> Result<i32, Errno> {
     }
 }
 
-pub use cbind::RLIMIT_AS;
-pub use cbind::RLIMIT_CPU;
-pub use cbind::RLIMIT_FSIZE;
-pub use cbind::RLIMIT_NOFILE;
-pub use cbind::RLIMIT_STACK;
+#[cfg(target_os = "linux")]
+pub const RLIMIT_AS: u32 = cbind::__rlimit_resource_RLIMIT_AS;
+#[cfg(target_os = "linux")]
+pub const RLIMIT_CPU: u32 = cbind::__rlimit_resource_RLIMIT_CPU;
+#[cfg(target_os = "linux")]
+pub const RLIMIT_STACK: u32 = cbind::__rlimit_resource_RLIMIT_STACK;
+#[cfg(target_os = "linux")]
+pub const RLIMIT_FSIZE: u32 = cbind::__rlimit_resource_RLIMIT_FSIZE;
+#[cfg(target_os = "linux")]
+pub const RLIMIT_NOFILE: u32 = cbind::__rlimit_resource_RLIMIT_NOFILE;
+
+#[cfg(target_os = "macos")]
+pub use {
+    cbind::RLIMIT_AS, cbind::RLIMIT_CPU, cbind::RLIMIT_FSIZE, cbind::RLIMIT_NOFILE,
+    cbind::RLIMIT_STACK,
+};
 
 pub fn setrlimit(resource: i32, rlim_cur: u64, rlim_max: u64) -> Result<(), Errno> {
     unsafe {
@@ -189,14 +202,21 @@ pub fn waitpid(pid: i32, options: u32) -> Result<(i32, WaitStatus), Errno> {
     }
 }
 
-pub fn sigsuspend(sigmask: u32) {
+pub fn sigsuspend(sigmask: Sigset) {
     unsafe {
-        let rc = cbind::sigsuspend(&sigmask as *const u32);
+        let rc = cbind::sigsuspend(&sigmask as *const Sigset);
         if rc < 0 {
             if cbind::get_errno() as u32 == cbind::EFAULT {
                 error_exit(b"sigsuspend: invalid sigmask\n\x00")
             }
         }
+    }
+}
+
+/// register a signal handler that print the signal
+pub fn signal_echo(signo: u32) {
+    unsafe {
+        cbind::signal_echo(signo as i32);
     }
 }
 
@@ -206,7 +226,7 @@ pub fn sleep(sec: u32) {
     }
 }
 
-pub use cbind::{ESRCH, SIGKILL};
+pub use cbind::{ESRCH, SIGKILL, SIGCHLD};
 pub fn kill(pid: i32, sig: u32) -> Result<(), Errno> {
     unsafe {
         let r = cbind::kill(pid, sig as i32);

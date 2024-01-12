@@ -44,9 +44,9 @@ impl GlobalShared {
     }
 }
 
-pub fn get_rusage() -> Result<cbind::rusage, Errno> {
+pub fn get_rusage() -> Result<cbind::rusage_t, Errno> {
     unsafe {
-        let mut rusage: cbind::rusage = cbind::rusage {
+        let mut rusage = cbind::rusage_t {
             ru_utime: cbind::timeval {
                 tv_sec: 0,
                 tv_usec: 0,
@@ -56,21 +56,8 @@ pub fn get_rusage() -> Result<cbind::rusage, Errno> {
                 tv_usec: 0,
             },
             ru_maxrss: 0,
-            ru_ixrss: 0,
-            ru_idrss: 0,
-            ru_isrss: 0,
-            ru_minflt: 0,
-            ru_majflt: 0,
-            ru_nswap: 0,
-            ru_inblock: 0,
-            ru_oublock: 0,
-            ru_msgsnd: 0,
-            ru_msgrcv: 0,
-            ru_nsignals: 0,
-            ru_nvcsw: 0,
-            ru_nivcsw: 0,
         };
-        let rc = cbind::getrusage(cbind::RUSAGE_CHILDREN, &mut rusage as *mut cbind::rusage);
+        let rc = cbind::get_children_rusage(&mut rusage as *mut cbind::rusage_t);
         if rc < 0 {
             errno_result()
         } else {

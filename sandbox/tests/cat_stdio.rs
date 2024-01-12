@@ -1,6 +1,14 @@
+use std::os::unix::ffi::OsStrExt;
+
+macro_rules! cstring {
+    ($e:expr) => {
+        std::ffi::CString::new($e.as_bytes().to_vec()).unwrap()
+    };
+}
+
 #[test]
 #[cfg(target_os = "linux")]
-fn test_cat_stdio() -> Result<(), sandbox::SandboxError> {
+fn test_cat_stdio() -> anyhow::Result<()> {
     use std::io::Write;
 
     use sandbox::{
@@ -18,9 +26,9 @@ fn test_cat_stdio() -> Result<(), sandbox::SandboxError> {
     fin.write_all(content.as_bytes()).unwrap();
     drop(fin);
 
-    let s = Singleton::new("/usr/bin/cat")
-        .stdin(filepath)
-        .stdout(outputpath)
+    let s = Singleton::new(cstring!("/usr/bin/cat"))
+        .stdin(cstring!(filepath.as_os_str()))
+        .stdout(cstring!(outputpath.as_os_str()))
         .set_limits(|_| Limitation {
             real_time: Lim::Single(7000.into()),
             cpu_time: Lim::Single(7000.into()),

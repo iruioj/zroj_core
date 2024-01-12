@@ -20,3 +20,6 @@ int wrap_WIFEXITED(int status);
 int wrap_WIFSIGNALED(int status);
 int wrap_WEXITSTATUS(int status);
 int wrap_WTERMSIG(int status);
+
+// a echo handler for signal (for debugging)
+void * signal_echo(int signo);

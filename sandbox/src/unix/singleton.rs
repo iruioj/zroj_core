@@ -6,8 +6,11 @@ use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::{
     ffi::{CStr, CString},
+    io::Write,
     time::Instant,
 };
+
+use super::signal_safe::Sigset;
 
 /// 执行单个可执行文件
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,11 +33,15 @@ impl Singleton {
         path: &CStr,
         args: &[*mut std::ffi::c_char],
         env: &[*mut std::ffi::c_char],
-        prev_mask: u32,
+        prev_mask: Sigset,
         shared: share_mem::GlobalShared,
     ) -> Result<(), signal_safe::Errno> {
+        // register a handler for SIGCHLD to make sigsuspend work
+        signal_safe::signal_echo(signal_safe::SIGCHLD);
+
         // at this time, all signals are blocked, so we can fork directly
         let pid_child = signal_safe::fork()?;
+
         // fork another child process to execute program
         if pid_child == 0 {
             signal_safe::set_self_grp();
@@ -86,6 +93,8 @@ impl Singleton {
             signal_safe::execve(path, args, env);
         }
 
+        signal_safe::print_cstr(b"fork a timmer\n\x00");
+
         // at this time, all signals are blocked, so we can fork directly
         let pid_timer = match self.limits.real_time {
             crate::unix::Lim::None => None,
@@ -94,6 +103,7 @@ impl Singleton {
                 if pid == 0 {
                     // fork a process to setup timer
                     signal_safe::sleep(s.sec().clamp(0, u32::MAX as u64) as u32);
+                    signal_safe::print_cstr(b"timmer exit\n\x00");
                     signal_safe::exit(0);
                 }
                 Some(pid)
@@ -103,8 +113,15 @@ impl Singleton {
         // can be interrupted either by timer or child process
         let mut timer_first = false;
         let mut child_status = None;
+
+        signal_safe::print_cstr(b"wait for tested process and timer\n\x00");
+
         let ru = 'outer: loop {
+            // notice that sigsuspend only interrupts for signals whose action is
+            // either calling handler function or exit (thus sometimes you need to
+            // register handler for a signal to make it work).
             signal_safe::sigsuspend(prev_mask);
+            signal_safe::print_cstr(b"wait beep\n\x00");
             loop {
                 // since all signals are blocked, SIGCHLD will not interrupt
                 let r = signal_safe::waitpid(-1, signal_safe::WNOHANG);
@@ -175,7 +192,7 @@ impl Singleton {
         &self,
         child: i32,
         start: Instant,
-        prev_mask: u32,
+        prev_mask: Sigset,
         shared: &share_mem::GlobalShared,
     ) -> anyhow::Result<Termination> {
         // do something before waiting for child process
@@ -251,10 +268,13 @@ impl crate::ExecSandBox for Singleton {
         let args = crate::to_exec_array(self.arguments.clone());
         let env = crate::to_exec_array(self.envs.clone());
 
-        let start = Instant::now();
-        let prev = signal_safe::sigblockall(); // simply block all signals before forking
+        let start = Instant::now(); // record the real time duration of tested process
+        let prev = signal_safe::sigblockall(); // block all signals before forking
         let shared = share_mem::GlobalShared::init(); // should be freed in exec_parent
-        println!("prev: {prev}");
+
+        eprintln!("prev: {prev:?}");
+        std::io::stderr().flush()?;
+
         let r = match signal_safe::fork() {
             Ok(0) => {
                 let err = self.exec_child(self.exec_path.as_c_str(), &args, &env, prev, shared);
@@ -373,7 +393,6 @@ mod tests {
             "/bin/sleep"
         };
         // sleep 5 秒，触发 TLE
-        // sleep 不会占用 CPU，因此触发 real time tle
         let singleton = Singleton::new(cstring!(sleep_path))
             .push_arg([cstring!("sleep"), cstring!("2")])
             .set_limits(|mut l| {

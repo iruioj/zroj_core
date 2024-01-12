@@ -20,14 +20,8 @@ size_t sio_strlen(const char *const s);
 /* Public Sio functions */
 ssize_t sio_dputs(int fd, const char *const s);
 
-/* Public Sio functions */
-ssize_t sio_puts(const char *const s);
-
 /* Put long */
 ssize_t sio_dputl(int fd, long v);
-
-/* Put long */
-ssize_t sio_putl(long v);
 
 /* Put error message and exit */
 void sio_error(const char *const s);
