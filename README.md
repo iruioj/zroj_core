@@ -16,10 +16,6 @@ diesel print-schema > server/src/data/mysql/schema.rs
 ```bash
 # clear database
 diesel migration redo -n 5
-# generate api types
-cargo run --bin gen_docs -- nocapture > web/composables/api.ts
-# start test server
-cargo run --bin test_all -- nocapture
 ```
 
 ## Formatting and Linting

@@ -14,7 +14,7 @@ pub enum DataError {
     #[error("diesel: {0}")]
     Diesel(diesel::result::Error),
     #[error("database error: {0}")]
-    AnyError(#[from] anyhow::Error)
+    AnyError(#[from] anyhow::Error),
 }
 
 impl From<diesel::result::Error> for DataError {

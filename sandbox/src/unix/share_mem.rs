@@ -69,6 +69,6 @@ pub fn get_rusage() -> Result<cbind::rusage_t, Errno> {
 impl From<cbind::timeval> for crate::Elapse {
     /// 单位：ms
     fn from(value: cbind::timeval) -> Self {
-        Self((value.tv_sec * 1000 + value.tv_usec as i64 / 1000) as u64)
+        Self((value.tv_sec * 1000 + value.tv_usec / 1000) as u64)
     }
 }

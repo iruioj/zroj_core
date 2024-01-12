@@ -188,7 +188,7 @@ impl WaitStatus {
     }
 }
 
-pub use cbind::{ECHILD, WCONTINUED, WEXITED, WNOHANG, WSTOPPED, WUNTRACED};
+pub use cbind::{ECHILD, WNOHANG};
 /// return (pid, status)
 pub fn waitpid(pid: i32, options: u32) -> Result<(i32, WaitStatus), Errno> {
     unsafe {
@@ -224,7 +224,7 @@ pub fn sleep(sec: u32) {
     }
 }
 
-pub use cbind::{ESRCH, SIGKILL, SIGCHLD};
+pub use cbind::{SIGCHLD, SIGKILL};
 pub fn kill(pid: i32, sig: u32) -> Result<(), Errno> {
     unsafe {
         let r = cbind::kill(pid, sig as i32);
