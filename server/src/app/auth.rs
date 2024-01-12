@@ -70,7 +70,7 @@ async fn register(
     eprintln!("register req: {:?}", &payload);
     let id = block_it! {
         if user_db.query_by_username(&payload.username).is_ok() {
-            Err(crate::data::error::DataError::Conflict)
+            Err(anyhow::Error::msg("username conflict").into())
         } else {
             user_db.new_user(&payload.username, &payload.password_hash, &payload.email)
         }

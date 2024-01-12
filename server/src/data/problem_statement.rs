@@ -12,6 +12,7 @@ use crate::{
     ProblemID,
 };
 use actix_files::NamedFile;
+use anyhow::Context;
 use diesel::*;
 use problem::render_data::{self, statement::StmtMeta, Mdast};
 use serde::Serialize;
@@ -142,9 +143,10 @@ impl Manager for Mysql {
     }
 
     fn get_assets(&self, id: ProblemID, name: &str) -> Result<NamedFile, DataError> {
-        Ok(NamedFile::open(
-            self.1.read()?.join(id.to_string()).join(name).as_ref(),
-        )?)
+        Ok(
+            NamedFile::open(self.1.read()?.join(id.to_string()).join(name).as_ref())
+                .context("open asset file")?,
+        )
     }
 
     fn insert_assets(
@@ -154,9 +156,9 @@ impl Manager for Mysql {
         name: &str,
     ) -> Result<(), DataError> {
         let path = self.1.write()?.join(id.to_string()).join(name);
-        path.remove_all()?;
-        let mut dest = path.create_new_file()?;
-        std::io::copy(&mut file, &mut dest)?;
+        path.remove_all().context("remove asset path")?;
+        let mut dest = path.create_new_file().context("create new asset dest")?;
+        std::io::copy(&mut file, &mut dest).context("copy asset file")?;
         Ok(())
     }
 

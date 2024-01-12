@@ -9,7 +9,7 @@ mod cbind {
     include!(concat!(env!("OUT_DIR"), "/sharecc.rs"));
 }
 
-pub use cbind::{global_shared_t, rusage};
+pub use cbind::global_shared_t;
 
 #[derive(Clone)]
 pub struct GlobalShared(*mut global_shared_t);

@@ -11,20 +11,10 @@ pub enum DataError {
     PoisonError,
     #[error("data not found")]
     NotFound,
-    #[error("try to insert new but already exists")]
-    Conflict,
-    #[error("send request: {0}")]
-    SendRequestError(String),
-    #[error("store: {0}")]
-    StoreError(#[from] store::Error),
-    #[error("serde json: {0}")]
-    SerdeJsonError(#[from] serde_json::Error),
     #[error("diesel: {0}")]
     Diesel(diesel::result::Error),
-    #[error("io: {0}")]
-    IO(#[from] std::io::Error),
-    #[error("from utf8: {0}")]
-    Utf8Error(#[from] std::string::FromUtf8Error),
+    #[error("database error: {0}")]
+    AnyError(#[from] anyhow::Error)
 }
 
 impl From<diesel::result::Error> for DataError {
@@ -42,7 +32,7 @@ impl From<DataError> for actix_web::Error {
             DataError::NotFound => actix_web::error::ErrorNotFound,
             _ => actix_web::error::ErrorInternalServerError,
         };
-        err_fn(value.to_string())
+        err_fn(value)
     }
 }
 
