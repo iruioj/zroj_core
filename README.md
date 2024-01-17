@@ -35,3 +35,9 @@ editing `.git/hooks/pre-commit`:
 cargo clippy --fix --allow-dirty --all-features -- --allow "clippy::type_complexity"
 cargo fmt
 ```
+
+## Document Generation
+
+```sh
+cargo doc --no-deps # generate classic rust docs
+```

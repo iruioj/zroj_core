@@ -1,4 +1,4 @@
-//! ZROJ 后端服务库
+#![doc = include_str!("../README.md")]
 
 pub mod app;
 pub mod auth;
@@ -21,6 +21,7 @@ use serde_ts_typing::TypeExpr;
 
 use problem::Override;
 
+/// marker are used with the [`server_derive::api`] macro.
 pub(crate) mod marker {
     use actix_web::web;
     /// 标记一个 API 的 body 类型
@@ -37,18 +38,19 @@ pub(crate) mod marker {
     pub type FormData<T> = actix_multipart::form::MultipartForm<T>;
     /// 标记一个 API 需要利用用户的身份信息
     pub type Identity = web::ReqData<crate::UserID>;
-
-    /// Convenient shortcut for [`web::block`], which executes blocking
-    /// function on a thread pool, returns future that resolves to result
-    /// of the function execution.
-    #[macro_export]
-    macro_rules! block_it {
-        {$( $line:stmt );*} => {
-            actix_web::web::block(move || { $( $line );* }).await?
-        };
-    }
 }
 
+/// Convenient shortcut for [`web::block`], which executes blocking
+/// function on a thread pool, returns future that resolves to result
+/// of the function execution.
+#[macro_export]
+macro_rules! block_it {
+    {$( $line:stmt );*} => {
+        actix_web::web::block(move || { $( $line );* }).await?
+    };
+}
+
+/// The returning value of api document metadata generator.
 #[derive(Debug)]
 pub struct ApiDocMeta {
     pub path: String,
@@ -60,6 +62,7 @@ pub struct ApiDocMeta {
     pub description: String,
 }
 
+/// The returning value of service document metadata generator.
 #[derive(Debug)]
 pub struct ServiceDoc {
     pub path: String,

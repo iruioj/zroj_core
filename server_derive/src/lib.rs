@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use quote::{format_ident, quote, ToTokens};
 use syn::{parse::Parse, parse_macro_input, Expr, FnArg, ItemFn, Meta, ReturnType, Stmt, Token};
 
@@ -48,6 +50,7 @@ impl Parse for ScopeServiceAttr {
 ///       >,
 ///   >
 ///   ```
+/// - 生成一个 document metadata generator
 #[proc_macro_attribute]
 pub fn scope_service(
     attr: proc_macro::TokenStream,
@@ -186,7 +189,8 @@ fn parse_marker_type(marker: impl AsRef<str>, ty: &syn::Type) -> Option<syn::Typ
     None
 }
 
-/// actix_web macro 的整合
+/// An enhancement of the macros of [`actix_web`],
+/// Use this macro to define a request handler and a document metadata generator function.
 ///
 /// - 使用 `method = xxx` 来声明 REST API 的 http 方法
 /// - 使用 `path = "xxx"` 声明 API 路径
@@ -210,6 +214,7 @@ pub fn api(
     let mut query_type_stmt = quote!(let query_type = None;);
     let mut is_form = false;
 
+    // parse marker types of parameters
     func.sig
         .inputs
         .clone()
@@ -249,6 +254,7 @@ pub fn api(
         }
     }
 
+    // parse comments as descriptions (starting with 3 slashes)
     let mut descrip_stmt = quote!(let mut description = String::new(););
     func.attrs
         .clone()
