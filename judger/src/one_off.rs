@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use sandbox::{mem, time, unix::Limitation, Elapse, Memory};
+use sandbox::{unix::Limitation, Elapse, Memory};
 use store::Handle;
 
 use crate::{lang::Compile, Error, SourceFile, Status, StoreFile, TaskReport};
@@ -31,9 +31,9 @@ impl OneOff {
             file,
             stdin,
             working_dir: Handle::new(std::env::current_dir().unwrap()),
-            time_limit: time!(1s),
-            memory_limit: mem!(1024mb),
-            output_limit: mem!(128mb),
+            time_limit: Elapse::from_sec(1),
+            memory_limit: Memory::from_mb(1024),
+            output_limit: Memory::from_mb(128),
             fileno_limit: 6,
             sandbox_exec,
         }
@@ -98,7 +98,6 @@ impl OneOff {
                 .try_add_payload("compile log", clog);
                 return Ok(r);
             }
-            drop(term);
         }
         eprintln!("编译成功");
 

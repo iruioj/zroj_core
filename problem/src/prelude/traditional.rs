@@ -152,7 +152,7 @@ mod tests {
     use super::{Meta, Subm, Task, Traditional};
     use crate::{data::StoreFile, judger_framework::JudgeTask, Checker};
     use judger::{
-        sandbox::{mem, time, Elapse, Memory},
+        sandbox::{Elapse, Memory},
         DefaultJudger, SourceFile,
     };
     use store::Handle;
@@ -164,9 +164,9 @@ mod tests {
         let mut jd = DefaultJudger::new(wd);
         let mut meta = Meta {
             checker: Checker::FileCmp,
-            time_limit: time!(5s),
-            memory_limit: mem!(256mb),
-            output_limit: mem!(64mb),
+            time_limit: Elapse::from_sec(5),
+            memory_limit: Memory::from_mb(256),
+            output_limit: Memory::from_mb(64),
         };
         let mut task = Task {
             input: StoreFile::from_str("1 2", judger::FileType::Plain),

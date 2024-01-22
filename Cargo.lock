@@ -2200,7 +2200,6 @@ dependencies = [
  "anyhow",
  "bindgen",
  "cc",
- "sandbox_macro",
  "serde",
  "serde_json",
  "serde_ts_typing",
@@ -2208,15 +2207,6 @@ dependencies = [
  "thiserror",
  "winapi",
  "windows",
-]
-
-[[package]]
-name = "sandbox_macro"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.48",
 ]
 
 [[package]]

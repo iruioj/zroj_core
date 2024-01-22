@@ -100,6 +100,10 @@ impl Elapse {
     pub fn pretty(self) -> String {
         format!("{self}ms")
     }
+    /// create Elapse from seconds value
+    pub fn from_sec(value: u64) -> Self {
+        Self::from(value * 1000)
+    }
 }
 
 impl Display for Elapse {
@@ -175,6 +179,10 @@ impl Memory {
             format!("{}mb", (self.0 as f64) / 1024.0 / 1024.0)
         }
     }
+    /// create Memory size from MB value
+    pub fn from_mb(value: u64) -> Self {
+        Self::from(value << 20)
+    }
 }
 
 /// copy from nix, create a null-terminate c-style string array.
@@ -186,9 +194,3 @@ fn to_exec_array(args: Vec<std::ffi::CString>) -> Vec<*mut std::ffi::c_char> {
         .chain(once(std::ptr::null_mut()))
         .collect()
 }
-
-#[allow(unused_imports)]
-#[macro_use]
-extern crate sandbox_macro;
-pub use sandbox_macro::mem;
-pub use sandbox_macro::time;

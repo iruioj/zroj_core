@@ -7,7 +7,6 @@ edition.workspace = true
 
 [dependencies]
 serde_ts_typing = { path = "../serde_ts_typing" }
-sandbox_macro = { path = "../sandbox_macro" }
 anyhow = "1.0.79"
 
 # nix = { version = "0.27.1", features = ["fs", "process", "resource", "signal"] }

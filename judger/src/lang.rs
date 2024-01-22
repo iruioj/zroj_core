@@ -1,5 +1,5 @@
 use sandbox::unix::{Lim, Limitation, Singleton};
-use sandbox::{mem, time, Elapse, ExecSandBox, Memory};
+use sandbox::{Elapse, ExecSandBox, Memory};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use std::ffi::CString;
@@ -86,12 +86,12 @@ impl Compile for GnuCpp {
                         .unwrap(),
                 )
                 .set_limits(|_| Limitation {
-                    real_time: Lim::Double(time!(10s), time!(20s)),
-                    cpu_time: time!(10s).into(),
-                    virtual_memory: mem!(4gb).into(),
-                    real_memory: mem!(4gb).into(),
-                    stack_memory: mem!(4gb).into(),
-                    output_memory: mem!(1gb).into(),
+                    real_time: Lim::Double(Elapse::from_sec(10), Elapse::from_sec(20)),
+                    cpu_time: Elapse::from_sec(10).into(),
+                    virtual_memory: Memory::from_mb(4096).into(),
+                    real_memory: Memory::from_mb(4096).into(),
+                    stack_memory: Memory::from_mb(4096).into(),
+                    output_memory: Memory::from_mb(1024).into(),
                     fileno: 200.into(),
                 })
                 .stderr(CString::new(log.as_ref().as_os_str().as_bytes()).unwrap()),

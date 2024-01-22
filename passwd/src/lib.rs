@@ -44,7 +44,7 @@ pub fn login_hash(plain: &str) -> String {
 
 /// Verify the password.
 /// `passwd` is the SHA hash of plain password, `passwd_hash` is the [`login_hash`] of plain password.
-/// 
+///
 /// View [`server::app::auth::login`] for example.
 pub fn verify(passwd: &str, passwd_hash: &str) -> bool {
     if let Ok(hash) = PasswordHash::new(passwd_hash) {

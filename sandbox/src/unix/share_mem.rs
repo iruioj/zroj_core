@@ -20,7 +20,7 @@ impl GlobalShared {
     }
     pub fn get(&self) -> Option<global_shared_t> {
         unsafe {
-            if self.0 == std::ptr::null_mut() {
+            if self.0.is_null() {
                 None
             } else {
                 Some(*self.0)
@@ -29,7 +29,7 @@ impl GlobalShared {
     }
     pub fn try_set(&self, value: global_shared_t) -> bool {
         unsafe {
-            if self.0 == std::ptr::null_mut() {
+            if self.0.is_null() {
                 false
             } else {
                 *self.0 = value;

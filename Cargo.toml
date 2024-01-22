@@ -9,7 +9,6 @@ members = [
     "passwd",
     "problem",
     "sandbox", 
-    "sandbox_macro", 
     "server",
     "server_derive",
     "store",
