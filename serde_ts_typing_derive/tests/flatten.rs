@@ -73,5 +73,5 @@ fn test_serde_url() {
     let query: ProbMetasQuery = serde_urlencoded::from_str("max_count=5&offset=6").unwrap();
     dbg!(&query);
     eprintln!("{}", serde_json::to_string_pretty(&query).unwrap());
-    eprintln!("{}", ProbMetasQuery::type_def().to_string());
+    eprintln!("{}", ProbMetasQuery::type_def());
 }

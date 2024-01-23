@@ -3,24 +3,58 @@
 
 import { callAPI, fetchAPI, ExtAsyncData } from "./inner/fetch";
 
-export type AlignKind = (AlignKindCenter|AlignKindLeft|AlignKindNone|AlignKindRight);
+export type AlignKind = ( AlignKindCenter | AlignKindLeft | AlignKindNone | AlignKindRight );
 export type AlignKindCenter = "center";
 export type AlignKindLeft = "left";
 export type AlignKindNone = "none";
 export type AlignKindRight = "right";
-export type AuthInfoRes = {email:string;username:Username;};
-export type BlockQuote = {children:Node[];};
-export type Break = {};
-export type Code = {lang:(undefined|null|string);meta:(undefined|null|string);value:string;};
-export type CustomTestResult = {result:(undefined|TaskReport|null);};
-export type Definition = {identifier:string;label:(undefined|null|string);title:(undefined|null|string);url:string;};
-export type Delete = {children:Node[];};
-export type DetailQuery = {sid:number;};
-export type DetailReturn = {info:SubmInfo;judge:(undefined|null|string[]);};
+export type AuthInfoRes = {
+    email: string;
+    username: Username;
+};
+export type BlockQuote = {
+    children: Node[];
+};
+export type Break = {
+};
+export type Code = {
+    lang: ( undefined | null | string );
+    meta: ( undefined | null | string );
+    value: string;
+};
+export type CustomTestResult = {
+    result: ( undefined | TaskReport | null );
+};
+export type Definition = {
+    identifier: string;
+    label: ( undefined | null | string );
+    title: ( undefined | null | string );
+    url: string;
+};
+export type Delete = {
+    children: Node[];
+};
+export type DetailQuery = {
+    sid: number;
+};
+export type DetailReturn = {
+    info: SubmInfo;
+    judge: ( undefined | null | string[] );
+};
 export type Elapse = number;
-export type Emphasis = {children:Node[];};
-export type FileDescriptor = ("Stdin"|"Stdout"|{Named:string;});
-export type FileType = (FileTypeAssembly|FileTypeGnuCpp14O2|FileTypeGnuCpp17O2|FileTypeGnuCpp20O2|FileTypePlain|FileTypePython|FileTypeRust);
+export type Emphasis = {
+    children: Node[];
+};
+export type FileDescriptor = ( "Stdin" | "Stdout" | { Named: string; } );
+export type FileType = (
+    FileTypeAssembly
+    | FileTypeGnuCpp14O2
+    | FileTypeGnuCpp17O2
+    | FileTypeGnuCpp20O2
+    | FileTypePlain
+    | FileTypePython
+    | FileTypeRust
+);
 export type FileTypeAssembly = "gnu_assembly";
 export type FileTypeGnuCpp14O2 = "gnu_cpp14_o2";
 export type FileTypeGnuCpp17O2 = "gnu_cpp17_o2";
@@ -28,127 +62,378 @@ export type FileTypeGnuCpp20O2 = "gnu_cpp20_o2";
 export type FileTypePlain = "plain";
 export type FileTypePython = "python3";
 export type FileTypeRust = "rust";
-export type FootnoteDefinition = {children:Node[];identifier:string;label:(undefined|null|string);};
-export type FootnoteReference = {identifier:string;label:(undefined|null|string);};
-export type FullDataMetaQuery = {id:number;};
-export type FullJudgeReport = {data:(undefined|JudgeReport|null);extra:(undefined|JudgeReport|null);pre:(undefined|JudgeReport|null);};
-export type Gender = (GenderFemale|GenderMale|GenderOthers|GenderPrivate);
+export type FootnoteDefinition = {
+    children: Node[];
+    identifier: string;
+    label: ( undefined | null | string );
+};
+export type FootnoteReference = {
+    identifier: string;
+    label: ( undefined | null | string );
+};
+export type FullDataMetaQuery = {
+    id: number;
+};
+export type FullJudgeReport = {
+    data: ( undefined | JudgeReport | null );
+    extra: ( undefined | JudgeReport | null );
+    pre: ( undefined | JudgeReport | null );
+};
+export type Gender = ( GenderFemale | GenderMale | GenderOthers | GenderPrivate );
 export type GenderFemale = "Female";
 export type GenderMale = "Male";
 export type GenderOthers = "Others";
 export type GenderPrivate = "Private";
-export type GravatarInfo = {email:string;no_cache:(undefined|null|boolean);};
-export type Heading = {children:Node[];depth:number;};
-export type Html = {value:string;};
-export type IOKind = ("StdIO"|{FileIO:{input:FileDescriptor;output:FileDescriptor;};});
-export type Image = {alt:string;title:(undefined|null|string);url:string;};
-export type ImageReference = {alt:string;identifier:string;label:(undefined|null|string);reference_kind:ReferenceKind;};
-export type InlineCode = {value:string;};
-export type InlineMath = {value:string;};
-export type JudgeDetail = (JudgeDetailSubtask|JudgeDetailTests);
-export type JudgeDetailSubtask = {tasks:SubtaskReport[];type:"Subtask";};
-export type JudgeDetailTests = {tasks:(undefined|TaskReport|null)[];type:"Tests";};
-export type JudgeReport = {detail:JudgeDetail;meta:TaskMeta;};
-export type JudgeReturn = {sid:number;};
-export type JudgerStatus = (JudgerStatusCompileError|JudgerStatusDangerousSyscall|JudgerStatusGood|JudgerStatusMemoryLimitExceeded|JudgerStatusOutputLimitExceeded|JudgerStatusPresentationError|JudgerStatusRuntimeError|JudgerStatusTimeLimitExceeded|JudgerStatusWrongAnswer);
-export type JudgerStatusCompileError = {name:"compile_error";payload:(undefined|SandboxStatus|null);};
-export type JudgerStatusDangerousSyscall = {name:"dangerous_syscall";payload:null;};
-export type JudgerStatusGood = {name:"good";payload:null;};
-export type JudgerStatusMemoryLimitExceeded = {name:"memory_limit_exceeded";payload:null;};
-export type JudgerStatusOutputLimitExceeded = {name:"output_limit_exceeded";payload:null;};
-export type JudgerStatusPresentationError = {name:"presentation_error";payload:null;};
-export type JudgerStatusRuntimeError = {name:"runtime_error";payload:null;};
-export type JudgerStatusTimeLimitExceeded = {name:"time_limit_exceeded";payload:null;};
-export type JudgerStatusWrongAnswer = {name:"wrong_answer";payload:null;};
-export type Link = {children:Node[];title:(undefined|null|string);url:string;};
-export type LinkReference = {children:Node[];identifier:string;label:(undefined|null|string);reference_kind:ReferenceKind;};
-export type List = {children:Node[];ordered:boolean;spread:boolean;start:(undefined|null|number);};
-export type ListItem = {checked:(undefined|null|boolean);children:Node[];spread:boolean;};
-export type LoginPayload = {passwordHash:string;username:Username;};
-export type Math = {meta:(undefined|null|string);value:string;};
+export type GravatarInfo = {
+    email: string;
+    no_cache: ( undefined | null | boolean );
+};
+export type Heading = {
+    children: Node[];
+    depth: number;
+};
+export type Html = {
+    value: string;
+};
+export type IOKind = ( "StdIO" | { FileIO: { input: FileDescriptor; output: FileDescriptor; }; } );
+export type Image = {
+    alt: string;
+    title: ( undefined | null | string );
+    url: string;
+};
+export type ImageReference = {
+    alt: string;
+    identifier: string;
+    label: ( undefined | null | string );
+    reference_kind: ReferenceKind;
+};
+export type InlineCode = {
+    value: string;
+};
+export type InlineMath = {
+    value: string;
+};
+export type JudgeDetail = ( JudgeDetailSubtask | JudgeDetailTests );
+export type JudgeDetailSubtask = {
+    tasks: SubtaskReport[];
+    type: "Subtask";
+};
+export type JudgeDetailTests = {
+    tasks: ( undefined | TaskReport | null )[];
+    type: "Tests";
+};
+export type JudgeReport = {
+    detail: JudgeDetail;
+    meta: TaskMeta;
+};
+export type JudgeReturn = {
+    sid: number;
+};
+export type JudgerStatus = (
+    JudgerStatusCompileError
+    | JudgerStatusDangerousSyscall
+    | JudgerStatusGood
+    | JudgerStatusMemoryLimitExceeded
+    | JudgerStatusOutputLimitExceeded
+    | JudgerStatusPresentationError
+    | JudgerStatusRuntimeError
+    | JudgerStatusTimeLimitExceeded
+    | JudgerStatusWrongAnswer
+);
+export type JudgerStatusCompileError = {
+    name: "compile_error";
+    payload: ( undefined | SandboxStatus | null );
+};
+export type JudgerStatusDangerousSyscall = {
+    name: "dangerous_syscall";
+    payload: null;
+};
+export type JudgerStatusGood = {
+    name: "good";
+    payload: null;
+};
+export type JudgerStatusMemoryLimitExceeded = {
+    name: "memory_limit_exceeded";
+    payload: null;
+};
+export type JudgerStatusOutputLimitExceeded = {
+    name: "output_limit_exceeded";
+    payload: null;
+};
+export type JudgerStatusPresentationError = {
+    name: "presentation_error";
+    payload: null;
+};
+export type JudgerStatusRuntimeError = {
+    name: "runtime_error";
+    payload: null;
+};
+export type JudgerStatusTimeLimitExceeded = {
+    name: "time_limit_exceeded";
+    payload: null;
+};
+export type JudgerStatusWrongAnswer = {
+    name: "wrong_answer";
+    payload: null;
+};
+export type Link = {
+    children: Node[];
+    title: ( undefined | null | string );
+    url: string;
+};
+export type LinkReference = {
+    children: Node[];
+    identifier: string;
+    label: ( undefined | null | string );
+    reference_kind: ReferenceKind;
+};
+export type List = {
+    children: Node[];
+    ordered: boolean;
+    spread: boolean;
+    start: ( undefined | null | number );
+};
+export type ListItem = {
+    checked: ( undefined | null | boolean );
+    children: Node[];
+    spread: boolean;
+};
+export type LoginPayload = {
+    passwordHash: string;
+    username: Username;
+};
+export type Math = {
+    meta: ( undefined | null | string );
+    value: string;
+};
 export type Memory = number;
-export type MemoryLimitExceededKind = (MemoryLimitExceededKindReal|MemoryLimitExceededKindStack|MemoryLimitExceededKindVirtual);
-export type MemoryLimitExceededKindReal = {Real:Memory;};
-export type MemoryLimitExceededKindStack = "Stack";
-export type MemoryLimitExceededKindVirtual = "Virtual";
-export type Node = (NodeBlockQuote|NodeBreak|NodeCode|NodeDefinition|NodeDelete|NodeEmphasis|NodeFootnoteDefinition|NodeFootnoteReference|NodeHeading|NodeHtml|NodeImage|NodeImageReference|NodeInlineCode|NodeInlineMath|NodeLink|NodeLinkReference|NodeList|NodeListItem|NodeMath|NodeParagraph|NodeRoot|NodeStrong|NodeTable|NodeTableCell|NodeTableRow|NodeText|NodeThematicBreak|NodeToml|NodeTwoColumns|NodeYaml);
-export type NodeBlockQuote = (BlockQuote&{type:"blockquote";});
-export type NodeBreak = (Break&{type:"break";});
-export type NodeCode = (Code&{type:"code";});
-export type NodeDefinition = (Definition&{type:"definition";});
-export type NodeDelete = (Delete&{type:"delete";});
-export type NodeEmphasis = (Emphasis&{type:"emphasis";});
-export type NodeFootnoteDefinition = (FootnoteDefinition&{type:"footnoteDefinition";});
-export type NodeFootnoteReference = (FootnoteReference&{type:"footnoteReference";});
-export type NodeHeading = (Heading&{type:"heading";});
-export type NodeHtml = (Html&{type:"html";});
-export type NodeImage = (Image&{type:"image";});
-export type NodeImageReference = (ImageReference&{type:"imageReference";});
-export type NodeInlineCode = (InlineCode&{type:"inlineCode";});
-export type NodeInlineMath = (InlineMath&{type:"inlineMath";});
-export type NodeLink = (Link&{type:"link";});
-export type NodeLinkReference = (LinkReference&{type:"linkReference";});
-export type NodeList = (List&{type:"list";});
-export type NodeListItem = (ListItem&{type:"listItem";});
-export type NodeMath = (Math&{type:"math";});
-export type NodeParagraph = (Paragraph&{type:"paragraph";});
-export type NodeRoot = (Root&{type:"root";});
-export type NodeStrong = (Strong&{type:"strong";});
-export type NodeTable = (Table&{type:"table";});
-export type NodeTableCell = (TableCell&{type:"tableCell";});
-export type NodeTableRow = (TableRow&{type:"tableRow";});
-export type NodeText = (Text&{type:"text";});
-export type NodeThematicBreak = (ThematicBreak&{type:"thematicBreak";});
-export type NodeToml = (Toml&{type:"toml";});
-export type NodeTwoColumns = (TwoColumns&{type:"twoColumns";});
-export type NodeYaml = (Yaml&{type:"yaml";});
-export type Paragraph = {children:Node[];};
-export type PostDataReturn = {id:number;};
-export type ProbMetasQuery = {max_count:number;offset:number;pattern:(undefined|null|string);};
-export type ProblemKind = ("Interactive"|"SubmitAnswer"|{Traditional:IOKind;});
-export type ProblemMeta = {id:number;tags:string;title:string;};
-export type ProfileQuery = {username:Username;};
-export type ReferenceKind = (ReferenceKindCollapsed|ReferenceKindFull|ReferenceKindShortcut);
+export type Node = (
+    NodeBlockQuote
+    | NodeBreak
+    | NodeCode
+    | NodeDefinition
+    | NodeDelete
+    | NodeEmphasis
+    | NodeFootnoteDefinition
+    | NodeFootnoteReference
+    | NodeHeading
+    | NodeHtml
+    | NodeImage
+    | NodeImageReference
+    | NodeInlineCode
+    | NodeInlineMath
+    | NodeLink
+    | NodeLinkReference
+    | NodeList
+    | NodeListItem
+    | NodeMath
+    | NodeParagraph
+    | NodeRoot
+    | NodeStrong
+    | NodeTable
+    | NodeTableCell
+    | NodeTableRow
+    | NodeText
+    | NodeThematicBreak
+    | NodeToml
+    | NodeTwoColumns
+    | NodeYaml
+);
+export type NodeBlockQuote = ( BlockQuote & { type: "blockquote"; } );
+export type NodeBreak = ( Break & { type: "break"; } );
+export type NodeCode = ( Code & { type: "code"; } );
+export type NodeDefinition = ( Definition & { type: "definition"; } );
+export type NodeDelete = ( Delete & { type: "delete"; } );
+export type NodeEmphasis = ( Emphasis & { type: "emphasis"; } );
+export type NodeFootnoteDefinition = ( FootnoteDefinition & { type: "footnoteDefinition"; } );
+export type NodeFootnoteReference = ( FootnoteReference & { type: "footnoteReference"; } );
+export type NodeHeading = ( Heading & { type: "heading"; } );
+export type NodeHtml = ( Html & { type: "html"; } );
+export type NodeImage = ( Image & { type: "image"; } );
+export type NodeImageReference = ( ImageReference & { type: "imageReference"; } );
+export type NodeInlineCode = ( InlineCode & { type: "inlineCode"; } );
+export type NodeInlineMath = ( InlineMath & { type: "inlineMath"; } );
+export type NodeLink = ( Link & { type: "link"; } );
+export type NodeLinkReference = ( LinkReference & { type: "linkReference"; } );
+export type NodeList = ( List & { type: "list"; } );
+export type NodeListItem = ( ListItem & { type: "listItem"; } );
+export type NodeMath = ( Math & { type: "math"; } );
+export type NodeParagraph = ( Paragraph & { type: "paragraph"; } );
+export type NodeRoot = ( Root & { type: "root"; } );
+export type NodeStrong = ( Strong & { type: "strong"; } );
+export type NodeTable = ( Table & { type: "table"; } );
+export type NodeTableCell = ( TableCell & { type: "tableCell"; } );
+export type NodeTableRow = ( TableRow & { type: "tableRow"; } );
+export type NodeText = ( Text & { type: "text"; } );
+export type NodeThematicBreak = ( ThematicBreak & { type: "thematicBreak"; } );
+export type NodeToml = ( Toml & { type: "toml"; } );
+export type NodeTwoColumns = ( TwoColumns & { type: "twoColumns"; } );
+export type NodeYaml = ( Yaml & { type: "yaml"; } );
+export type Paragraph = {
+    children: Node[];
+};
+export type PostDataReturn = {
+    id: number;
+};
+export type ProbMetasQuery = {
+    max_count: number;
+    offset: number;
+    pattern: ( undefined | null | string );
+};
+export type ProblemKind = ( "Interactive" | "SubmitAnswer" | { Traditional: IOKind; } );
+export type ProblemMeta = {
+    id: number;
+    tags: string;
+    title: string;
+};
+export type ProfileQuery = {
+    username: Username;
+};
+export type ReferenceKind = ( ReferenceKindCollapsed | ReferenceKindFull | ReferenceKindShortcut );
 export type ReferenceKindCollapsed = "collapsed";
 export type ReferenceKindFull = "full";
 export type ReferenceKindShortcut = "shortcut";
-export type RegisterPayload = {email:string;passwordHash:string;username:Username;};
-export type Root = {children:Node[];};
-export type SandboxStatus = (SandboxStatusDangerousSyscall|SandboxStatusMemoryLimitExceeded|SandboxStatusOk|SandboxStatusOutputLimitExceeded|SandboxStatusRuntimeError|SandboxStatusTimeLimitExceeded);
+export type RegisterPayload = {
+    email: string;
+    passwordHash: string;
+    username: Username;
+};
+export type Root = {
+    children: Node[];
+};
+export type SandboxStatus = (
+    SandboxStatusDangerousSyscall
+    | SandboxStatusMemoryLimitExceeded
+    | SandboxStatusOk
+    | SandboxStatusOutputLimitExceeded
+    | SandboxStatusRuntimeError
+    | SandboxStatusTimeLimitExceeded
+);
 export type SandboxStatusDangerousSyscall = "DangerousSyscall";
-export type SandboxStatusMemoryLimitExceeded = {MemoryLimitExceeded:MemoryLimitExceededKind;};
+export type SandboxStatusMemoryLimitExceeded = "MemoryLimitExceeded";
 export type SandboxStatusOk = "Ok";
 export type SandboxStatusOutputLimitExceeded = "OutputLimitExceeded";
-export type SandboxStatusRuntimeError = {RuntimeError:[number,(undefined|null|string)];};
-export type SandboxStatusTimeLimitExceeded = {TimeLimitExceeded:TimeLimitExceededKind;};
-export type SourceFile = {file_type:FileType;source:string;};
-export type Statement = {meta:StmtMeta;statement:Node;title:string;};
-export type StmtMeta = {kind:(undefined|ProblemKind|null);memory:(undefined|Memory|null);time:(undefined|Elapse|null);};
-export type StmtQuery = {id:number;};
-export type Strong = {children:Node[];};
-export type SubmInfo = {meta:SubmMeta;raw:SubmRaw;report:(undefined|FullJudgeReport|null);};
-export type SubmMeta = {id:number;judge_time:(undefined|null|string);lang:(undefined|FileType|null);memory:(undefined|Memory|null);pid:number;problem_title:string;status:(undefined|JudgerStatus|null);submit_time:string;time:(undefined|Elapse|null);uid:number;username:Username;};
-export type SubmMetasQuery = {lang:(undefined|FileType|null);max_count:number;offset:number;pid:(undefined|null|number);uid:(undefined|null|number);};
+export type SandboxStatusRuntimeError = {
+    RuntimeError: number;
+};
+export type SandboxStatusTimeLimitExceeded = "TimeLimitExceeded";
+export type SourceFile = {
+    file_type: FileType;
+    source: string;
+};
+export type Statement = {
+    meta: StmtMeta;
+    statement: Node;
+    title: string;
+};
+export type StmtMeta = {
+    kind: ( undefined | ProblemKind | null );
+    memory: ( undefined | Memory | null );
+    time: ( undefined | Elapse | null );
+};
+export type StmtQuery = {
+    id: number;
+};
+export type Strong = {
+    children: Node[];
+};
+export type SubmInfo = {
+    meta: SubmMeta;
+    raw: SubmRaw;
+    report: ( undefined | FullJudgeReport | null );
+};
+export type SubmMeta = {
+    id: number;
+    judge_time: ( undefined | null | string );
+    lang: ( undefined | FileType | null );
+    memory: ( undefined | Memory | null );
+    pid: number;
+    problem_title: string;
+    status: ( undefined | JudgerStatus | null );
+    submit_time: string;
+    time: ( undefined | Elapse | null );
+    uid: number;
+    username: Username;
+};
+export type SubmMetasQuery = {
+    lang: ( undefined | FileType | null );
+    max_count: number;
+    offset: number;
+    pid: ( undefined | null | number );
+    uid: ( undefined | null | number );
+};
 export type SubmRaw = Record<string, SourceFile>;
-export type SubtaskReport = {meta:TaskMeta;tasks:(undefined|TaskReport|null)[];total_score:number;};
-export type Table = {align:AlignKind[];children:Node[];};
-export type TableCell = {children:Node[];};
-export type TableRow = {children:Node[];};
-export type TaskMeta = {memory:Memory;score_rate:number;status:JudgerStatus;time:Elapse;};
-export type TaskReport = {meta:TaskMeta;payload:[string,TruncStr][];};
-export type Text = {value:string;};
-export type ThematicBreak = {};
-export type TimeLimitExceededKind = (TimeLimitExceededKindCpu|TimeLimitExceededKindReal);
-export type TimeLimitExceededKindCpu = {Cpu:Elapse;};
-export type TimeLimitExceededKindReal = "Real";
-export type Toml = {value:string;};
-export type TruncStr = {limit:number;str:string;truncated:number;};
-export type TwoColumns = {left:Node;right:Node;};
-export type UserDisplayInfo = {email:string;gender:Gender;id:number;motto:string;name:string;register_time:string;username:Username;};
-export type UserEditInfo = {email:string;gender:Gender;id:number;motto:string;name:string;register_time:string;username:string;};
-export type UserUpdateInfo = {email:(undefined|null|string);gender:(undefined|Gender|null);motto:(undefined|null|string);name:(undefined|null|string);password_hash:(undefined|null|string);};
+export type SubtaskReport = {
+    meta: TaskMeta;
+    tasks: ( undefined | TaskReport | null )[];
+    total_score: number;
+};
+export type Table = {
+    align: AlignKind[];
+    children: Node[];
+};
+export type TableCell = {
+    children: Node[];
+};
+export type TableRow = {
+    children: Node[];
+};
+export type TaskMeta = {
+    memory: Memory;
+    score_rate: number;
+    status: JudgerStatus;
+    time: Elapse;
+};
+export type TaskReport = {
+    meta: TaskMeta;
+    payload: [ string, TruncStr ][];
+};
+export type Text = {
+    value: string;
+};
+export type ThematicBreak = {
+};
+export type Toml = {
+    value: string;
+};
+export type TruncStr = {
+    limit: number;
+    str: string;
+    truncated: number;
+};
+export type TwoColumns = {
+    left: Node;
+    right: Node;
+};
+export type UserDisplayInfo = {
+    email: string;
+    gender: Gender;
+    id: number;
+    motto: string;
+    name: string;
+    register_time: string;
+    username: Username;
+};
+export type UserEditInfo = {
+    email: string;
+    gender: Gender;
+    id: number;
+    motto: string;
+    name: string;
+    register_time: string;
+    username: string;
+};
+export type UserUpdateInfo = {
+    email: ( undefined | null | string );
+    gender: ( undefined | Gender | null );
+    motto: ( undefined | null | string );
+    name: ( undefined | null | string );
+    password_hash: ( undefined | null | string );
+};
 export type Username = string;
-export type Yaml = {value:string;};
+export type Yaml = {
+    value: string;
+};
 export function useAPI () { return { auth: { login: { post: { 
     use: (payload: AuthLoginPostPayload | Ref<AuthLoginPostPayload>) => callAPI("post", "/auth/login", payload) as Promise<ExtAsyncData<void>>,
     fetch: (payload: AuthLoginPostPayload | Ref<AuthLoginPostPayload>) => fetchAPI("post", "/auth/login", payload) as Promise<void>,

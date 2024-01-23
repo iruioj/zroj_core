@@ -72,5 +72,5 @@ fn test_enum() {
         serde_json::to_string(&NewTypeVariantEnum::Mixed(MixedEnum::D)).unwrap()
     );
     eprintln!("{}", serde_json::to_string(&MixedEnum::D).unwrap());
-    eprintln!("{}", TestEnum::type_def().to_string());
+    eprintln!("{}", TestEnum::type_def());
 }

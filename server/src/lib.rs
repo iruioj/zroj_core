@@ -30,7 +30,7 @@ pub(crate) mod marker {
     pub type QueryParam<T> = web::Query<T>;
     /// 标记一个 API 的返回数据类型
     pub type JsonResult<T> = actix_web::Result<web::Json<T>>;
-    /// 标记一个 API 的返回数据类型为 any
+    /// 标记一个 API 的返回数据类型为 T
     pub type AnyResult<T> = actix_web::Result<T>;
     /// 标记一个 API 需要用到的服务器数据
     pub type ServerData<T> = web::Data<T>;

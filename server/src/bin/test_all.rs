@@ -105,7 +105,8 @@ async fn main() -> std::io::Result<()> {
                 .service(
                     app::submission::service(subm_db.clone(), judger.clone())
                         .wrap(SessionAuth::require_auth(session_container.clone())),
-                ),
+                )
+                .service(app::api_docs::service()),
         )
     })
     .bind(addr)?

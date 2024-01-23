@@ -155,5 +155,5 @@ fn test_recursive() {
     dbg!(Recursive::type_def());
     dbg!(Recursive::type_context());
     dbg!(Node::type_def());
-    eprintln!("{}", Node::type_context().render_code());
+    eprintln!("{}", Node::type_context().render_code(4));
 }

@@ -7,3 +7,4 @@ edition.workspace = true
 
 [dependencies]
 serde_ts_typing_derive = { path = "../serde_ts_typing_derive" }
+askama = "0.12.1"

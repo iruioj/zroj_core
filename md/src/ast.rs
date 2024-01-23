@@ -1059,6 +1059,6 @@ impl From<markdown::mdast::Node> for Node {
 
 #[test]
 fn test_ts() {
-    eprintln!("{}", Node::type_context().render_code());
-    eprintln!("{}", Node::type_def().to_string());
+    eprintln!("{}", Node::type_context().render_code(4));
+    eprintln!("{}", Node::type_def());
 }
