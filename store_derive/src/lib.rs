@@ -7,6 +7,10 @@ fn has_meta(attrs: &[Attribute]) -> bool {
     attrs.iter().any(|attr| attr.meta.path().is_ident("meta"))
 }
 
+/// this character is almost impossible to appear as the name of field in Rust structs.
+/// Thus we use it as the metadata file's basename.
+const SELF_SEG: &str = "@";
+
 /// 可将文件夹下文件保存的信息自动初始化到结构体中
 ///
 /// `meta` 属性表示将此字段保存到一个统一的元数据文件中，此字段类型需要实现 Serialize 和 Deserialize
@@ -71,14 +75,14 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
                 fn open(path: &store::Handle) -> Result<Self, store::Error> {
                     use std::fs::File;
                     let __meta__: #meta_struct_ident =
-                        path.join("__meta__").deserialize::<#meta_struct_ident>()?;
+                        path.join(#SELF_SEG).deserialize::<#meta_struct_ident>()?;
 
                     Ok(Self {
                         #ret_fields
                     })
                 }
                 fn save(&mut self, path: &store::Handle) -> Result<(), store::Error> {
-                    path.join("__meta__").serialize_new_file(& #meta_struct_ident {
+                    path.join(#SELF_SEG).serialize_new_file(& #meta_struct_ident {
                         #into_meta_fields
                     })?;
                     #save_block
@@ -176,14 +180,14 @@ pub fn derive_fs_store(item: TokenStream) -> TokenStream {
                 fn open(path: &store::Handle) -> Result<Self, store::Error> {
                     use std::fs::File;
                     let __meta__: #meta_enum_ident =
-                        path.join("__meta__").deserialize::<#meta_enum_ident>()?;
+                        path.join(#SELF_SEG).deserialize::<#meta_enum_ident>()?;
 
                     Ok(match __meta__ {
                         #ret_branches
                     })
                 }
                 fn save(&mut self, path: &store::Handle) -> Result<(), store::Error> {
-                    path.join("__meta__").serialize_new_file(& match self {
+                    path.join(#SELF_SEG).serialize_new_file(& match self {
                         #save_branches
                     })?;
                     Ok(())
