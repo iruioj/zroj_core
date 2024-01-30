@@ -5,7 +5,6 @@ diesel::table! {
         id -> Unsigned<Integer>,
         pid -> Unsigned<Integer>,
         content -> Mediumtext,
-        meta -> Mediumtext,
     }
 }
 
@@ -14,6 +13,7 @@ diesel::table! {
         id -> Unsigned<Integer>,
         title -> Tinytext,
         tags -> Mediumtext,
+        meta -> Mediumtext,
     }
 }
 

@@ -33,6 +33,7 @@ pub struct Problem {
     pub id: ProblemID,
     pub title: String,
     pub tags: String,
+    pub meta: JsonStr<StmtMeta>,
 }
 
 #[derive(Debug, Clone, Queryable, Associations, Identifiable, AsChangeset, Selectable, Insertable)]
@@ -42,7 +43,6 @@ pub struct ProblemStatement {
     pub id: u32, // useless
     pub pid: ProblemID,
     pub content: JsonStr<Mdast>,
-    pub meta: JsonStr<StmtMeta>,
 }
 
 /// 提交记录的元信息

@@ -27,6 +27,7 @@ pub type StmtDB = dyn Manager + Sync + Send;
 struct NewProblem<'a> {
     title: &'a String,
     tags: &'a String,
+    meta: &'a JsonStr<StmtMeta>,
 }
 
 #[derive(Debug, Insertable)]
@@ -34,7 +35,6 @@ struct NewProblem<'a> {
 struct NewProblemStatement<'a> {
     pid: ProblemID,
     content: &'a JsonStr<Mdast>,
-    meta: &'a JsonStr<StmtMeta>,
 }
 
 #[derive(Debug, Serialize, TsType)]
@@ -102,7 +102,7 @@ impl Manager for Mysql {
             Ok(Statement {
                 title: problem.title,
                 statement: statement.content.0,
-                meta: statement.meta.0,
+                meta: problem.meta.0,
             })
         })
     }
@@ -113,6 +113,7 @@ impl Manager for Mysql {
                 .values(NewProblem {
                     title: &stmt.title,
                     tags: &String::new(),
+                    meta: &JsonStr(stmt.meta),
                 })
                 .execute(conn)?;
             // https://github.com/diesel-rs/diesel/issues/1011
@@ -121,7 +122,6 @@ impl Manager for Mysql {
                 .values(NewProblemStatement {
                     pid: pid as ProblemID,
                     content: &JsonStr(stmt.statement.render_mdast()),
-                    meta: &JsonStr(stmt.meta),
                 })
                 .execute(conn)?;
             Ok(pid as ProblemID)
@@ -130,13 +130,13 @@ impl Manager for Mysql {
     fn update(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), DataError> {
         self.0.transaction(|conn| {
             diesel::update(problem_statements::table.filter(problem_statements::pid.eq(id)))
-                .set((
-                    problem_statements::content.eq(JsonStr(stmt.statement.render_mdast())),
-                    problem_statements::meta.eq(JsonStr(stmt.meta)),
-                ))
+                .set(problem_statements::content.eq(JsonStr(stmt.statement.render_mdast())))
                 .execute(conn)?;
             diesel::update(problems::table.filter(problems::id.eq(id)))
-                .set(problems::title.eq(stmt.title))
+                .set((
+                    problems::title.eq(stmt.title),
+                    problems::meta.eq(JsonStr(stmt.meta)),
+                ))
                 .execute(conn)?;
             Ok(())
         })
@@ -186,10 +186,7 @@ impl Manager for Mysql {
 }
 
 impl Mysql {
-    pub fn replace_problem_statement(
-        &self,
-        rcd: ProblemStatement,
-    ) -> Result<(), DataError> {
+    pub fn replace_problem_statement(&self, rcd: ProblemStatement) -> Result<(), DataError> {
         self.0.transaction(|conn| {
             diesel::replace_into(problem_statements::table)
                 .values(&rcd)
