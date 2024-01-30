@@ -122,7 +122,7 @@ pub fn setup_database(cfg: &MysqlConfig, flag: SetupDatabaseFlag) -> Result<(), 
 sql_function! { fn last_insert_id() -> Unsigned<BigInt>; }
 
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./db_setup");
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./src/data/mysql/db_setup");
 
 /// create a SQL connection according to config (often for debugging)
 pub fn establish_conn(cfg: MysqlConfig) -> diesel::MysqlConnection {
