@@ -26,7 +26,6 @@ pub type StmtDB = dyn Manager + Sync + Send;
 #[diesel(table_name = problems)]
 struct NewProblem<'a> {
     title: &'a String,
-    tags: &'a String,
     meta: &'a JsonStr<StmtMeta>,
 }
 
@@ -112,7 +111,6 @@ impl Manager for Mysql {
             diesel::insert_into(problems::table)
                 .values(NewProblem {
                     title: &stmt.title,
-                    tags: &String::new(),
                     meta: &JsonStr(stmt.meta),
                 })
                 .execute(conn)?;
@@ -170,7 +168,7 @@ impl Manager for Mysql {
     ) -> Result<Vec<ProblemMeta>, DataError> {
         self.0.transaction(|conn| {
             Ok(problems::table
-                .filter(problems::title.like(pattern.unwrap_or("%".into())))
+                .filter(problems::title.like(pattern.filter(|s| s.trim().len() > 0).unwrap_or("%".into())))
                 .offset(offset as i64)
                 .limit(max_count as i64)
                 .load::<Problem>(conn)?
@@ -178,20 +176,9 @@ impl Manager for Mysql {
                 .map(|p| ProblemMeta {
                     id: p.id,
                     title: p.title,
-                    tags: p.tags,
+                    tags: "umimplemented".into(),
                 })
                 .collect())
-        })
-    }
-}
-
-impl Mysql {
-    pub fn replace_problem_statement(&self, rcd: ProblemStatement) -> Result<(), DataError> {
-        self.0.transaction(|conn| {
-            diesel::replace_into(problem_statements::table)
-                .values(&rcd)
-                .execute(conn)?;
-            Ok(())
         })
     }
 }

@@ -74,12 +74,32 @@ impl MysqlDb {
 
         Ok(r)
     }
+
     /// see [`diesel::connection::Connection::transaction`]
     pub fn transaction<T, F>(&self, f: F) -> Result<T, DataError>
     where
         F: FnOnce(&mut MysqlPooledConnection) -> Result<T, DataError>,
     {
         self.0.get()?.transaction(f)
+    }
+    /// Insert a record into a database.
+    /// Make sure `R` derives [`diesel::Insertable`].
+    pub fn migrate_replace<T, R>(&mut self, table: T, rcd: R) -> Result<(), DataError>
+    where
+        T: diesel::Table + diesel::query_builder::QueryId + 'static,
+        <T as diesel::QuerySource>::FromClause:
+            diesel::query_builder::QueryFragment<diesel::mysql::Mysql>,
+        R: diesel::Insertable<T>,
+        <R as diesel::Insertable<T>>::Values: diesel::query_builder::QueryId,
+        <R as diesel::Insertable<T>>::Values:
+            diesel::query_builder::QueryFragment<diesel::mysql::Mysql>,
+        <R as diesel::Insertable<T>>::Values:
+            diesel::insertable::CanInsertInSingleQuery<diesel::mysql::Mysql>,
+    {
+        self.transaction(|conn| {
+            diesel::replace_into(table).values(rcd).execute(conn)?;
+            Ok(())
+        })
     }
 }
 

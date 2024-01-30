@@ -27,16 +27,17 @@ pub struct User {
     pub gender: Gender,
 }
 
-#[derive(Debug, Clone, Queryable, Identifiable, AsChangeset, Selectable)]
+#[derive(Debug, Clone, Queryable, Identifiable, AsChangeset, Selectable, Insertable)]
 #[diesel(table_name = problems)]
 pub struct Problem {
     pub id: ProblemID,
     pub title: String,
-    pub tags: String,
     pub meta: JsonStr<StmtMeta>,
 }
 
-#[derive(Debug, Clone, Queryable, Associations, Identifiable, AsChangeset, Selectable, Insertable)]
+#[derive(
+    Debug, Clone, Queryable, Associations, Identifiable, AsChangeset, Selectable, Insertable,
+)]
 #[diesel(belongs_to(Problem, foreign_key = pid))]
 #[diesel(table_name = problem_statements)]
 pub struct ProblemStatement {
@@ -46,7 +47,7 @@ pub struct ProblemStatement {
 }
 
 /// 提交记录的元信息
-#[derive(Debug, Clone, Identifiable, Queryable, AsChangeset, Selectable)]
+#[derive(Debug, Clone, Queryable, Identifiable, AsChangeset, Selectable, Insertable)]
 #[diesel(table_name = submission_metas)]
 // #[diesel(belongs_to(User, foreign_key = uid))]
 // #[diesel(belongs_to(ProblemStatement, foreign_key = pid))]

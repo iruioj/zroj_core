@@ -2,7 +2,6 @@
 CREATE TABLE problems (
     id integer unsigned NOT NULL AUTO_INCREMENT,
     title tinytext NOT NULL,
-    tags mediumtext NOT NULL,
     meta mediumtext NOT NULL,
     PRIMARY KEY (id)
 );

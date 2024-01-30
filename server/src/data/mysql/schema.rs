@@ -12,7 +12,6 @@ diesel::table! {
     problems (id) {
         id -> Unsigned<Integer>,
         title -> Tinytext,
-        tags -> Mediumtext,
         meta -> Mediumtext,
     }
 }

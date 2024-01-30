@@ -1752,6 +1752,7 @@ version = "0.1.0"
 dependencies = [
  "csv",
  "diesel",
+ "md",
  "pest",
  "pest_derive",
  "problem",
