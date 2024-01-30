@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { NodeHeading } from "composables/api";
 import Node from "./Node.vue";
+import { NodeHeading } from "@/composables/api";
 
 defineProps<{
   data: NodeHeading;
@@ -17,6 +17,12 @@ defineProps<{
   <div
     v-else-if="data.depth == 3"
     class="hover:before:text-brand before:text-brand/0 before:content-['¶'] before:absolute before:transition-colors relative before:left-[-16px] px-1 py-2 text-brand font-bold text-md my-3"
+  >
+    <Node v-for="c in data.children" :data="c" />
+  </div>
+  <div
+    v-else-if="data.depth == 4"
+    class="hover:before:text-brand before:text-brand/0 before:content-['¶'] before:absolute before:transition-colors relative before:left-[-16px] px-1 py-2 text-brand text-md my-3"
   >
     <Node v-for="c in data.children" :data="c" />
   </div>

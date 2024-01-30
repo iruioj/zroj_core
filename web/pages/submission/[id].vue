@@ -1,9 +1,8 @@
 <script setup lang="ts">
-
-const route = useRoute()
+const route = useRoute();
 const { data } = await useAPI().submission.detail.get.use({
-  sid: parseInt(route.params.id as string)
-})
+  sid: parseInt(route.params.id as string),
+});
 </script>
 
 <template>
@@ -27,8 +26,12 @@ const { data } = await useAPI().submission.detail.get.use({
           <tr>
             <td class="border py-1 w-20 text-center">#1</td>
             <td class="border py-1 text-left px-1">Wrong Answer</td>
-            <td class="border py-1 px-1 text-center">{{ data.info.meta.username }}</td>
-            <td class="border py-1 px-1 text-center">{{ data.info.meta.lang}}</td>
+            <td class="border py-1 px-1 text-center">
+              {{ data.info.meta.username }}
+            </td>
+            <td class="border py-1 px-1 text-center">
+              {{ data.info.meta.lang }}
+            </td>
             <td class="border py-1 text-center">114</td>
             <td class="border py-1 text-center">514</td>
           </tr>
@@ -50,8 +53,10 @@ const { data } = await useAPI().submission.detail.get.use({
     </div>
 
     <SectionContainer v-if="data" title="源代码">
-      <div v-for="val, key in data.info.raw" :key="key">
-        <div class="py-2"><span class="font-bold">{{ key }}</span> ({{ val.file_type }})</div>
+      <div v-for="(val, key) in data.info.raw" :key="key">
+        <div class="py-2">
+          <span class="font-bold">{{ key }}</span> ({{ val.file_type }})
+        </div>
         <CodeBlock :raw="val.source" lang="cpp" />
       </div>
     </SectionContainer>

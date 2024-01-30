@@ -63,4 +63,4 @@ export const useMsgStore = defineStore("message_list", () => {
   return { info, error, list };
 });
 
-export const useSubmExpandID = () => useState('subm_expand_id', () => '')
+export const useSubmExpandID = () => useState("subm_expand_id", () => "");

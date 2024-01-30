@@ -6,7 +6,7 @@ defineProps<{
   expand?: boolean;
 }>();
 
-const cur = useSubmExpandID()
+const cur = useSubmExpandID();
 </script>
 
 <template>

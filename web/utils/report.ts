@@ -1,4 +1,3 @@
-
 export const statusTitle = {
   good: "Accepted",
   compile_error: "Compile Error",

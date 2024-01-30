@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { red } from 'tailwindcss/colors';
+import { red } from "tailwindcss/colors";
 
 const r = useRoute();
 
@@ -47,7 +47,7 @@ const onSubmit = async () => {
 
   const ret = await useAPI().problem.submit.post.fetch(form);
 
-  navigateTo('/submission/' + ret.sid)
+  navigateTo("/submission/" + ret.sid);
   // console.log(ret.sid);
 };
 </script>

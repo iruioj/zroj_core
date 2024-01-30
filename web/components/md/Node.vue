@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import { Node } from "composables/api";
 import Code from "./Code.vue";
 
 import Heading from "./Heading.vue";
@@ -8,6 +7,8 @@ import Paragraph from "./Paragraph.vue";
 import Root from "./Root.vue";
 import Text from "./Text.vue";
 import TwoColumns from "./TwoColumns.vue";
+import Strong from "./Strong.vue";
+import { Node } from "@/composables/api";
 
 defineProps<{
   data: Node;
@@ -22,5 +23,6 @@ defineProps<{
   <Code v-else-if="data.type == 'code'" :data="data" />
   <InlineMath v-else-if="data.type == 'inlineMath'" :data="data" />
   <TwoColumns v-else-if="data.type == 'twoColumns'" :data="data" />
+  <Strong v-else-if="data.type == 'strong'" :data="data" />
   <pre v-else>{{ data }}</pre>
 </template>
