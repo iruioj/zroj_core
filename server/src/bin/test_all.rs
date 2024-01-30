@@ -27,7 +27,7 @@ async fn main() -> std::io::Result<()> {
         dbname: "test".into(),
     };
     // by diesel migration we dont need to setup manually
-    // MysqlDb::setup_new(&sql_cfg).expect("setup mysql database");
+    // server::data::mysql::MysqlDb::setup_new(&sql_cfg).expect("setup mysql database");
 
     let user_db = dev::test_userdb(&sql_cfg);
     tracing::info!("user_db initialized");

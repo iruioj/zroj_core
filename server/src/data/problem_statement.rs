@@ -184,3 +184,17 @@ impl Manager for Mysql {
         })
     }
 }
+
+impl Mysql {
+    pub fn replace_problem_statement(
+        &self,
+        rcd: ProblemStatement,
+    ) -> Result<(), DataError> {
+        self.0.transaction(|conn| {
+            diesel::replace_into(problem_statements::table)
+                .values(&rcd)
+                .execute(conn)?;
+            Ok(())
+        })
+    }
+}

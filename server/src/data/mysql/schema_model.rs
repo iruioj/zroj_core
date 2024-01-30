@@ -35,7 +35,7 @@ pub struct Problem {
     pub tags: String,
 }
 
-#[derive(Debug, Clone, Queryable, Associations, Identifiable, AsChangeset, Selectable)]
+#[derive(Debug, Clone, Queryable, Associations, Identifiable, AsChangeset, Selectable, Insertable)]
 #[diesel(belongs_to(Problem, foreign_key = pid))]
 #[diesel(table_name = problem_statements)]
 pub struct ProblemStatement {

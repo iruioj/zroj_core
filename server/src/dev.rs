@@ -21,8 +21,6 @@ use problem::sample::{a_plus_b_data, a_plus_b_statment};
 use store::Handle;
 use tracing_actix_web::TracingLogger;
 
-pub const MYSQL_TEST: &str = "mysql://test:test@127.0.0.1:3305/test";
-
 /// 将非 `/api` 开头的请求转发到 localhost:3000
 pub fn frontend_rev_proxy(port: u16) -> RevProxy {
     RevProxy::create(format!("http://localhost:{port}")).path_trans(|s| {

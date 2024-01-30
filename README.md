@@ -4,6 +4,8 @@
 
 This project is currently under active development.
 
+recommand VSCode extension: `mtxr.sqltools`
+
 Diesel:
 
 ```bash

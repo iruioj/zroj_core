@@ -13,7 +13,6 @@ members = [
     "server_derive",
     "store",
     "store_derive",
-    "tools",
     "serde_ts_typing",
     "serde_ts_typing_derive",
     "migrator",
@@ -24,6 +23,6 @@ members = [
 [workspace.package]
 authors = ["ZROJ Team"]
 edition = "2021"
-keywords = ["Online Judge", "Sandbox"]
+keywords = ["online_judge", "sandbox"]
 version = "0.1.0"
 repository = "https://github.com/iruioj/zroj_core"

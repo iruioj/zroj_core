@@ -15,7 +15,7 @@ use diesel::{
 type MysqlPool = Pool<ConnectionManager<MysqlConnection>>;
 type MysqlPooledConnection = PooledConnection<ConnectionManager<MysqlConnection>>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MysqlConfig {
     pub user: String,
     pub password: String,
@@ -120,3 +120,29 @@ pub fn setup_database(cfg: &MysqlConfig, flag: SetupDatabaseFlag) -> Result<(), 
 
 // mysql only
 sql_function! { fn last_insert_id() -> Unsigned<BigInt>; }
+
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./db_setup");
+
+/// create a SQL connection according to config (often for debugging)
+pub fn establish_conn(cfg: MysqlConfig) -> diesel::MysqlConnection {
+    let MysqlConfig {
+        user,
+        password,
+        host,
+        port,
+        dbname,
+    } = cfg;
+    <diesel::MysqlConnection as diesel::Connection>::establish(&format!(
+        "mysql://{user}:{password}@{host}:{port}/{dbname}"
+    ))
+    .expect("establish connection")
+}
+
+pub fn run_migrations(cfg: MysqlConfig) -> anyhow::Result<()> {
+    let mut conn = establish_conn(cfg);
+    conn.run_pending_migrations(MIGRATIONS)
+        .map_err(|e| anyhow::Error::msg(e.to_string()))?;
+
+    Ok(())
+}
