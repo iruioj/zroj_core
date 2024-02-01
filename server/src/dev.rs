@@ -126,12 +126,11 @@ pub fn logging_setup(max_level: &'static tracing::Level, log_file: Option<String
         .pretty()
         .with_thread_names(true)
         .with_filter(filter::filter_fn(|meta| {
-            // the smaller, the more prior
-            meta.level() <= max_level &&
-            // too annoying to verbose
-            !meta
-                .module_path()
-                .is_some_and(|s| s.contains("actix_session::middleware"))
+            // let is_invalid_identity = meta
+            //     .module_path()
+            //     .is_some_and(|s| s.contains("actix_session::middleware"));
+
+            meta.level() <= max_level // && !from_actix_session
         }));
 
     let file_log = log_file

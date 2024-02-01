@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
+use anyhow::{anyhow, Context};
 use pest::Parser;
 use pest_derive::Parser;
 use problem::{
@@ -11,21 +12,6 @@ use problem::{
 #[derive(Parser)]
 #[grammar = "uoj_config.pest"] // relative to src
 struct ConfigParser;
-
-#[derive(Debug)]
-pub enum ParseError {
-    SyntaxError(Box<dyn std::error::Error>),
-    ParseStrError(Box<dyn std::error::Error>),
-}
-impl std::fmt::Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ParseError::SyntaxError(e) => write!(f, "error parsing syntax: {e}"),
-            ParseError::ParseStrError(e) => write!(f, "error parsing str: {e}"),
-        }
-    }
-}
-impl std::error::Error for ParseError {}
 
 #[derive(Debug)]
 pub struct SubtaskConfig {
@@ -51,14 +37,14 @@ pub struct Config {
     output_limit: Option<u64>,
     subtasks: Option<(BTreeMap<u64, SubtaskConfig>, Vec<(u64, u64)>)>,
 }
-pub fn parse_config(content: &str) -> Result<Config, ParseError> {
-    let mut r = ConfigParser::parse(Rule::file, content)
-        .map_err(|e| ParseError::SyntaxError(Box::new(e)))?;
+pub fn parse_config(content: &str) -> anyhow::Result<Config> {
+    let mut r =
+        ConfigParser::parse(Rule::file, content).map_err(|e| anyhow!("syntax error: {e}"))?;
     let mut map = HashMap::new();
     let file = r.find(|i| Rule::file == i.as_rule()).unwrap();
     for item in file.into_inner().filter(|i| i.as_rule() != Rule::EOI) {
         if Rule::line != item.as_rule() {
-            panic!("invalid item (rule: {:?})", item.as_rule())
+            return Err(anyhow!("invalid item (rule: {:?})", item.as_rule()));
         }
         let mut it = item
             .as_span()
@@ -78,7 +64,7 @@ pub fn parse_config(content: &str) -> Result<Config, ParseError> {
             .map(|s| s.parse())
             .map_or(Ok(None), |v| v.map(Some))
             // .unwrap_or(Ok(default))
-            .map_err(|e| ParseError::ParseStrError(Box::new(e)))
+            .map_err(|e| anyhow!("parse string error: {e}"))
     };
     let n_subtasks = get_u64("n_subtasks")?;
 
@@ -105,7 +91,7 @@ pub fn parse_config(content: &str) -> Result<Config, ParseError> {
         subtasks: n_subtasks
             .map(|n_subtasks| {
                 Ok((
-                    (1..=n_subtasks).try_fold(
+                    (1..=n_subtasks).try_fold::<_, _, anyhow::Result<_>>(
                         BTreeMap::<u64, SubtaskConfig>::new(),
                         |mut v, i| {
                             v.insert(
@@ -133,23 +119,9 @@ pub fn parse_config(content: &str) -> Result<Config, ParseError> {
                         .collect(),
                 ))
             })
-            .map_or(Ok(None), |v| v.map(Some))?,
+            .map_or(Ok(None), |v: anyhow::Result<_>| v.map(Some))?,
     })
 }
-
-#[derive(Debug)]
-pub enum LoadError {
-    StoreError(store::Error),
-}
-
-impl std::fmt::Display for LoadError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LoadError::StoreError(e) => write!(f, "error opening store: {e}"),
-        }
-    }
-}
-impl std::error::Error for LoadError {}
 
 impl Config {
     fn _get_task(
@@ -157,7 +129,7 @@ impl Config {
         dir: &store::Handle,
         prefix: &str,
         cur: u64,
-    ) -> Result<TraditionalTask, LoadError> {
+    ) -> anyhow::Result<TraditionalTask> {
         Ok(TraditionalTask {
             input: StoreFile {
                 file: dir
@@ -166,7 +138,7 @@ impl Config {
                         self.input_pre, self.input_suf
                     ))
                     .open_file()
-                    .map_err(LoadError::StoreError)?,
+                    .context("open input file")?,
                 file_type: FileType::Plain,
             },
             output: StoreFile {
@@ -176,25 +148,25 @@ impl Config {
                         self.output_pre, self.output_suf
                     ))
                     .open_file()
-                    .map_err(LoadError::StoreError)?,
+                    .context("open output file")?,
                 file_type: FileType::Plain,
             },
         })
     }
-    fn get_task(&self, dir: &store::Handle, cur: u64) -> Result<TraditionalTask, LoadError> {
+    fn get_task(&self, dir: &store::Handle, cur: u64) -> anyhow::Result<TraditionalTask> {
         self._get_task(dir, "", cur)
     }
-    fn get_ex_task(&self, dir: &store::Handle, cur: u64) -> Result<TraditionalTask, LoadError> {
+    fn get_ex_task(&self, dir: &store::Handle, cur: u64) -> anyhow::Result<TraditionalTask> {
         self._get_task(dir, "ex_", cur)
     }
 }
 
-pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalOJData, LoadError> {
+pub fn load_data(conf: &Config, dir: store::Handle) -> anyhow::Result<TraditionalOJData> {
     if !conf.use_builtin_judger {
-        panic!("this problem doesn't use builtin judger")
+        return Err(anyhow!("not builtin judger"));
     }
     if conf.with_implementer {
-        panic!("this problem use custom implementer")
+        return Err(anyhow!("use custom implementer"));
     }
     let mut ojdata = TraditionalOJData::new(problem::prelude::TraditionalMeta {
         checker: if let Some(checker) = &conf.use_builtin_checker {
@@ -224,12 +196,12 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> Result<TraditionalOJData,
                     Ok(Subtask {
                         tasks: (v.start..=v.end)
                             .map(|cur| conf.get_task(&dir, cur))
-                            .collect::<Result<_, LoadError>>()?,
+                            .collect::<anyhow::Result<_>>()?,
                         meta: (),
                         score: v.score as f64 / 100.0,
                     })
                 })
-                .collect::<Result<_, LoadError>>()?,
+                .collect::<anyhow::Result<_>>()?,
             deps: deps
                 .iter()
                 .map(|(a, b)| DepRelation::new(*a as usize - 1, *b as usize - 1))

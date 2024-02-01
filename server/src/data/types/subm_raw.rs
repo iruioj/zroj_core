@@ -1,7 +1,10 @@
 use super::*;
 use judger::SourceFile;
 use serde_ts_typing::TsType;
-use std::collections::BTreeMap;
+use std::{
+    collections::BTreeMap,
+    ops::{Deref, DerefMut},
+};
 
 /// Raw content of user submission is stored on file system.
 /// This struct provides entries of files in the submission.
@@ -23,6 +26,19 @@ impl SubmRaw {
                 )
             })
             .collect::<Vec<_>>()
+    }
+}
+
+impl Deref for SubmRaw {
+    type Target = BTreeMap<String, SourceFile>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for SubmRaw {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

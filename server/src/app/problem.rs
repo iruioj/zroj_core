@@ -156,17 +156,11 @@ async fn judge(
     let sid = match stddata {
         problem::StandardProblem::Traditional(ojdata) => {
             let raw2 = raw.clone();
-            let subm_id = block_it!(subm_db.insert_new(
-                *uid,
-                pid,
-                raw2.0.get("source").map(|x| x.file_type.clone()),
-                // must insert_new before consuming raw
-                &raw2,
-            ))?;
+            let file_type = raw2.get("source").map(|x| x.file_type.clone());
+            let subm_id = block_it!(subm_db.insert_new(*uid, pid, file_type, &raw2,))?;
 
             let subm = TraditionalSubm {
                 source: raw
-                    .0
                     .remove("source")
                     .ok_or(error::ErrorBadRequest("source file not found"))?,
             };

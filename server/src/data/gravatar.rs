@@ -71,7 +71,7 @@ impl Manager for DefaultDB {
         let mut res = req
             .send()
             .await
-            .map_err(|err| anyhow::Error::msg(err.to_string()).context("send request"))?;
+            .map_err(|err| anyhow::anyhow!(err.to_string()).context("send request"))?;
         eprintln!("get response");
         let img = res.body().await.unwrap();
         eprintln!("get body");
