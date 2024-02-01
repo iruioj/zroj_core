@@ -21,4 +21,4 @@ windows = { version = "0.22.1", features = ["System", "System_Diagnostics"] }
 
 [build-dependencies]
 cc = "1.0"
-bindgen = "0.65.1"
+bindgen = "0.69.2"
