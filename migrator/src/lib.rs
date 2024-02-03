@@ -1,6 +1,7 @@
 pub mod uoj;
 pub mod zroj;
 
+use anyhow::Context;
 use diesel::{Connection, MysqlConnection};
 
 pub fn establish_connection(
@@ -9,7 +10,7 @@ pub fn establish_connection(
     host: &str,
     port: u32,
     dbname: &str,
-) -> MysqlConnection {
+) -> anyhow::Result<MysqlConnection> {
     MysqlConnection::establish(&format!("mysql://{user}:{password}@{host}:{port}/{dbname}"))
-        .expect("establish connection")
+        .context("establish connection")
 }

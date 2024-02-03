@@ -17,9 +17,9 @@ struct Table {
 }
 
 /// inspect the database of (new) ZROJ
-fn main() {
+fn main() -> anyhow::Result<()> {
     let mut conn =
-        migrator::establish_connection("test", "test", "127.0.0.1", 3306, "information_schema");
+        migrator::establish_connection("test", "test", "127.0.0.1", 3306, "information_schema")?;
     let r: Vec<Table> = diesel::sql_query("select TABLE_SCHEMA, TABLE_NAME from TABLES")
         .get_results(&mut conn)
         .expect("query information_schemas");
@@ -28,4 +28,5 @@ fn main() {
         .filter(|tb| tb.TABLE_SCHEMA != "information_schema")
         .collect();
     dbg!(&r);
+    Ok(())
 }

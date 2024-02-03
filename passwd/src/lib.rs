@@ -63,10 +63,16 @@ mod tests {
         let plain = "123546";
         let passwd = register_hash(plain);
         eprintln!("passwd = {}", &passwd);
+
         let passwd_hash = login_hash(plain);
         eprintln!("passwd_hash = {}", &passwd_hash);
-        let passwd_hash = login_hash(plain);
-        eprintln!("passwd_hash = {}", &passwd_hash);
-        assert!(verify(&passwd, &passwd_hash))
+        assert!(verify(&passwd, &passwd_hash));
+
+        let passwd_hash2 = login_hash(plain);
+        eprintln!("passwd_hash = {}", &passwd_hash2);
+        assert!(verify(&passwd, &passwd_hash2));
+
+        // login_hash must have side effects to ensure security
+        assert_ne!(passwd_hash, passwd_hash2);
     }
 }

@@ -161,7 +161,8 @@ impl Config {
     }
 }
 
-pub fn load_data(conf: &Config, dir: store::Handle) -> anyhow::Result<TraditionalOJData> {
+pub fn load_data(dir: store::Handle) -> anyhow::Result<TraditionalOJData> {
+    let conf = parse_config(std::fs::read_to_string(dir.join("problem.conf").path())?.as_str())?;
     if !conf.use_builtin_judger {
         return Err(anyhow!("not builtin judger"));
     }

@@ -1,10 +1,12 @@
 //! 这部分可能是 zroj 自己魔改的东西，所以不归 uoj
 
-use std::collections::BTreeMap;
+use anyhow::Context;
+use std::{collections::BTreeMap, process::Command};
 
 use diesel::prelude::*;
 use server::data::{
     mysql::{schema::*, schema_model::*},
+    problem_ojdata::Manager,
     types::JsonStr,
 };
 
@@ -36,11 +38,12 @@ mod old {
     diesel::joinable!(problems_contents -> problems (id));
     diesel::allow_tables_to_appear_in_same_query!(problems_contents, problems,);
 }
-pub fn export_problem_data(
+pub fn export_problem_db(
     db: &mut server::data::mysql::MysqlDb,
     conn: &mut MysqlConnection,
     dry_run: bool,
-) {
+) -> anyhow::Result<Vec<i32>> {
+    println!("export problem database");
     let r: Vec<(i32, String, String, String, Option<String>)> = old::problems::table
         .left_join(old::problems_contents::table)
         .select((
@@ -52,41 +55,34 @@ pub fn export_problem_data(
         ))
         // .limit(200)
         .load::<(i32, String, String, String, Option<String>)>(conn)
-        .expect("query problems_contents");
+        .context("query problems_contents")?;
+
+    let mut ret = Vec::default();
 
     // migrate problem statements
-    let mut total_updated = 0;
     for (id, title, req, extra_config, stmt) in &r {
         let req: Option<Vec<BTreeMap<String, String>>> = serde_json::from_str(&req).ok();
         let extra_config: Option<BTreeMap<String, String>> =
             serde_json::from_str(&extra_config).ok();
-        let can_update = if let Some(req) = req {
-            if req.len() == 1 {
-                // submitting config of traditional problem
-                if req[0]["name"] == "answer"
-                    && req[0]["type"] == "source code"
-                    && req[0]["file_name"] == "answer.code"
-                {
-                    if let Some(extra_config) = extra_config {
-                        if extra_config.contains_key("pdf_statement") {
-                            false // FIXME
-                        } else {
-                            true
-                        }
-                    } else {
-                        false
-                    }
-                } else {
-                    false
-                }
+        // submitting config of traditional problem
+        let can_update = if req
+            == Some(vec![[
+                ("name".to_string(), "answer".to_string()),
+                ("type".to_string(), "source code".to_string()),
+                ("file_name".to_string(), "answer.code".to_string()),
+            ]
+            .into()])
+        {
+            if extra_config.is_some_and(|c| c.contains_key("pdf_statement")) {
+                false // FIXME: to be implemented
             } else {
-                false
+                true
             }
         } else {
             false
         };
         if can_update {
-            total_updated += 1;
+            ret.push(*id);
 
             if !dry_run {
                 // 在原来的 zroj 当中每道题的题面只有一个，因此可以认为 id = pid
@@ -104,7 +100,7 @@ pub fn export_problem_data(
                         }),
                     },
                 )
-                .unwrap();
+                .context("save data to problems")?;
 
                 db.migrate_replace(
                     problem_statements::table,
@@ -114,11 +110,49 @@ pub fn export_problem_data(
                         content: JsonStr(md::parse_ast(&stmt.clone().unwrap_or_default()).unwrap()),
                     },
                 )
-                .unwrap();
+                .context("save data to problem_statements")?;
             }
         } else {
             println!("problem #{id} ({title}) is not migrated");
         }
     }
-    println!("total migrated: {total_updated}")
+    Ok(ret)
+}
+
+pub fn export_problem_ojdata(
+    db: &mut server::data::problem_ojdata::DefaultDB,
+    ids: &[i32],
+) -> anyhow::Result<()> {
+    std::fs::create_dir_all("target/zroi_remote_root")?;
+
+    Command::new("sshfs")
+        .args(["root@zhengruioi.com:/root", "target/zroi_remote_root"])
+        .output()
+        .context("mount remote root")?;
+
+    for id in ids.to_owned() {
+        println!("migrate problem ojdata {id}");
+
+        let ctx = store::Handle::new(format!("target/zroi_remote_root/prob-{id}"));
+        if ctx.path().exists() {
+            std::fs::remove_dir_all(ctx.path()).context("remove previous data")?;
+        }
+
+        Command::new("ssh")
+            .arg("root@zhengruioi.com")
+            .arg(format!("docker cp zroi:/var/uoj_data/{id} /root/prob-{id}"))
+            .output()
+            .context("copy data from docker to remote root")?;
+
+        let data = crate::uoj::load_data(ctx).context("load uoj data")?;
+
+        db.insert(id as u32, problem::StandardProblem::Traditional(data))
+            .context("insert ojdata to db")?;
+    }
+
+    Command::new("fusermount")
+        .args(["-u", "target/zroi_remote_root"])
+        .output()
+        .context("unmount remote root")?;
+    Ok(())
 }
