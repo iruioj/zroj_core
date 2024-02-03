@@ -87,7 +87,14 @@ sigset_t Sigsetmask(sigset_t mask) {
 
 sigset_t sigblockall() {
   sigset_t mask;
-  sigfillset(&mask);
+  sigemptyset(&mask);
+  sigaddset(&mask, SIGCHLD);
+  sigaddset(&mask, SIGINT);
+  sigaddset(&mask, SIGTSTP);
+
+  // sigfillset(&mask);
+  // sigdelset(&mask, SIGTRAP); // enable debugging
+
   return Sigsetmask(mask);
 }
 

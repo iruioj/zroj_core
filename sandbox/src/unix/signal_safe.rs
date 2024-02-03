@@ -113,13 +113,40 @@ pub fn open_write(path: &CStr) -> Result<i32, Errno> {
 }
 
 pub type Sigset = cbind::sigset_t;
-
-pub fn sigblockall() -> Sigset {
-    unsafe { cbind::sigblockall() }
+pub fn sigblockall() -> SigblockGuard {
+    SigblockGuard(unsafe { cbind::sigblockall() })
 }
 pub fn sigsetmask(mask: Sigset) {
     unsafe {
         cbind::Sigsetmask(mask);
+    }
+}
+pub fn sigismember(mask: &Sigset, signo: u32) -> Result<bool, Errno> {
+    let r = unsafe { cbind::sigismember(mask, signo as i32) };
+    if r < 0 {
+        errno_result()
+    } else {
+        Ok(r == 1)
+    }
+}
+
+/// Wrap a sigset as a guard of [`sigblockall`]. Certain signals are blocked
+/// during the life span of this guard.
+pub struct SigblockGuard(Sigset);
+
+impl SigblockGuard {
+    pub fn contains(&self, signo: u32) -> Result<bool, Errno> {
+        sigismember(&self.0, signo)
+    }
+    /// see [`sigsuspend`]
+    pub fn suspend(&self) {
+        sigsuspend(self.0)
+    }
+}
+
+impl Drop for SigblockGuard {
+    fn drop(&mut self) {
+        sigsetmask(self.0);
     }
 }
 

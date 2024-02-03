@@ -10,8 +10,6 @@ use std::{
     time::Instant,
 };
 
-use super::signal_safe::Sigset;
-
 /// 执行单个可执行文件
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Singleton {
@@ -33,7 +31,7 @@ impl Singleton {
         path: &CStr,
         args: &[*mut std::ffi::c_char],
         env: &[*mut std::ffi::c_char],
-        prev_mask: Sigset,
+        guard: signal_safe::SigblockGuard,
         shared: share_mem::GlobalShared,
     ) -> Result<(), signal_safe::Errno> {
         // register a handler for SIGCHLD to make sigsuspend work
@@ -58,10 +56,9 @@ impl Singleton {
                 let fd = signal_safe::open_write(stderr)?;
                 signal_safe::dup2(fd, signal_safe::STDERR_FILENO);
             } else {
-                signal_safe::print_cstr(b"stderr not redirected\n\x00");
+                signal_safe::print_cstr(b"(child-child) stderr not redirected\n\x00");
             }
 
-            signal_safe::sigblockall();
             // set resource limit
             macro_rules! setlim {
                 ($i:ident, $r:ident, $f:ident) => {
@@ -86,14 +83,14 @@ impl Singleton {
             setlim!(output_memory, RLIMIT_FSIZE, byte);
             setlim!(fileno, RLIMIT_NOFILE, into);
             if self.stderr.is_none() {
-                signal_safe::print_cstr(b"resource limited\n\x00");
+                signal_safe::print_cstr(b"(child-child) resource limited\n\x00");
             }
-            signal_safe::sigsetmask(prev_mask); // unblock signals
-                                                // todo: set syscall limit
+            drop(guard); // unblock signals
+                         // todo: set syscall limit
             signal_safe::execve(path, args, env);
         }
 
-        signal_safe::print_cstr(b"fork a timmer\n\x00");
+        signal_safe::print_cstr(b"(child) fork a timmer\n\x00");
 
         // at this time, all signals are blocked, so we can fork directly
         let pid_timer = match self.limits.real_time {
@@ -103,7 +100,7 @@ impl Singleton {
                 if pid == 0 {
                     // fork a process to setup timer
                     signal_safe::sleep(s.sec().clamp(0, u32::MAX as u64) as u32);
-                    signal_safe::print_cstr(b"timmer exit\n\x00");
+                    signal_safe::print_cstr(b"(child-timer) timmer exit\n\x00");
                     signal_safe::exit(0);
                 }
                 Some(pid)
@@ -114,14 +111,14 @@ impl Singleton {
         let mut timer_first = false;
         let mut child_status = None;
 
-        signal_safe::print_cstr(b"wait for tested process and timer\n\x00");
+        signal_safe::print_cstr(b"(child) wait for tested process and timer\n\x00");
 
         let ru = 'outer: loop {
             // notice that sigsuspend only interrupts for signals whose action is
             // either calling handler function or exit (thus sometimes you need to
             // register handler for a signal to make it work).
-            signal_safe::sigsuspend(prev_mask);
-            signal_safe::print_cstr(b"wait beep\n\x00");
+            guard.suspend();
+            signal_safe::print_cstr(b"(child) wait beep\n\x00");
             loop {
                 // since all signals are blocked, SIGCHLD will not interrupt
                 let r = signal_safe::waitpid(-1, signal_safe::WNOHANG);
@@ -135,7 +132,9 @@ impl Singleton {
                                 // at this time, child hasn't been reaped, thus it's pid is not freed
                                 if let Err(e) = signal_safe::kill(pid_child, signal_safe::SIGKILL) {
                                     if self.stderr.is_none() {
-                                        signal_safe::print_cstr(b"timer kill child failed\n\x00");
+                                        signal_safe::print_cstr(
+                                            b"(child) timer kill child failed\n\x00",
+                                        );
                                     }
                                     break 'outer Err(e);
                                 }
@@ -150,7 +149,9 @@ impl Singleton {
                                         signal_safe::kill(pid_timer, signal_safe::SIGKILL)
                                     {
                                         if self.stderr.is_none() {
-                                            signal_safe::print_cstr(b"kill timer failed\n\x00");
+                                            signal_safe::print_cstr(
+                                                b"(child) kill timer failed\n\x00",
+                                            );
                                         }
                                         break 'outer Err(e);
                                     }
@@ -169,7 +170,7 @@ impl Singleton {
                             break 'outer share_mem::get_rusage();
                         } else {
                             if self.stderr.is_none() {
-                                signal_safe::print_cstr(b"child wait child failed\n\x00");
+                                signal_safe::print_cstr(b"(child) child wait child failed\n\x00");
                             }
                             break 'outer Err(errno);
                         }
@@ -183,7 +184,7 @@ impl Singleton {
             timer_first: if timer_first { 1 } else { 0 },
             status: child_status.map(|a| a.0).unwrap_or(-1),
         }) {
-            signal_safe::print_cstr(b"set shared memory error\n\x00");
+            signal_safe::print_cstr(b"(child) set shared memory error\n\x00");
             signal_safe::exit(1);
         }
         Ok(())
@@ -192,11 +193,11 @@ impl Singleton {
         &self,
         child: i32,
         start: Instant,
-        prev_mask: Sigset,
+        guard: signal_safe::SigblockGuard,
         shared: &share_mem::GlobalShared,
     ) -> anyhow::Result<Termination> {
         // do something before waiting for child process
-        signal_safe::sigsetmask(prev_mask);
+        drop(guard);
 
         let (_, child_status) =
             signal_safe::waitpid(child, 0).context("parent wait child error")?;
@@ -269,26 +270,28 @@ impl crate::ExecSandBox for Singleton {
         let env = crate::to_exec_array(self.envs.clone());
 
         let start = Instant::now(); // record the real time duration of tested process
-        let prev = signal_safe::sigblockall(); // block all signals before forking
+        let guard = signal_safe::sigblockall(); // block all signals before forking
+        if guard.contains(signal_safe::SIGCHLD)? {
+            return Err(anyhow::anyhow!("previous block sigset contains SIGCHLD"));
+        }
         let shared = share_mem::GlobalShared::init(); // should be freed in exec_parent
 
         std::io::stderr().flush()?;
 
         let r = match signal_safe::fork() {
             Ok(0) => {
-                let err = self.exec_child(self.exec_path.as_c_str(), &args, &env, prev, shared);
+                let err = self.exec_child(self.exec_path.as_c_str(), &args, &env, guard, shared);
                 if let Err(err) = err {
                     signal_safe::print_cstr(b"exec_sandbox child: errno = \x00");
                     signal_safe::print_i64(err.0 as i64);
                     signal_safe::print_cstr(b"\n\x00");
                     signal_safe::exit(1);
                 }
-                signal_safe::sigsetmask(prev); // unblock signals to handle pending signals
                 signal_safe::exit(0);
             }
-            Ok(pid) => self.exec_parent(pid, start, prev, &shared),
+            Ok(pid) => self.exec_parent(pid, start, guard, &shared),
             Err(e) => {
-                signal_safe::sigsetmask(prev); // recover signal mask
+                drop(guard); // recover signal mask
                 Err(e.into())
             }
         };
