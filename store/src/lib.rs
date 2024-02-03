@@ -207,23 +207,30 @@ impl_tuple!(A, B, C, D, E);
 impl_tuple!(A, B, C, D, E, F);
 
 /// 自动序列化时 vector 中元素数量上限，防止产生过多的文件
-const VEC_FS_STORE_LIMIT: usize = 512;
+const VEC_FS_STORE_LIMIT: usize = 2048;
 
 impl<T: FsStore> FsStore for Vec<T> {
     fn open(ctx: &Handle) -> Result<Self, Error> {
-        let len = ctx.join("_vec_len").deserialize::<usize>()?;
-        (0..len)
-            .map(|i| T::open(&ctx.join(format!("item_{i}"))))
-            .collect()
+        let mut i = 0;
+        let mut r = Self::default();
+        loop {
+            let path = ctx.join(format!("v{i}"));
+            if path.path().exists() {
+                r.push(T::open(&path)?);
+            } else {
+                break;
+            }
+            i += 1;
+        }
+        Ok(r)
     }
 
     fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
         if self.len() > VEC_FS_STORE_LIMIT {
             return Err(Error::VecTooLong);
         }
-        ctx.join("_vec_len").serialize_new_file(&self.len())?;
         for (i, item) in self.iter_mut().enumerate() {
-            item.save(&ctx.join(format!("item_{i}")))?;
+            item.save(&ctx.join(format!("v{i}")))?;
         }
         Ok(())
     }

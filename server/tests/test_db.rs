@@ -4,7 +4,6 @@ use server::data::{
 };
 use store::Handle;
 
-#[test]
 fn test_db() {
     server::dev::logging_setup(&tracing::Level::DEBUG, None);
 

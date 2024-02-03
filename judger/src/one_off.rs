@@ -99,7 +99,7 @@ impl OneOff {
                 return Ok(r);
             }
         }
-        eprintln!("编译成功");
+        eprintln!("编译成功 {:?}", dest);
 
         // execution
         let out = self.working_dir.join("main.out");
@@ -184,7 +184,7 @@ impl OneOff {
 
 #[cfg(test)]
 mod tests {
-    use crate::FileType;
+    use crate::{report, FileType};
 
     use super::*;
 
@@ -205,7 +205,8 @@ int main() {
         let mut oneoff = OneOff::new(source, input, None);
         let dir = tempfile::TempDir::new().unwrap();
         oneoff.set_wd(Handle::new(dir.path()));
-        oneoff.exec().unwrap();
+        let rep = oneoff.exec().unwrap();
+        assert_eq!(rep.meta.status, report::Status::TimeLimitExceeded);
         drop(dir);
     }
 }

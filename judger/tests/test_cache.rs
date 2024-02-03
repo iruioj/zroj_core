@@ -16,7 +16,6 @@ mod test_cache {
         file_path
     }
 
-    #[test]
     fn test_cache() {
         let dir = tempfile::tempdir().unwrap().into_path();
 

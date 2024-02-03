@@ -21,7 +21,7 @@ pub mod unix;
 pub mod windows;
 
 /// 执行的结果状态，只是一个初步的分析，适用于绝大多数情况
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, TsType)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, TsType)]
 #[ts(name = "SandboxStatus")]
 pub enum Status {
     /// All Correct

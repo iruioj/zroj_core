@@ -2358,6 +2358,7 @@ name = "serde_ts_typing"
 version = "0.1.0"
 dependencies = [
  "askama",
+ "serde_json",
  "serde_ts_typing_derive",
 ]
 

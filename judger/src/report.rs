@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 
 /// 一个测试点提交的可能的返回状态
-#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
+#[derive(Debug, Clone, Serialize, Deserialize, TsType, PartialEq, Eq)]
 #[serde(tag = "name", content = "payload", rename_all = "snake_case")]
 #[ts(name = "JudgerStatus")]
 pub enum Status {

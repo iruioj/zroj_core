@@ -31,6 +31,6 @@ fn test_type_expr() {
     );
     assert_eq!(
         ty.to_string(),
-        "{children:[(null|\"leaf\"|\"root\"),number][];flag:boolean;name:string;}"
+        "{ children: [ ( null | \"leaf\" | \"root\" ), number ][]; flag: boolean; name: string; }"
     );
 }

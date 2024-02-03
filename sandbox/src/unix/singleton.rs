@@ -272,7 +272,6 @@ impl crate::ExecSandBox for Singleton {
         let prev = signal_safe::sigblockall(); // block all signals before forking
         let shared = share_mem::GlobalShared::init(); // should be freed in exec_parent
 
-        eprintln!("prev: {prev:?}");
         std::io::stderr().flush()?;
 
         let r = match signal_safe::fork() {
