@@ -10,7 +10,7 @@ pub mod problem_statement;
 pub mod submission;
 pub mod user;
 
-/// 定义一个类型为 web::Data<ty> 的值
+/// 定义一个类型为 [`actix_web::web::Data`] 的值
 #[macro_export]
 macro_rules! mkdata {
     ($t:ty, $e:expr) => {

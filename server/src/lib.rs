@@ -40,7 +40,7 @@ pub(crate) mod marker {
     pub type Identity = web::ReqData<crate::UserID>;
 }
 
-/// Convenient shortcut for [`web::block`], which executes blocking
+/// Convenient shortcut for [`actix_web::web::block`], which executes blocking
 /// function on a thread pool, returns future that resolves to result
 /// of the function execution.
 #[macro_export]

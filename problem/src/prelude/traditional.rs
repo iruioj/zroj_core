@@ -38,6 +38,8 @@ pub struct Task {
     pub output: StoreFile,
 }
 
+/// Traditional problems submission contains only a single source file,
+/// which reads from stdin and outputs to stdout.
 #[derive(FsStore, Debug)]
 pub struct Subm {
     pub source: SourceFile,
