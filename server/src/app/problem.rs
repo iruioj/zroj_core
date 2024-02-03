@@ -159,7 +159,7 @@ async fn judge(
             let file_type = raw2.get("source").map(|x| x.file_type.clone());
             let subm_id = block_it!(subm_db.insert_new(*uid, pid, file_type, &raw2,))?;
 
-            let subm = TraditionalSubm {
+            let subm = traditional::Subm {
                 source: raw
                     .remove("source")
                     .ok_or(error::ErrorBadRequest("source file not found"))?,

@@ -46,8 +46,8 @@ int main() {
     }
 }
 
-fn gen_a_plus_b_task(a: i32, b: i32) -> crate::prelude::TraditionalTask {
-    crate::prelude::TraditionalTask {
+fn gen_a_plus_b_task(a: i32, b: i32) -> crate::prelude::traditional::Task {
+    crate::prelude::traditional::Task {
         input: StoreFile::from_str(format!("{a} {b}"), judger::FileType::Plain),
         output: StoreFile::from_str((a + b).to_string(), judger::FileType::Plain),
     }
@@ -55,7 +55,7 @@ fn gen_a_plus_b_task(a: i32, b: i32) -> crate::prelude::TraditionalTask {
 
 pub fn a_plus_b_data() -> StandardProblem {
     StandardProblem::Traditional(
-        OJData::new(crate::prelude::TraditionalMeta {
+        OJData::new(crate::prelude::traditional::Meta {
             checker: crate::Checker::AutoCmp {
                 float_relative_eps: 0.0,
                 float_absoulte_eps: 0.0,
@@ -120,8 +120,8 @@ pub fn a_plus_b_full() -> ProblemFullData {
     }
 }
 
-pub fn a_plus_b_std() -> crate::prelude::TraditionalSubm {
-    crate::prelude::TraditionalSubm {
+pub fn a_plus_b_std() -> crate::prelude::traditional::Subm {
+    crate::prelude::traditional::Subm {
         source: SourceFile::from_str(
             r#"
 #include<iostream>
@@ -158,7 +158,7 @@ mod tests {
 
         let mut default_judger = DefaultJudger::new(Handle::new(dir.path()));
 
-        let mut subm = TraditionalSubm {
+        let mut subm = traditional::Subm {
             source: SourceFile::from_str(
                 r#"
 #include<iostream>

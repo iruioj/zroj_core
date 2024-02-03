@@ -129,8 +129,8 @@ impl Config {
         dir: &store::Handle,
         prefix: &str,
         cur: u64,
-    ) -> anyhow::Result<TraditionalTask> {
-        Ok(TraditionalTask {
+    ) -> anyhow::Result<traditional::Task> {
+        Ok(traditional::Task {
             input: StoreFile {
                 file: dir
                     .join(format!(
@@ -153,10 +153,10 @@ impl Config {
             },
         })
     }
-    fn get_task(&self, dir: &store::Handle, cur: u64) -> anyhow::Result<TraditionalTask> {
+    fn get_task(&self, dir: &store::Handle, cur: u64) -> anyhow::Result<traditional::Task> {
         self._get_task(dir, "", cur)
     }
-    fn get_ex_task(&self, dir: &store::Handle, cur: u64) -> anyhow::Result<TraditionalTask> {
+    fn get_ex_task(&self, dir: &store::Handle, cur: u64) -> anyhow::Result<traditional::Task> {
         self._get_task(dir, "ex_", cur)
     }
 }
@@ -168,7 +168,7 @@ pub fn load_data(conf: &Config, dir: store::Handle) -> anyhow::Result<Traditiona
     if conf.with_implementer {
         return Err(anyhow!("use custom implementer"));
     }
-    let mut ojdata = TraditionalOJData::new(problem::prelude::TraditionalMeta {
+    let mut ojdata = TraditionalOJData::new(problem::prelude::traditional::Meta {
         checker: if let Some(checker) = &conf.use_builtin_checker {
             if checker == "ncmp" {
                 Checker::AutoCmp {
