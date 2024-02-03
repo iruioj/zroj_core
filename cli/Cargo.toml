@@ -8,7 +8,6 @@ build = "build.rs"
 
 [dependencies]
 sandbox = { path = "../sandbox" }
-migrator = { path = "../migrator" }
 server = { path = "../server" }
 store = { path = "../store" }
 

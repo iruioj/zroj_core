@@ -15,7 +15,6 @@ members = [
     "store_derive",
     "serde_ts_typing",
     "serde_ts_typing_derive",
-    "migrator",
     "md",
     "cli"
 ]
