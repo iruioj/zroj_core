@@ -1,5 +1,5 @@
 pub mod error;
-// mod fs_store;
+pub mod file_system;
 pub mod mysql;
 pub mod types;
 
@@ -18,15 +18,3 @@ macro_rules! mkdata {
     };
 }
 pub use mkdata;
-
-// fn notfound_as_none<T>(r: Result<T, error::DataError>) -> Result<Option<T>, error::DataError> {
-//     match r {
-//         Ok(t) => Ok(Some(t)),
-//         Err(e) => match e {
-//             error::DataError::NotFound => Ok(None),
-//             #[cfg(feature = "mysql")]
-//             error::DataError::Diesel(diesel::result::Error::NotFound) => Ok(None),
-//             e => Err(e),
-//         },
-//     }
-// }

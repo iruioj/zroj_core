@@ -15,6 +15,10 @@ pub enum DataError {
     Diesel(diesel::result::Error),
     #[error("database error: {0}")]
     AnyError(#[from] anyhow::Error),
+    #[error("io error: {0}")]
+    IOError(#[from] std::io::Error),
+    #[error("store error: {0}")]
+    StoreError(#[from] store::Error),
 }
 
 impl From<diesel::result::Error> for DataError {

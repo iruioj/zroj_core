@@ -1,4 +1,4 @@
-//! some utils for mysql database
+//! sql database backend and its corresponding schemas
 
 pub mod schema;
 pub mod schema_model;
