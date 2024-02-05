@@ -1,6 +1,11 @@
-use crate::{app::parse_named_file, manager::one_off::OneOffManager, marker::*};
+use crate::{
+    app::parse_named_file, auth::Authentication, manager::one_off::OneOffManager, marker::*,
+};
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
-use actix_web::{error::ErrorBadRequest, web::Json};
+use actix_web::{
+    error::{ErrorBadRequest, ErrorUnauthorized},
+    web::Json,
+};
 use judger::{StoreFile, TaskReport};
 use serde::Serialize;
 use serde_ts_typing::TsType;
@@ -22,8 +27,11 @@ pub struct CustomTestPayload {
 async fn custom_test_post(
     payload: FormData<CustomTestPayload>,
     oneoff: ServerData<OneOffManager>,
-    uid: Identity,
+    auth: Authentication,
 ) -> AnyResult<String> {
+    let Some(uid) = auth.user_id() else {
+        return Err(ErrorUnauthorized("no user info"));
+    };
     let Some((_, source)) = parse_named_file(&payload.source) else {
         return Err(ErrorBadRequest("invalid payload file"));
     };
@@ -34,7 +42,7 @@ async fn custom_test_post(
         file: payload.input.file.reopen()?,
         file_type: judger::FileType::Plain,
     };
-    oneoff.add_test(*uid, source, input)?;
+    oneoff.add_test(uid, source, input)?;
     Ok("Judge started".to_string())
 }
 
@@ -47,8 +55,11 @@ pub struct CustomTestResult {
 #[api(method = get, path = "")]
 async fn custom_test_get(
     oneoff: ServerData<OneOffManager>,
-    uid: Identity,
+    auth: Authentication,
 ) -> JsonResult<CustomTestResult> {
+    let Some(uid) = auth.user_id() else {
+        return Err(ErrorUnauthorized("no user info"));
+    };
     Ok(Json(CustomTestResult {
         result: oneoff.get_result(&uid)?,
     }))

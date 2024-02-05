@@ -173,6 +173,11 @@ pub trait FsStore: Sized {
         let dir = tempfile::tempdir().context("create tmp dir")?;
         self.save(&Handle::new(dir.path()))?;
         ctx.remove_all()?;
+        if let Some(par) = ctx.path().parent() {
+            if !par.exists() {
+                std::fs::create_dir_all(par).context("create parent dir before renaming")?;
+            }
+        }
         std::fs::rename(dir.path(), ctx.path()).context("rename dir")?;
         Ok(())
     }

@@ -1,11 +1,10 @@
-use crate::auth::{AuthInfo, SessionManager};
+use crate::auth::{AuthInfo, AuthStorage, Authentication, CLIENT_ID_KEY};
 use crate::data::{
     types::{EmailAddress, Username},
     user::UserDB,
 };
-use crate::SessionID;
+use crate::ClientID;
 use crate::{block_it, marker::*};
-use actix_session::Session;
 use actix_web::{error, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
@@ -27,9 +26,8 @@ pub struct LoginPayload {
 #[api(method = post, path = "/login")]
 async fn login(
     payload: JsonBody<LoginPayload>,
-    session_container: ServerData<SessionManager>,
+    auth_storage: ServerData<AuthStorage>,
     user_db: ServerData<UserDB>,
-    session: Session,
 ) -> actix_web::Result<HttpResponse> {
     use actix_web::cookie::Cookie;
     tracing::info!("login request: {:?}", payload);
@@ -39,12 +37,17 @@ async fn login(
     if !passwd::verify(&user.password_hash, &payload.password_hash) {
         Err(error::ErrorBadRequest("password not correct"))
     } else {
-        let id = SessionID::new_v4(); // generate a random session id
-        tracing::info!("generate new session id {}", id);
-        session_container.set(id, AuthInfo { uid: user.id })?;
-        session.insert(crate::auth::SESSION_ID_KEY, id)?;
+        let id = ClientID::new_v4(); // generate a random session id
+        tracing::info!("generate new client id {id} for {}", payload.username);
+        auth_storage
+            .set(id, AuthInfo { uid: user.id })
+            .map_err(error::ErrorInternalServerError)?;
         Ok(HttpResponse::Ok()
-            .cookie(Cookie::build("username", user.username).path("/").finish())
+            .cookie(
+                Cookie::build(CLIENT_ID_KEY, id.to_string())
+                    .path("/")
+                    .finish(),
+            )
             .body("login success"))
     }
 }
@@ -85,12 +88,9 @@ struct AuthInfoRes {
 }
 /// 查看当前的鉴权信息，用于菜单栏显示
 #[api(method = get, path = "/info")]
-async fn inspect(
-    user_db: ServerData<UserDB>,
-    user_id: Option<Identity>,
-) -> JsonResult<AuthInfoRes> {
-    if let Some(id) = user_id {
-        let user = block_it!(user_db.query_by_userid(*id))?;
+async fn inspect(user_db: ServerData<UserDB>, auth: Authentication) -> JsonResult<AuthInfoRes> {
+    if let Some(id) = auth.user_id() {
+        let user = block_it!(user_db.query_by_userid(id))?;
         return Ok(web::Json(AuthInfoRes {
             username: user.username,
             email: user.email,
@@ -101,24 +101,24 @@ async fn inspect(
 
 #[api(method = post, path = "/logout")]
 async fn logout(
-    session_container: ServerData<SessionManager>,
-    session: Session,
+    auth_storage: ServerData<AuthStorage>,
+    auth: Authentication,
 ) -> actix_web::Result<String> {
-    let id = session.get::<SessionID>(crate::auth::SESSION_ID_KEY)?;
-    if let Some(id) = id {
-        session_container.remove(id)?;
-        session.remove(crate::auth::SESSION_ID_KEY);
+    if let Some(id) = auth.client_id() {
+        auth_storage
+            .remove(id)
+            .map_err(error::ErrorInternalServerError)?;
         return Ok("logout success".into());
     }
     Err(error::ErrorBadRequest("invalid session id"))
 }
 
 #[scope_service(path = "/auth")]
-pub fn service(session_mgr: SessionManager, user_database: ServerData<UserDB>) {
-    wrap(crate::auth::middleware::SessionAuth::bypass(
-        session_mgr.clone(),
+pub fn service(auth_storage: AuthStorage, user_database: ServerData<UserDB>) {
+    wrap(crate::auth::injector::AuthInjector::bypass(
+        auth_storage.clone(),
     ));
-    app_data(web::Data::new(session_mgr));
+    app_data(web::Data::new(auth_storage));
     app_data(user_database);
     service(login);
     service(logout);

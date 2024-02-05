@@ -12,6 +12,12 @@ use std::fmt::Display;
 #[diesel(sql_type = Text)]
 pub struct Username(String);
 
+impl std::fmt::Display for Username {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 #[derive(Debug)]
 pub enum Error {
     TooLong,
@@ -50,11 +56,6 @@ impl Username {
 impl AsRef<String> for Username {
     fn as_ref(&self) -> &String {
         &self.0
-    }
-}
-impl ToString for Username {
-    fn to_string(&self) -> String {
-        self.0.clone()
     }
 }
 // for cookie builder

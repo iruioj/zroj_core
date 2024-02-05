@@ -1,4 +1,5 @@
 use crate::{
+    auth::Authentication,
     block_it,
     data::{
         gravatar::GravatarDB,
@@ -27,18 +28,24 @@ async fn profile(
 }
 
 #[api(method = get, path = "/edit")]
-async fn edit_get(uid: Identity, user_db: ServerData<UserDB>) -> JsonResult<UserEditInfo> {
-    let result = block_it!(user_db.query_by_userid(*uid))?;
+async fn edit_get(auth: Authentication, user_db: ServerData<UserDB>) -> JsonResult<UserEditInfo> {
+    let Some(uid) = auth.user_id() else {
+        return Err(error::ErrorUnauthorized("no user info"));
+    };
+    let result = block_it!(user_db.query_by_userid(uid))?;
     Ok(Json(UserEditInfo::from(result)))
 }
 
 #[api(method = post, path = "/edit")]
 async fn edit_post(
-    uid: Identity,
+    auth: Authentication,
     info: JsonBody<UserUpdateInfo>,
     user_db: ServerData<UserDB>,
 ) -> actix_web::Result<String> {
-    block_it!(user_db.update(*uid, info.into_inner()))?;
+    let Some(uid) = auth.user_id() else {
+        return Err(error::ErrorUnauthorized("no user info"));
+    };
+    block_it!(user_db.update(uid, info.into_inner()))?;
     Ok("ok".to_string())
 }
 

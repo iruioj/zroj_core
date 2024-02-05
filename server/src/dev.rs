@@ -36,7 +36,6 @@ pub fn frontend_rev_proxy(port: u16) -> RevProxy {
 /// - register a default service that forward unmatched request to frontend server
 /// - authenticate using SessionMiddleware
 pub fn dev_server(
-    session_key: actix_web::cookie::Key,
     frontend_proxy: web::Data<RevProxy>,
 ) -> App<
     impl ServiceFactory<
@@ -52,17 +51,6 @@ pub fn dev_server(
         .app_data(web::Data::new(awc::Client::new()))
         .default_service(web::route().to(crate::rev_proxy::handler::rev_proxy))
         .wrap(TracingLogger::default())
-        .wrap(
-            actix_session::SessionMiddleware::builder(
-                actix_session::storage::CookieSessionStore::default(),
-                session_key,
-            )
-            .cookie_secure(false)
-            // .cookie_same_site(actix_web::cookie::SameSite::None)
-            .cookie_path("/".into())
-            // .cookie_http_only(false)
-            .build(),
-        )
 }
 
 /// 存储在文件中的用户数据库
@@ -128,7 +116,7 @@ pub fn logging_setup(max_level: &'static tracing::Level, log_file: Option<String
         .with_filter(filter::filter_fn(|meta| {
             // let is_invalid_identity = meta
             //     .module_path()
-            //     .is_some_and(|s| s.contains("actix_session::middleware"));
+            //     .is_some_and(|s| s.contains("actix_session::session"));
 
             meta.level() <= max_level // && !from_actix_session
         }));
@@ -147,7 +135,7 @@ pub fn logging_setup(max_level: &'static tracing::Level, log_file: Option<String
             // too annoying to verbose
             !meta
                 .module_path()
-                .is_some_and(|s| s.contains("actix_session::middleware"))
+                .is_some_and(|s| s.contains("actix_session::session"))
                 }))
         });
     tracing_subscriber::registry()

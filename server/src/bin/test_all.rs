@@ -2,7 +2,7 @@
 use actix_web::{web, HttpServer};
 use server::{
     app,
-    auth::{middleware::SessionAuth, SessionManager},
+    auth::{injector::AuthInjector, AuthStorage},
     data::{gravatar::GravatarDB, mysql::MysqlConfig, submission::SubmDB},
     dev,
     manager::{one_off::OneOffManager, problem_judger::ProblemJudger},
@@ -70,24 +70,20 @@ async fn main() -> std::io::Result<()> {
             })?;
     }
 
-    let session_key = actix_web::cookie::Key::generate();
     let revproxy = web::Data::new(dev::frontend_rev_proxy(3456));
 
     let addr = "localhost:8080";
     tracing::info!("server listen at http://{addr}");
     println!("server listen at http://{addr}");
 
-    let session_container = SessionManager::default();
+    let auth_storage = AuthStorage::default();
     HttpServer::new(move || {
-        dev::dev_server(session_key.clone(), revproxy.clone()).service(
+        dev::dev_server(revproxy.clone()).service(
             web::scope("/api")
-                .service(app::auth::service(
-                    session_container.clone(),
-                    user_db.clone(),
-                ))
+                .service(app::auth::service(auth_storage.clone(), user_db.clone()))
                 .service(
                     app::user::service(user_db.clone(), gravatar.clone())
-                        .wrap(SessionAuth::require_auth(session_container.clone())),
+                        .wrap(AuthInjector::require_auth(auth_storage.clone())),
                 )
                 .service(
                     app::problem::service(
@@ -96,15 +92,15 @@ async fn main() -> std::io::Result<()> {
                         subm_db.clone(),
                         judger.clone(),
                     )
-                    .wrap(SessionAuth::require_auth(session_container.clone())),
+                    .wrap(AuthInjector::require_auth(auth_storage.clone())),
                 )
                 .service(
                     app::one_off::service(oneoff.clone())
-                        .wrap(SessionAuth::require_auth(session_container.clone())),
+                        .wrap(AuthInjector::require_auth(auth_storage.clone())),
                 )
                 .service(
                     app::submission::service(subm_db.clone(), judger.clone())
-                        .wrap(SessionAuth::require_auth(session_container.clone())),
+                        .wrap(AuthInjector::require_auth(auth_storage.clone())),
                 )
                 .service(app::api_docs::service()),
         )

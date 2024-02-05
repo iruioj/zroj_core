@@ -10,12 +10,13 @@ pub mod dev;
 
 // pub mod config;
 pub type GroupID = u32;
-pub type SessionID = uuid::Uuid;
+pub type ClientID = uuid::Uuid;
 pub type UserID = u32;
 pub type ProblemID = u32;
 pub type SubmID = u32;
 
 // re-export
+#[cfg(session_auth)]
 pub use actix_session;
 use serde_ts_typing::TypeExpr;
 
@@ -36,8 +37,8 @@ pub(crate) mod marker {
     pub type ServerData<T> = web::Data<T>;
     /// 标记一个 API 的 body 类型，使用 [`actix_multipart::form::MultipartForm`] extractor
     pub type FormData<T> = actix_multipart::form::MultipartForm<T>;
-    /// 标记一个 API 需要利用用户的身份信息
-    pub type Identity = web::ReqData<crate::UserID>;
+    // /// 标记一个 API 需要利用用户的身份信息
+    // pub type Identity = web::ReqData<crate::UserID>;
 }
 
 /// Convenient shortcut for [`actix_web::web::block`], which executes blocking

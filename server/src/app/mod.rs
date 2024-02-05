@@ -1,4 +1,4 @@
-//! app 模块可以创建 OJ 后端的应用路由配置.
+//! http backend services provided by online judge server
 pub mod auth;
 // pub mod group;
 pub mod api_docs;

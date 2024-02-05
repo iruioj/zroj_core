@@ -1,5 +1,6 @@
 use crate::{
     app::parse_named_file,
+    auth::Authentication,
     block_it,
     data::{
         problem_ojdata::OJDataDB,
@@ -136,12 +137,15 @@ struct JudgeReturn {
 /// 评测题目
 #[api(method = post, path = "/submit")]
 async fn judge(
-    uid: Identity,
+    auth: Authentication,
     payload: FormData<JudgePayload>,
     judger: ServerData<ProblemJudger>,
     subm_db: ServerData<SubmDB>,
     ojdata_db: ServerData<OJDataDB>,
 ) -> JsonResult<JudgeReturn> {
+    let Some(uid) = auth.user_id() else {
+        return Err(error::ErrorUnauthorized("no user info"));
+    };
     tracing::info!("run judge handler");
 
     let payload = payload.into_inner();
@@ -157,7 +161,7 @@ async fn judge(
         problem::StandardProblem::Traditional(ojdata) => {
             let raw2 = raw.clone();
             let file_type = raw2.get("source").map(|x| x.file_type.clone());
-            let subm_id = block_it!(subm_db.insert_new(*uid, pid, file_type, &raw2,))?;
+            let subm_id = block_it!(subm_db.insert_new(uid, pid, file_type, &raw2,))?;
 
             let subm = traditional::Subm {
                 source: raw
