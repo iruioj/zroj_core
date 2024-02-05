@@ -3,6 +3,7 @@
 mod error;
 
 pub type Error = error::StoreError;
+use anyhow::Context;
 use serde::{de::DeserializeOwned, Serialize};
 
 use std::{
@@ -35,21 +36,21 @@ impl Handle {
     /// 打开该路径下的文件（要求其必须存在）
     pub fn open_file(&self) -> Result<std::fs::File, Error> {
         if self.dir.is_file() {
-            std::fs::File::open(self).map_err(Error::OpenFile)
+            Ok(std::fs::File::open(self).context("open file")?)
         } else {
-            Err(Error::NotFile)
+            Err(anyhow::anyhow!("try to open a non-file item"))?
         }
     }
     /// 在该路径下新建文件，会自动补齐父级目录，要求其不存在
     pub fn create_new_file(&self) -> Result<std::fs::File, Error> {
         if let Some(par) = self.dir.parent() {
-            std::fs::create_dir_all(par).map_err(Error::CreateParentDir)?;
+            std::fs::create_dir_all(par).context("create parent dir")?;
         }
-        std::fs::File::options()
+        Ok(std::fs::File::options()
             .write(true)
             .create_new(true)
             .open(self.as_ref())
-            .map_err(Error::CreateNewFile)
+            .context("create new file")?)
     }
     /// 如果是文件就删除，如果是文件夹就删除它自己和所有子文件夹和子文件
     pub fn remove_all(&self) -> Result<(), Error> {
@@ -57,9 +58,9 @@ impl Handle {
             return Ok(());
         }
         if self.path().is_dir() {
-            std::fs::remove_dir_all(self.path()).map_err(Error::RemoveAll)
+            Ok(std::fs::remove_dir_all(self.path()).context("remove dir all")?)
         } else {
-            std::fs::remove_file(self.path()).map_err(Error::RemoveAll)
+            Ok(std::fs::remove_file(self.path()).context("remove file")?)
         }
     }
     /// 从该路径下的文件中解析数据（要求文件存在）
@@ -166,6 +167,15 @@ pub trait FsStore: Sized {
         *self = self.clone_to(ctx)?;
         Ok(())
     }
+
+    /// first save to a temporary directory, then rename it to the destination
+    fn safe_save(&mut self, ctx: &Handle) -> Result<(), Error> {
+        let dir = tempfile::tempdir().context("create tmp dir")?;
+        self.save(&Handle::new(dir.path()))?;
+        ctx.remove_all()?;
+        std::fs::rename(dir.path(), ctx.path()).context("rename dir")?;
+        Ok(())
+    }
 }
 
 impl FsStore for () {
@@ -227,7 +237,7 @@ impl<T: FsStore> FsStore for Vec<T> {
 
     fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
         if self.len() > VEC_FS_STORE_LIMIT {
-            return Err(Error::VecTooLong);
+            return Err(anyhow::anyhow!("vec too long"))?;
         }
         for (i, item) in self.iter_mut().enumerate() {
             item.save(&ctx.join(format!("v{i}")))?;
@@ -267,7 +277,7 @@ where
     fn open(ctx: &Handle) -> Result<Self, Error> {
         ctx.dir
             .read_dir()
-            .map_err(Error::ReadDir)?
+            .context("read dir")?
             .filter_map(|e| {
                 let e = e.ok()?;
                 let binding = e.file_name();

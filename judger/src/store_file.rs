@@ -1,4 +1,5 @@
 use crate::FileType;
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use std::io::{self, Seek, Write};
@@ -34,7 +35,7 @@ impl SourceFile {
 impl FsStore for SourceFile {
     fn open(ctx: &store::Handle) -> Result<Self, store::Error> {
         let source = std::io::read_to_string(ctx.join("buf").open_file()?)
-            .map_err(store::Error::OpenFile)?;
+            .context("open source file")?;
         let file_type = ctx.join("file_type").deserialize()?;
         Ok(Self { source, file_type })
     }

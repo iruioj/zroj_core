@@ -31,12 +31,12 @@ impl StandardProblem {
 /// 手动实现 FsStore 以保证向下兼容
 impl FsStore for StandardProblem {
     fn open(ctx: &Handle) -> Result<Self, store::Error> {
-        if ctx.join("traditional").as_ref().exists() {
+        if ctx.join("traditional").path().exists() {
             Ok(Self::Traditional(TraditionalOJData::open(
                 &ctx.join("traditional"),
             )?))
         } else {
-            Err(store::Error::NotFile)
+            Err(anyhow::anyhow!("invalid problem"))?
         }
     }
 
