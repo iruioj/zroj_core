@@ -15,7 +15,7 @@ proc-macro2 = "1.0"
 serde_ts_typing = { path = "../serde_ts_typing" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tempfile = "3.3"
+tempfile = "3.10"
 serde_urlencoded = "0.7" # for testing
 serde_with = "3.3.0"
 

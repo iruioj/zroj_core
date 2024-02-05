@@ -31,7 +31,7 @@ serde_ts_typing = { path = "../serde_ts_typing" }
 serde_with = "3.3"
 server_derive = { path = "../server_derive" }
 store = { path = "../store" }
-tempfile = "3.3"
+tempfile = "3.10"
 thiserror = "1.0"
 tracing = "0.1"
 tracing-actix-web = "0.7"
