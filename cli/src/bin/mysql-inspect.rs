@@ -19,10 +19,9 @@ struct Table {
 
 /// inspect the database of (new) ZROJ
 fn main() -> anyhow::Result<()> {
-    let mut conn = diesel::MysqlConnection::establish(&format!(
-        "mysql://test:test@127.0.0.1:3306/information_schema"
-    ))
-    .context("establish connection")?;
+    let mut conn =
+        diesel::MysqlConnection::establish("mysql://test:test@127.0.0.1:3306/information_schema")
+            .context("establish connection")?;
     let r: Vec<Table> = diesel::sql_query("select TABLE_SCHEMA, TABLE_NAME from TABLES")
         .get_results(&mut conn)
         .expect("query information_schemas");

@@ -60,7 +60,7 @@ impl MetaListVisitor {
                 _ => None,
             })
             .reduce(|mut a, b| {
-                a.extend(b.into_iter());
+                a.extend(b);
                 a
             })
             .unwrap_or_default()
@@ -115,7 +115,7 @@ impl<'v> AttrListVisitor<'v> {
                     _ => None,
                 })
                 .reduce(|mut a, b| {
-                    a.extend(b.into_iter());
+                    a.extend(b);
                     a
                 })
                 .unwrap_or_default(),

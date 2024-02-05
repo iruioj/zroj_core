@@ -275,7 +275,8 @@ fn parse_container_attr_list(item: &syn::MetaList) -> ContainerAttr {
     panic!("invalid serde attribute meta")
 }
 pub fn parse_container_attr(attrs: AttrListVisitor) -> Vec<ContainerAttr> {
-    attrs.get_list_by_ident("serde")
+    attrs
+        .get_list_by_ident("serde")
         .iter()
         .map(|meta| match meta {
             Meta::NameValue(item) => parse_container_attr_meta_name_value(item),
@@ -332,7 +333,8 @@ fn parse_variant_attr_list(item: &syn::MetaList) -> VariantAttr {
     panic!("invalid serde attribute meta")
 }
 pub fn parse_variant_attr(attrs: AttrListVisitor) -> Vec<VariantAttr> {
-    attrs.get_list_by_ident("serde")
+    attrs
+        .get_list_by_ident("serde")
         .iter()
         .map(|meta| match meta {
             Meta::NameValue(item) => parse_variant_attr_meta_name_value(item),
@@ -399,7 +401,8 @@ fn parse_field_attr_list(item: &syn::MetaList) -> FieldAttr {
     panic!("invalid serde attribute meta")
 }
 pub fn parse_field_attr(attrs: AttrListVisitor) -> Vec<FieldAttr> {
-    attrs.get_list_by_ident("serde")
+    attrs
+        .get_list_by_ident("serde")
         .iter()
         .map(|meta| match meta {
             Meta::NameValue(item) => parse_field_attr_meta_name_value(item),

@@ -168,7 +168,13 @@ impl Manager for Mysql {
     ) -> Result<Vec<ProblemMeta>, DataError> {
         self.0.transaction(|conn| {
             Ok(problems::table
-                .filter(problems::title.like(pattern.filter(|s| s.trim().len() > 0).unwrap_or("%".into())))
+                .filter(
+                    problems::title.like(
+                        pattern
+                            .filter(|s| !s.trim().is_empty())
+                            .unwrap_or("%".into()),
+                    ),
+                )
                 .offset(offset as i64)
                 .limit(max_count as i64)
                 .load::<Problem>(conn)?

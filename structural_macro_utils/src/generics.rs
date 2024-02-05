@@ -29,6 +29,7 @@ impl<'v> GenericsVisitor<'v> {
     > {
         self.iter_params().filter_map(type_param_filter)
     }
+    #[allow(clippy::manual_map)]
     pub fn iter_type_where_clauses(
         &self,
     ) -> Option<

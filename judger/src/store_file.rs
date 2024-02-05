@@ -34,8 +34,8 @@ impl SourceFile {
 
 impl FsStore for SourceFile {
     fn open(ctx: &store::Handle) -> Result<Self, store::Error> {
-        let source = std::io::read_to_string(ctx.join("buf").open_file()?)
-            .context("open source file")?;
+        let source =
+            std::io::read_to_string(ctx.join("buf").open_file()?).context("open source file")?;
         let file_type = ctx.join("file_type").deserialize()?;
         Ok(Self { source, file_type })
     }

@@ -40,6 +40,9 @@ impl<'v> FieldsVisitor<'v> {
     pub fn is_unit(&self) -> bool {
         matches!(self.0, syn::Fields::Unit)
     }
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
     pub fn len(&self) -> usize {
         self.0.len()
     }
