@@ -2487,6 +2487,7 @@ dependencies = [
  "quote",
  "serde",
  "store",
+ "structural_macro_utils",
  "syn 2.0.48",
  "tempfile",
 ]
