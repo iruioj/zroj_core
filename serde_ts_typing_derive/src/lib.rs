@@ -4,10 +4,10 @@ mod ts_attr;
 
 use context::{ContainerContext, FieldContext, ProvideDefault, VariantContext};
 use quote::{format_ident, quote, ToTokens};
-use syn::{
-    AttrStyle, Attribute, Expr, Field, Fields, GenericParam, Generics, Item, ItemEnum, ItemStruct,
-    Lit, Meta, MetaNameValue,
+use structural_macro_utils::{
+    EnumVisitor, FieldVisitor, FieldsVisitor, GenericsVisitor, StructVisitor,
 };
+use syn::{Expr, Fields, Item, ItemEnum, ItemStruct, Lit, Meta, MetaNameValue};
 
 struct AttrList(Vec<Meta>);
 
@@ -17,38 +17,11 @@ impl syn::parse::Parse for AttrList {
         Ok(AttrList(metas.into_iter().collect()))
     }
 }
-fn parse_attrs(ident: &str, attrs: &[Attribute]) -> Vec<Meta> {
-    let mut r = Vec::new();
-    attrs
-        .iter()
-        .filter_map(|a| {
-            if matches!(a.style, AttrStyle::Outer) {
-                if let Meta::List(list) = &a.meta {
-                    if list.path.is_ident(ident) {
-                        return Some(&list.tokens);
-                    }
-                }
-            }
-            None
-        })
-        .for_each(|tokens| {
-            let tokens = tokens.clone();
-            let mut metas = syn::parse2::<AttrList>(tokens).expect("parse serde attr list");
-            r.append(&mut metas.0);
-        });
-    r
-}
 
 /// 对于带有泛型的类型，我们要求所有类型参数都实现 TsType
-fn gen_where_clause(generics: Generics) -> Option<proc_macro2::TokenStream> {
+fn gen_where_clause(generics: GenericsVisitor) -> Option<proc_macro2::TokenStream> {
     generics
-        .params
-        .iter()
-        .filter_map(|e| match e {
-            GenericParam::Type(x) => Some(x),
-            _ => None,
-        })
-        // 要求所有 generic type 都实现 TypeDef
+        .iter_type_params()
         .map(|e| {
             let ident = &e.ident;
             quote!( #ident: serde_ts_typing::TsType, )
@@ -58,8 +31,8 @@ fn gen_where_clause(generics: Generics) -> Option<proc_macro2::TokenStream> {
             acc
         })
         .map(|bounds| {
-            if let Some(c) = generics.where_clause {
-                let p = c.predicates;
+            if let Some(c) = &generics.0.where_clause {
+                let p = &c.predicates;
                 quote!(where #bounds #p )
             } else {
                 quote!(where #bounds)
@@ -79,15 +52,13 @@ enum FieldKind {
 /// field 的 key 和 type context 与 type def
 fn gen_field(
     ctxt: impl ProvideDefault<FieldContext>,
-    field: Field,
+    field: FieldVisitor<'_>,
 ) -> Option<(
     FieldKind,
     (proc_macro2::TokenStream, proc_macro2::TokenStream),
 )> {
-    let ctxt = ctxt.provide_default(FieldContext::from_attr(serde_attr::parse_field_attr(
-        &field.attrs,
-    )));
-    let ts_ctxt = ts_attr::FieldContext::from_attr(ts_attr::parse_field_attr(&field.attrs));
+    let ctxt = ctxt.provide_default(FieldContext::from_attr(field.attrs()));
+    let ts_ctxt = ts_attr::FieldContext::from_attr(ts_attr::parse_field_attr(field.attrs()));
     if ctxt.is_skip() {
         return None;
     }
@@ -99,7 +70,7 @@ fn gen_field(
         FieldKind::Flatten
     } else {
         field
-            .ident
+            .ident()
             .map(|ident| ctxt.rename_field(ident.to_string()))
             .map_or(FieldKind::Unnamed, FieldKind::Named)
     };
@@ -111,7 +82,7 @@ fn gen_field(
         let ty_ident = format_ident!("{}", ty_str);
         ty_ident.into_token_stream()
     } else {
-        field.ty.into_token_stream()
+        field.ty().into_token_stream()
     };
     let tyctxt = quote!(<#ty as serde_ts_typing::TsType>::register_self_context(c););
     let tydef = quote!(<#ty as serde_ts_typing::TsType>::type_def());
@@ -121,27 +92,66 @@ fn gen_field(
 // 返回 context 的构造代码 (return ()) 和当前结构本身的类型构造代码 (return TypeExpr)
 fn gen_fields(
     ctxt: impl ProvideDefault<FieldContext> + Copy,
-    fields: Fields,
+    fields: FieldsVisitor,
 ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
-    match fields {
-        syn::Fields::Named(fields) => {
+    if fields.is_named() {
+        let mut tyctxts = Vec::new();
+        let mut tydefs = Vec::new();
+        for field in fields.iter_fields() {
+            if let Some((name, (tyctxt, tydef))) = gen_field(ctxt, field) {
+                tyctxts.push(tyctxt);
+                tydefs.push((name, tydef));
+            }
+        }
+        let mut tydef = quote!(let mut r = serde_ts_typing::TypeExpr::new_struct(););
+        for (name, fldef) in tydefs {
+            if let FieldKind::Flatten = name {
+                tydef.extend(quote!(r.struct_merge(#fldef);));
+            } else if let FieldKind::Named(s) = name {
+                tydef.extend(quote!(r.struct_insert(#s.into(), #fldef);));
+            }
+        }
+        let tydef = quote!({ #tydef r });
+        let tyctxt = tyctxts
+            .into_iter()
+            .reduce(|mut a, b| {
+                a.extend(b);
+                a
+            })
+            .unwrap_or(quote!());
+
+        (tyctxt, tydef)
+    } else if fields.is_unnamed() {
+        // newtype struct
+        if let Some(field) = fields.the_only_field() {
+            if let Some((name, (tyctxt, tydef))) = gen_field(ctxt, field) {
+                assert!(matches!(name, FieldKind::Unnamed));
+
+                (tyctxt, tydef)
+            } else {
+                panic!("nothing to serialize")
+            }
+        }
+        // tuple struct
+        else {
             let mut tyctxts = Vec::new();
             let mut tydefs = Vec::new();
-            for field in fields.named {
+            for field in fields.iter_fields() {
                 if let Some((name, (tyctxt, tydef))) = gen_field(ctxt, field) {
+                    assert!(matches!(name, FieldKind::Unnamed));
+
                     tyctxts.push(tyctxt);
-                    tydefs.push((name, tydef));
+                    tydefs.push(tydef);
                 }
             }
-            let mut tydef = quote!(let mut r = serde_ts_typing::TypeExpr::new_struct(););
-            for (name, fldef) in tydefs {
-                if let FieldKind::Flatten = name {
-                    tydef.extend(quote!(r.struct_merge(#fldef);));
-                } else if let FieldKind::Named(s) = name {
-                    tydef.extend(quote!(r.struct_insert(#s.into(), #fldef);));
-                }
-            }
-            let tydef = quote!({ #tydef r });
+            let tydef = tydefs
+                .into_iter()
+                .reduce(|mut a, b| {
+                    a.extend(quote!(, #b));
+                    a
+                })
+                .expect("nothing to serialize");
+            let tydef = quote!(serde_ts_typing::TypeExpr::Tuple(vec![#tydef]));
             let tyctxt = tyctxts
                 .into_iter()
                 .reduce(|mut a, b| {
@@ -152,69 +162,29 @@ fn gen_fields(
 
             (tyctxt, tydef)
         }
-        syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
-            // newtype struct
-            if unnamed.len() == 1 {
-                let field = unnamed.into_iter().next().unwrap();
-                if let Some((name, (tyctxt, tydef))) = gen_field(ctxt, field) {
-                    assert!(matches!(name, FieldKind::Unnamed));
-
-                    (tyctxt, tydef)
-                } else {
-                    panic!("nothing to serialize")
-                }
-            }
-            // tuple struct
-            else {
-                let mut tyctxts = Vec::new();
-                let mut tydefs = Vec::new();
-                for field in unnamed {
-                    if let Some((name, (tyctxt, tydef))) = gen_field(ctxt, field) {
-                        assert!(matches!(name, FieldKind::Unnamed));
-
-                        tyctxts.push(tyctxt);
-                        tydefs.push(tydef);
-                    }
-                }
-                let tydef = tydefs
-                    .into_iter()
-                    .reduce(|mut a, b| {
-                        a.extend(quote!(, #b));
-                        a
-                    })
-                    .expect("nothing to serialize");
-                let tydef = quote!(serde_ts_typing::TypeExpr::Tuple(vec![#tydef]));
-                let tyctxt = tyctxts
-                    .into_iter()
-                    .reduce(|mut a, b| {
-                        a.extend(b);
-                        a
-                    })
-                    .unwrap_or(quote!());
-
-                (tyctxt, tydef)
-            }
-        }
+    } else {
         // for unit struct
-        syn::Fields::Unit => (
+        (
             quote!(),
             quote!(serde_ts_typing::TypeExpr::Value(
                 serde_ts_typing::Value::Null
             )),
-        ),
+        )
     }
 }
 
 fn derive_struct(input: ItemStruct) -> proc_macro2::TokenStream {
-    let struct_name = input.ident;
-    let generics = input.generics;
-    let where_clause = gen_where_clause(generics.clone());
-    let gparam = generics.params;
+    let visitor = StructVisitor(&input);
 
-    let ctxt = ContainerContext::from_attr(serde_attr::parse_container_attr(&input.attrs));
-    let ts_ctxt = ts_attr::ContainerContext::from_attr(ts_attr::parse_container_attr(&input.attrs));
+    let struct_name = visitor.ident(); // input.ident;
+    let where_clause = gen_where_clause(visitor.generics());
+    let gparam = &visitor.0.generics.params;
+    let gparam_pure = visitor.generics().get_pure_params();
 
-    let (mut tyctxt, mut tydef) = gen_fields(&ctxt, input.fields);
+    let ctxt = ContainerContext::from_attr(visitor.attrs());
+    let ts_ctxt = ts_attr::ContainerContext::from_attr(visitor.attrs());
+
+    let (mut tyctxt, mut tydef) = gen_fields(&ctxt, visitor.fields());
 
     // 目前看来只有在结合了 tag 的时候有用
     let name = ctxt.rename(struct_name.to_string());
@@ -250,7 +220,7 @@ fn derive_struct(input: ItemStruct) -> proc_macro2::TokenStream {
     }
 
     quote! {
-        impl<#gparam> serde_ts_typing::TsType for #struct_name<#gparam> #where_clause {
+        impl<#gparam> serde_ts_typing::TsType for #struct_name<#gparam_pure> #where_clause {
             fn register_context(c: &mut serde_ts_typing::Context) {
                 #tyctxt
             }
@@ -262,42 +232,42 @@ fn derive_struct(input: ItemStruct) -> proc_macro2::TokenStream {
 }
 
 fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
-    let enum_name = input.ident;
-    let generics = input.generics;
-    let where_clause = gen_where_clause(generics.clone());
-    let gparam = generics.params;
+    let visitor = EnumVisitor(&input);
 
-    let ctxt = ContainerContext::from_attr(serde_attr::parse_container_attr(&input.attrs));
-    let ts_ctxt = ts_attr::ContainerContext::from_attr(ts_attr::parse_container_attr(&input.attrs));
+    let enum_name = visitor.ident();
+    let where_clause = gen_where_clause(visitor.generics());
+    let gparam = &visitor.0.generics.params;
+    let gparam_pure = visitor.generics().get_pure_params();
+
+    let ctxt = ContainerContext::from_attr(visitor.attrs());
+    let ts_ctxt = ts_attr::ContainerContext::from_attr(visitor.attrs());
 
     let enum_ty_name = ts_ctxt.name.clone().unwrap_or(enum_name.to_string());
     let mut tyctxts = Vec::new();
     let mut tydefs = Vec::new();
 
-    for var in input.variants {
-        let var_ctxt = ctxt.provide_default(VariantContext::from_attr(
-            serde_attr::parse_variant_attr(&var.attrs),
-        ));
+    for var in visitor.varients() {
+        let var_ctxt = ctxt.provide_default(VariantContext::from_attr(var.attrs()));
 
         if var_ctxt.is_skip() {
             continue;
         }
-        if var_ctxt.serialize_with || var_ctxt.with || var.discriminant.is_some() {
+        if var_ctxt.serialize_with || var_ctxt.with || var.0.discriminant.is_some() {
             unimplemented!()
         }
         if ctxt.untagged() {
             unimplemented!()
         }
 
-        let var_name = var_ctxt.rename_variant(var.ident.to_string());
-        let is_unit = matches!(var.fields, Fields::Unit);
-        let (tyctxt, mut tydef) = gen_fields(&var_ctxt, var.fields);
+        let var_name = var_ctxt.rename_variant(var.ident().to_string());
+        let is_unit = matches!(var.0.fields, Fields::Unit);
+        let (tyctxt, mut tydef) = gen_fields(&var_ctxt, var.fields());
         tyctxts.push(tyctxt);
         if let (Some(tag), Some(ctag)) = (ctxt.tag(), ctxt.content_tag()) {
             // adjacently tagged
             tydef = quote!(
                 serde_ts_typing::TypeExpr::Struct([
-                    (#tag.into(), serde_ts_typing::TypeExpr::Value(serde_ts_typing:: Value::String(#var_name.into()))),
+                    (#tag.into(), serde_ts_typing::TypeExpr::Value(serde_ts_typing::Value::String(#var_name.into()))),
                     (#ctag.into(), #tydef),
                 ].into_iter().collect())
             )
@@ -333,7 +303,7 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
         }
 
         if !ts_ctxt.variant_inline {
-            let var_ty_name = enum_ty_name.clone() + &var.ident.to_string();
+            let var_ty_name = enum_ty_name.clone() + &var.ident().to_string();
             tyctxts.push(quote!({
                 c.register_variant(#var_ty_name.into(), #tydef);
             }));
@@ -387,7 +357,7 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
     }
 
     quote! {
-        impl<#gparam> serde_ts_typing::TsType for #enum_name<#gparam> #where_clause {
+        impl<#gparam> serde_ts_typing::TsType for #enum_name<#gparam_pure> #where_clause {
             fn register_context(c: &mut serde_ts_typing::Context) {
                 #tyctxt
             }

@@ -1,3 +1,5 @@
+use structural_macro_utils::AttrListVisitor;
+
 use crate::serde_attr::*;
 
 pub trait ProvideDefault<T> {
@@ -36,7 +38,8 @@ impl FieldContext {
     pub fn is_skip(&self) -> bool {
         self.skip_serializing
     }
-    pub fn from_attr(attrs: Vec<FieldAttr>) -> Self {
+    pub fn from_attr(attrs: AttrListVisitor) -> Self {
+        let attrs = crate::serde_attr::parse_field_attr(attrs);
         let mut r = FieldContext::default();
         for attr in attrs {
             match attr {
@@ -79,7 +82,8 @@ pub struct VariantContext {
 }
 
 impl VariantContext {
-    pub fn from_attr(attrs: Vec<VariantAttr>) -> Self {
+    pub fn from_attr(attrs: AttrListVisitor) -> Self {
+        let attrs = crate::serde_attr::parse_variant_attr(attrs);
         let mut r = VariantContext::default();
         for attr in attrs {
             match attr {
@@ -136,7 +140,8 @@ pub struct ContainerContext {
 }
 
 impl ContainerContext {
-    pub fn from_attr(attrs: Vec<ContainerAttr>) -> Self {
+    pub fn from_attr(attrs: AttrListVisitor<'_>) -> Self {
+        let attrs = crate::serde_attr::parse_container_attr(attrs);
         let mut r = ContainerContext::default();
         for attr in attrs {
             match attr {

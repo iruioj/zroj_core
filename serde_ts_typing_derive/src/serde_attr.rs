@@ -1,4 +1,6 @@
 //! 由于 serde 的行为会影响最终输出的数据格式，因此 TsType 必须对于所有的 serde attribute 都进行有效的处理
+use structural_macro_utils::AttrListVisitor;
+
 use super::*;
 
 pub enum ContainerAttr {
@@ -190,7 +192,7 @@ macro_rules! unit_value_ret {
 macro_rules! sep_value_sep_ret {
     ($item:ident, $name:literal, $var:ident) => {
         if $item.path.is_ident($name) {
-            let metas = syn::parse2::<AttrList>($item.tokens)
+            let metas = syn::parse2::<AttrList>($item.tokens.clone())
                 .expect("parse serde attr list (sep_value_sep_ret)");
             let mut serialize = None;
             let mut deserialize = None;
@@ -223,7 +225,7 @@ macro_rules! sep_value_sep_ret {
     };
 }
 
-fn parse_container_attr_meta_name_value(item: MetaNameValue) -> ContainerAttr {
+fn parse_container_attr_meta_name_value(item: &MetaNameValue) -> ContainerAttr {
     use ContainerAttr::*;
 
     str_value_ret!(item, "tag", Tag);
@@ -250,7 +252,7 @@ fn parse_container_attr_meta_name_value(item: MetaNameValue) -> ContainerAttr {
     panic!("invalid serde attribute meta")
 }
 
-fn parse_container_attr_path(item: syn::Path) -> ContainerAttr {
+fn parse_container_attr_path(item: &syn::Path) -> ContainerAttr {
     use ContainerAttr::*;
 
     unit_value_ret!(item, "deny_unknown_fields", DenyUnknownFields);
@@ -264,7 +266,7 @@ fn parse_container_attr_path(item: syn::Path) -> ContainerAttr {
     panic!("invalid serde attribute meta")
 }
 
-fn parse_container_attr_list(item: syn::MetaList) -> ContainerAttr {
+fn parse_container_attr_list(item: &syn::MetaList) -> ContainerAttr {
     use ContainerAttr::*;
     sep_value_sep_ret!(item, "rename", Rename);
     sep_value_sep_ret!(item, "rename_all", RenameAll);
@@ -272,9 +274,9 @@ fn parse_container_attr_list(item: syn::MetaList) -> ContainerAttr {
 
     panic!("invalid serde attribute meta")
 }
-pub fn parse_container_attr(attrs: &[Attribute]) -> Vec<ContainerAttr> {
-    parse_attrs("serde", attrs)
-        .into_iter()
+pub fn parse_container_attr(attrs: AttrListVisitor) -> Vec<ContainerAttr> {
+    attrs.get_list_by_ident("serde")
+        .iter()
         .map(|meta| match meta {
             Meta::NameValue(item) => parse_container_attr_meta_name_value(item),
             Meta::Path(item) => parse_container_attr_path(item),
@@ -283,7 +285,7 @@ pub fn parse_container_attr(attrs: &[Attribute]) -> Vec<ContainerAttr> {
         .collect()
 }
 
-fn parse_variant_attr_meta_name_value(item: MetaNameValue) -> VariantAttr {
+fn parse_variant_attr_meta_name_value(item: &MetaNameValue) -> VariantAttr {
     use VariantAttr::*;
 
     sep_value_ret!(item, "rename", Rename);
@@ -306,7 +308,7 @@ fn parse_variant_attr_meta_name_value(item: MetaNameValue) -> VariantAttr {
 
     panic!("invalid serde attribute meta")
 }
-fn parse_variant_attr_path(item: syn::Path) -> VariantAttr {
+fn parse_variant_attr_path(item: &syn::Path) -> VariantAttr {
     use VariantAttr::*;
 
     unit_value_ret!(item, "skip", Skip);
@@ -320,7 +322,7 @@ fn parse_variant_attr_path(item: syn::Path) -> VariantAttr {
 
     panic!("invalid serde attribute meta")
 }
-fn parse_variant_attr_list(item: syn::MetaList) -> VariantAttr {
+fn parse_variant_attr_list(item: &syn::MetaList) -> VariantAttr {
     use VariantAttr::*;
 
     sep_value_sep_ret!(item, "rename", Rename);
@@ -329,9 +331,9 @@ fn parse_variant_attr_list(item: syn::MetaList) -> VariantAttr {
 
     panic!("invalid serde attribute meta")
 }
-pub fn parse_variant_attr(attrs: &[Attribute]) -> Vec<VariantAttr> {
-    parse_attrs("serde", attrs)
-        .into_iter()
+pub fn parse_variant_attr(attrs: AttrListVisitor) -> Vec<VariantAttr> {
+    attrs.get_list_by_ident("serde")
+        .iter()
         .map(|meta| match meta {
             Meta::NameValue(item) => parse_variant_attr_meta_name_value(item),
             Meta::Path(item) => parse_variant_attr_path(item),
@@ -339,7 +341,7 @@ pub fn parse_variant_attr(attrs: &[Attribute]) -> Vec<VariantAttr> {
         })
         .collect()
 }
-fn parse_field_attr_meta_name_value(item: MetaNameValue) -> FieldAttr {
+fn parse_field_attr_meta_name_value(item: &MetaNameValue) -> FieldAttr {
     use FieldAttr::*;
 
     sep_value_ret!(item, "rename", Rename);
@@ -371,7 +373,7 @@ fn parse_field_attr_meta_name_value(item: MetaNameValue) -> FieldAttr {
 
     panic!("invalid serde attribute meta")
 }
-fn parse_field_attr_path(item: syn::Path) -> FieldAttr {
+fn parse_field_attr_path(item: &syn::Path) -> FieldAttr {
     use FieldAttr::*;
 
     unit_value_ret!(item, "flatten", Flatten);
@@ -388,7 +390,7 @@ fn parse_field_attr_path(item: syn::Path) -> FieldAttr {
 
     panic!("invalid serde attribute meta")
 }
-fn parse_field_attr_list(item: syn::MetaList) -> FieldAttr {
+fn parse_field_attr_list(item: &syn::MetaList) -> FieldAttr {
     use FieldAttr::*;
 
     sep_value_sep_ret!(item, "rename", Rename);
@@ -396,9 +398,9 @@ fn parse_field_attr_list(item: syn::MetaList) -> FieldAttr {
 
     panic!("invalid serde attribute meta")
 }
-pub fn parse_field_attr(attrs: &[Attribute]) -> Vec<FieldAttr> {
-    parse_attrs("serde", attrs)
-        .into_iter()
+pub fn parse_field_attr(attrs: AttrListVisitor) -> Vec<FieldAttr> {
+    attrs.get_list_by_ident("serde")
+        .iter()
         .map(|meta| match meta {
             Meta::NameValue(item) => parse_field_attr_meta_name_value(item),
             Meta::Path(item) => parse_field_attr_path(item),

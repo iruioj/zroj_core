@@ -1,3 +1,5 @@
+use structural_macro_utils::AttrListVisitor;
+
 use super::*;
 
 pub enum ContainerAttr {
@@ -18,9 +20,10 @@ pub enum ContainerAttr {
     /// **do not** specify type names variants of enum, default it's container name + variant name.
     VariantInline,
 }
-pub fn parse_container_attr(attrs: &[Attribute]) -> Vec<ContainerAttr> {
-    parse_attrs("ts", attrs)
-        .into_iter()
+pub fn parse_container_attr(attrs: AttrListVisitor<'_>) -> Vec<ContainerAttr> {
+    attrs
+        .get_list_by_ident("ts")
+        .iter()
         .map(|meta| match meta {
             Meta::NameValue(item) => {
                 if item.path.is_ident("name") {
@@ -55,7 +58,8 @@ pub struct ContainerContext {
 }
 
 impl ContainerContext {
-    pub fn from_attr(attrs: Vec<ContainerAttr>) -> ContainerContext {
+    pub fn from_attr(attrs: AttrListVisitor) -> ContainerContext {
+        let attrs = crate::ts_attr::parse_container_attr(attrs);
         let mut r = ContainerContext::default();
         for attr in attrs {
             match attr {
@@ -74,9 +78,10 @@ pub enum FieldAttr {
     /// 指定该字段序列化后对应的 Rust 类型，用于配合 `serde(serialize_with)` 和 `serde(with)`
     As(String),
 }
-pub fn parse_field_attr(attrs: &[Attribute]) -> Vec<FieldAttr> {
-    parse_attrs("ts", attrs)
-        .into_iter()
+pub fn parse_field_attr(attrs: AttrListVisitor<'_>) -> Vec<FieldAttr> {
+    attrs
+        .get_list_by_ident("ts")
+        .iter()
         .map(|meta| match meta {
             Meta::NameValue(item) => {
                 if item.path.is_ident("as_type") {
@@ -89,8 +94,7 @@ pub fn parse_field_attr(attrs: &[Attribute]) -> Vec<FieldAttr> {
                 }
                 panic!("invalid ts attr")
             }
-            Meta::Path(_) => panic!("invalid ts attr"),
-            Meta::List(_) => panic!("invalid ts attr"),
+            _ => panic!("invalid ts attr: {}", quote!(meta)),
         })
         .collect()
 }
