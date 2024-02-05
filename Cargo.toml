@@ -17,7 +17,7 @@ members = [
     "serde_ts_typing_derive",
     "md",
     "cli"
-]
+, "structural_macro_utils"]
 
 [workspace.package]
 authors = ["ZROJ Team"]

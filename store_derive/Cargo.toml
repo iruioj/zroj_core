@@ -13,7 +13,7 @@ proc-macro2 = "1.0"
 [dev-dependencies]
 store = { path = "../store" }
 serde = { version = "1.0", features = ["derive"] }
-tempfile = "3.3.0"
+tempfile = "3.3"
 
 [lib]
 proc-macro = true
