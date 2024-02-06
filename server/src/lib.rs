@@ -1,10 +1,8 @@
 #![doc = include_str!("../README.md")]
 
-pub mod app;
-pub mod auth;
 pub mod data;
 pub mod manager;
-pub mod rev_proxy;
+pub mod web;
 
 pub mod dev;
 

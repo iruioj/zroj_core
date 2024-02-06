@@ -1,5 +1,4 @@
 use crate::{
-    auth::Authentication,
     block_it,
     data::{
         gravatar::{DefaultDB, GravatarClient},
@@ -7,6 +6,7 @@ use crate::{
         user::{UserDB, UserDisplayInfo, UserEditInfo, UserUpdateInfo},
     },
     marker::*,
+    web::auth::Authentication,
 };
 use actix_http::StatusCode;
 use actix_web::{error, web::Json, HttpResponse};

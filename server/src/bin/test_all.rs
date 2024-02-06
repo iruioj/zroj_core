@@ -1,8 +1,6 @@
 //! 约定：放在这里测试的服务也需要写在 gen_docs 里面
 use actix_web::{web, HttpServer};
 use server::{
-    app,
-    auth::{injector::AuthInjector, AuthStorage},
     data::{
         file_system::FileSysDb,
         gravatar::GravatarClient,
@@ -12,6 +10,10 @@ use server::{
     dev,
     manager::{OneOffManager, ProblemJudger},
     mkdata, rustls_config,
+    web::{
+        auth::{injector::AuthInjector, AuthStorage},
+        services,
+    },
 };
 
 #[actix_web::main]
@@ -86,13 +88,16 @@ async fn main() -> std::io::Result<()> {
 
         dev::dev_server(revproxy.clone()).service(
             web::scope("/api")
-                .service(app::auth::service(auth_storage.clone(), user_db.clone()))
+                .service(services::auth::service(
+                    auth_storage.clone(),
+                    user_db.clone(),
+                ))
                 .service(
-                    app::user::service(user_db.clone(), gclient, gravatar.clone())
+                    services::user::service(user_db.clone(), gclient, gravatar.clone())
                         .wrap(AuthInjector::require_auth(auth_storage.clone())),
                 )
                 .service(
-                    app::problem::service(
+                    services::problem::service(
                         stmt_db.clone(),
                         ojdata_db.clone(),
                         subm_db.clone(),
@@ -101,14 +106,14 @@ async fn main() -> std::io::Result<()> {
                     .wrap(AuthInjector::require_auth(auth_storage.clone())),
                 )
                 .service(
-                    app::one_off::service(oneoff.clone())
+                    services::one_off::service(oneoff.clone())
                         .wrap(AuthInjector::require_auth(auth_storage.clone())),
                 )
                 .service(
-                    app::submission::service(subm_db.clone(), judger.clone())
+                    services::submission::service(subm_db.clone(), judger.clone())
                         .wrap(AuthInjector::require_auth(auth_storage.clone())),
                 )
-                .service(app::api_docs::service()),
+                .service(services::api_docs::service()),
         )
     })
     .bind(addr)?

@@ -1,4 +1,4 @@
-use server::app;
+use server::web::services;
 use std::collections::BTreeMap;
 
 fn to_typename(path: String) -> String {
@@ -190,11 +190,11 @@ fn gen_entry(service: server::ServiceDoc) -> EntryNode {
 }
 
 fn main() {
-    let auth = app::auth::service_doc();
-    let user = app::user::service_doc();
-    let problem = app::problem::service_doc();
-    let oneoff = app::one_off::service_doc();
-    let submission = app::submission::service_doc();
+    let auth = services::auth::service_doc();
+    let user = services::user::service_doc();
+    let problem = services::problem::service_doc();
+    let oneoff = services::one_off::service_doc();
+    let submission = services::submission::service_doc();
 
     let entry = EntryRoot(vec![
         gen_entry(auth.0),

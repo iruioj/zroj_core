@@ -1,7 +1,9 @@
-use crate::auth::{AuthInfo, AuthStorage, Authentication, CLIENT_ID_KEY};
 use crate::data::{
     types::{EmailAddress, Username},
     user::UserDB,
+};
+use crate::web::auth::{
+    injector::AuthInjector, AuthInfo, AuthStorage, Authentication, CLIENT_ID_KEY,
 };
 use crate::ClientID;
 use crate::{block_it, marker::*};
@@ -113,9 +115,7 @@ async fn logout(
 
 #[scope_service(path = "/auth")]
 pub fn service(auth_storage: AuthStorage, user_database: ServerData<UserDB>) {
-    wrap(crate::auth::injector::AuthInjector::bypass(
-        auth_storage.clone(),
-    ));
+    wrap(AuthInjector::bypass(auth_storage.clone()));
     app_data(web::Data::new(auth_storage));
     app_data(user_database);
     service(login);

@@ -1,4 +1,4 @@
-//! 主要用于开发
+//! Development utilities
 
 use std::sync::Arc;
 
@@ -11,7 +11,7 @@ use crate::data::{
     user,
 };
 use crate::mkdata;
-use crate::rev_proxy::RevProxy;
+use crate::web::rev_proxy::RevProxy;
 use actix_http::body::MessageBody;
 use actix_web::{
     dev::{ServiceFactory, ServiceRequest, ServiceResponse},
@@ -48,7 +48,7 @@ pub fn dev_server(
     App::new()
         .app_data(frontend_proxy)
         .app_data(web::Data::new(awc::Client::new()))
-        .default_service(web::route().to(crate::rev_proxy::handler::rev_proxy))
+        .default_service(web::route().to(crate::web::rev_proxy::handler::rev_proxy))
         .wrap(TracingLogger::default())
 }
 

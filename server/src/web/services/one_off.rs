@@ -1,4 +1,8 @@
-use crate::{app::parse_named_file, auth::Authentication, manager::OneOffManager, marker::*};
+use crate::{
+    manager::OneOffManager,
+    marker::*,
+    web::{auth::Authentication, services::parse_named_file},
+};
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},

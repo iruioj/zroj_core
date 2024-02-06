@@ -1,6 +1,4 @@
 use crate::{
-    app::parse_named_file,
-    auth::Authentication,
     block_it,
     data::{
         problem_ojdata::OJDataDB,
@@ -10,6 +8,7 @@ use crate::{
     },
     manager::ProblemJudger,
     marker::*,
+    web::{auth::Authentication, services::parse_named_file},
     ProblemID, SubmID,
 };
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};

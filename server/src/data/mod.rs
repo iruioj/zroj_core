@@ -1,3 +1,5 @@
+//! Database backends and data schemas used across the application
+
 pub mod error;
 pub mod file_system;
 pub mod mysql;
