@@ -9,6 +9,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Debug,
+    fs,
     io::Seek,
     path::{Path, PathBuf},
     str::FromStr,
@@ -34,19 +35,19 @@ impl Handle {
         }
     }
     /// 打开该路径下的文件（要求其必须存在）
-    pub fn open_file(&self) -> Result<std::fs::File, Error> {
+    pub fn open_file(&self) -> Result<fs::File, Error> {
         if self.dir.is_file() {
-            Ok(std::fs::File::open(self).context("open file")?)
+            Ok(fs::File::open(self).context("open file")?)
         } else {
             Err(anyhow::anyhow!("try to open a non-file item"))?
         }
     }
     /// 在该路径下新建文件，会自动补齐父级目录，要求其不存在
-    pub fn create_new_file(&self) -> Result<std::fs::File, Error> {
+    pub fn create_new_file(&self) -> Result<fs::File, Error> {
         if let Some(par) = self.dir.parent() {
-            std::fs::create_dir_all(par).context("create parent dir")?;
+            fs::create_dir_all(par).context("create parent dir")?;
         }
-        Ok(std::fs::File::options()
+        Ok(fs::File::options()
             .write(true)
             .create_new(true)
             .open(self.as_ref())
@@ -58,9 +59,9 @@ impl Handle {
             return Ok(());
         }
         if self.path().is_dir() {
-            Ok(std::fs::remove_dir_all(self.path()).context("remove dir all")?)
+            Ok(fs::remove_dir_all(self.path()).context("remove dir all")?)
         } else {
-            Ok(std::fs::remove_file(self.path()).context("remove file")?)
+            Ok(fs::remove_file(self.path()).context("remove file")?)
         }
     }
     /// 从该路径下的文件中解析数据（要求文件存在）
@@ -149,6 +150,24 @@ impl AsRef<Path> for Handle {
     }
 }
 
+/// Copy files from source to destination recursively.
+pub fn copy_recursively(
+    source: impl AsRef<Path>,
+    destination: impl AsRef<Path>,
+) -> std::io::Result<()> {
+    fs::create_dir_all(&destination)?;
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let filetype = entry.file_type()?;
+        if filetype.is_dir() {
+            copy_recursively(entry.path(), destination.as_ref().join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), destination.as_ref().join(entry.file_name()))?;
+        }
+    }
+    Ok(())
+}
+
 /// 文件夹数据结构化存储
 pub trait FsStore: Sized {
     /// 读取文件（夹）下的数据信息
@@ -175,10 +194,22 @@ pub trait FsStore: Sized {
         ctx.remove_all()?;
         if let Some(par) = ctx.path().parent() {
             if !par.exists() {
-                std::fs::create_dir_all(par).context("create parent dir before renaming")?;
+                fs::create_dir_all(par).context("create parent dir before renaming")?;
             }
         }
-        std::fs::rename(dir.path(), ctx.path()).context("rename dir")?;
+        // try to rename; if failed, then do copy
+        fs::rename(dir.path(), ctx.path())
+            .context("rename dir during safe_save")
+            .or_else(|_| {
+                if dir.path().is_dir() {
+                    copy_recursively(dir.path(), ctx.path())
+                        .context("copy dir recursively during safe_save")
+                } else {
+                    std::fs::copy(dir.path(), ctx.path())
+                        .map(|_| ())
+                        .context("copy file during save_safe")
+                }
+            })?;
         Ok(())
     }
 }
@@ -251,7 +282,7 @@ impl<T: FsStore> FsStore for Vec<T> {
     }
 }
 
-impl FsStore for std::fs::File {
+impl FsStore for fs::File {
     fn open(ctx: &Handle) -> Result<Self, Error> {
         ctx.open_file()
     }
