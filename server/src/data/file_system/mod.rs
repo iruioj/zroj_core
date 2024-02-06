@@ -6,7 +6,8 @@ use store::{FsStore, Handle};
 
 use super::error::DataError;
 
-/// A File System database is simply a [`Handle`].
+/// A File System database is simply a [`Handle`] of its root directory.
+#[derive(Clone)]
 pub struct FileSysDb(Handle);
 
 impl FileSysDb {
@@ -32,57 +33,102 @@ impl FileSysDb {
 }
 
 /// a string that is valid as the name of directory
+///
+/// ```
+/// # use server::data::file_system::SanitizedString;
+/// let key = SanitizedString::new("dir/hello_123").unwrap();
+/// assert!(SanitizedString::new("hello 123").is_none());
+/// assert!(SanitizedString::new("hello?123").is_none());
+/// ```
 pub struct SanitizedString(String);
 
+#[derive(thiserror::Error, Debug)]
+pub enum SanitizeError {
+    #[error("invalid character {0:?}")]
+    InvalidChar(char),
+    #[error("string of length {0} too long")]
+    LengthExceeded(usize),
+}
+
 impl SanitizedString {
-    pub fn new(str: &str) -> Option<Self> {
-        if str
+    pub fn new(str: &str) -> Result<Self, SanitizeError> {
+        let err = str
             .chars()
-            .all(|c| !c.is_ascii_control() && !c.is_whitespace() && !c.is_ascii_punctuation())
-        {
-            Some(Self(str.to_string()))
-        } else {
-            None
+            .find_map(|c| {
+                if c.is_ascii_control() || c.is_whitespace() || "><|:&?*".contains(c) {
+                    Some(SanitizeError::InvalidChar(c))
+                } else {
+                    None
+                }
+            })
+            .or(if str.len() > 128 {
+                Some(SanitizeError::LengthExceeded(str.len()))
+            } else {
+                None
+            });
+        match err {
+            Some(e) => Err(e),
+            None => Ok(Self(str.to_string())),
         }
     }
 }
 
-impl From<&()> for SanitizedString {
-    fn from(_: &()) -> Self {
-        Self(Default::default())
+impl TryFrom<&u32> for SanitizedString {
+    type Error = SanitizeError;
+
+    fn try_from(value: &u32) -> Result<Self, Self::Error> {
+        SanitizedString::new(&value.to_string())
     }
 }
 
-impl From<&u32> for SanitizedString {
-    fn from(value: &u32) -> Self {
-        Self(value.to_string())
+impl TryFrom<&SanitizedString> for SanitizedString {
+    type Error = SanitizeError;
+
+    fn try_from(value: &SanitizedString) -> Result<Self, Self::Error> {
+        Ok(Self(value.0.to_owned()))
+    }
+}
+
+impl From<SanitizeError> for DataError {
+    fn from(value: SanitizeError) -> Self {
+        DataError::AnyError(anyhow::Error::new(value))
     }
 }
 
 /// Each table is a kv store
 pub trait FileSysTable
 where
-    for<'a> &'a Self::Key: Into<SanitizedString>,
+    for<'a> &'a Self::Key: TryInto<SanitizedString, Error = SanitizeError>,
 {
     type Key;
     type Item: FsStore;
 
     fn ctx(&self) -> &Handle;
 
+    fn ctx_with_key(&self, key: &Self::Key) -> Result<Handle, SanitizeError> {
+        let key: SanitizedString = key.try_into()?;
+        Ok(self.ctx().join(key.0))
+    }
+
     /// try to get the data
     fn query(&self, key: &Self::Key) -> Result<Self::Item, DataError> {
-        let ctx = self.ctx().join(Into::<SanitizedString>::into(key).0);
+        let ctx = self.ctx_with_key(key)?;
         Ok(Self::Item::open(&ctx)?)
+    }
+    /// try to get the data and its path
+    fn query_with_ctx(&self, key: &Self::Key) -> Result<(Self::Item, Handle), DataError> {
+        let ctx = self.ctx_with_key(key)?;
+        Ok((Self::Item::open(&ctx)?, ctx))
     }
     /// insert or update
     fn replace(&self, key: &Self::Key, item: &mut Self::Item) -> Result<(), DataError> {
-        let ctx = self.ctx().join(Into::<SanitizedString>::into(key).0);
+        let ctx = self.ctx_with_key(key)?;
         item.safe_save(&ctx)?;
         Ok(())
     }
     /// update if exists
     fn update(&self, key: &Self::Key, item: &mut Self::Item) -> Result<(), DataError> {
-        let ctx = self.ctx().join(Into::<SanitizedString>::into(key).0);
+        let ctx = self.ctx_with_key(key)?;
         if ctx.path().exists() {
             item.safe_save(&ctx)?;
         }
@@ -90,7 +136,7 @@ where
     }
     /// remove if exists
     fn remove(&self, key: &Self::Key) -> Result<(), DataError> {
-        let ctx = self.ctx().join(Into::<SanitizedString>::into(key).0);
+        let ctx = self.ctx_with_key(key)?;
         if ctx.path().exists() {
             ctx.remove_all()?;
         }

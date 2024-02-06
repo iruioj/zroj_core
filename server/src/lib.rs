@@ -8,6 +8,8 @@ pub mod rev_proxy;
 
 pub mod dev;
 
+use rustls::{ClientConfig, RootCertStore};
+
 // pub mod config;
 pub type GroupID = u32;
 pub type ClientID = uuid::Uuid;
@@ -68,4 +70,14 @@ pub struct ApiDocMeta {
 pub struct ServiceDoc {
     pub path: String,
     pub apis: Vec<ApiDocMeta>,
+}
+
+/// Create simple rustls client config from root certificates.
+pub fn rustls_config() -> ClientConfig {
+    let mut root_store = RootCertStore::empty();
+    root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+
+    ClientConfig::builder()
+        .with_root_certificates(root_store)
+        .with_no_client_auth()
 }

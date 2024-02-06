@@ -19,8 +19,8 @@ pub trait Manager {
 
 pub struct DefaultDB(FileSysDb);
 impl DefaultDB {
-    pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self, DataError> {
-        Ok(Self(FileSysDb::new(path)))
+    pub fn new(filesysdb: &FileSysDb) -> Result<Self, DataError> {
+        Ok(Self(filesysdb.clone()))
     }
 }
 impl Manager for DefaultDB {

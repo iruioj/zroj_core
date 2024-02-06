@@ -4,7 +4,7 @@ use crate::{
     block_it,
     data::{
         problem_ojdata::OJDataDB,
-        problem_statement::{self, ProblemMeta, StmtDB},
+        problem_statement::{self, ProblemMeta},
         submission::SubmDB,
         types::SubmRaw,
     },
@@ -29,6 +29,8 @@ fn tempdir_unzip(
     zip.extract(dir.path())?;
     Ok(dir)
 }
+
+type StmtDB = problem_statement::Mysql;
 
 #[derive(Deserialize, TsType)]
 struct StmtQuery {

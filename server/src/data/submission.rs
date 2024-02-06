@@ -1,11 +1,6 @@
 use super::{
     error::DataError,
-    mysql::{
-        last_insert_id,
-        schema::{problems, submission_details, submission_metas, users},
-        schema_model::SubmissionMeta,
-        MysqlConfig, MysqlDb,
-    },
+    mysql::{last_insert_id, schema::*, schema_model::SubmissionMeta, MysqlDb},
     types::*,
 };
 use crate::{data::mysql::schema_model::SubmissionDetail, ProblemID, SubmID, UserID};
@@ -94,8 +89,8 @@ pub trait Manager {
 pub struct Mysql(MysqlDb);
 
 impl Mysql {
-    pub fn new(cfg: &MysqlConfig) -> Self {
-        Self(MysqlDb::new(cfg))
+    pub fn new(mysqldb: &MysqlDb) -> Self {
+        Self(mysqldb.clone())
     }
 }
 

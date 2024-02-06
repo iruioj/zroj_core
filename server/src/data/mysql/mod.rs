@@ -24,7 +24,8 @@ pub struct MysqlConfig {
     pub dbname: String,
 }
 
-/// A MysqlDb is simply a connection pool
+/// A `MysqlDb` is simply a connection pool
+#[derive(Clone)]
 pub struct MysqlDb(MysqlPool);
 
 /// 数据库存储
@@ -108,6 +109,7 @@ pub enum SetupDatabaseFlag {
     ForceNew,
 }
 
+/// Setup MySQL database according to flag.
 pub fn setup_database(cfg: &MysqlConfig, flag: SetupDatabaseFlag) -> Result<(), DataError> {
     let MysqlConfig {
         user,

@@ -5,7 +5,7 @@ use super::mysql::last_insert_id;
 use super::mysql::schema::users;
 use super::mysql::schema_model::User;
 use super::types::*;
-use crate::data::mysql::{MysqlConfig, MysqlDb};
+use crate::data::mysql::MysqlDb;
 use crate::Override;
 use crate::UserID;
 use diesel::{self, prelude::*, Insertable};
@@ -122,8 +122,8 @@ pub struct DbManager(MysqlDb);
 
 /// 数据库存储
 impl DbManager {
-    pub fn new(cfg: &MysqlConfig) -> Self {
-        Self(MysqlDb::new(cfg))
+    pub fn new(db: &MysqlDb) -> Self {
+        Self(db.clone())
     }
 }
 impl Manager for DbManager {

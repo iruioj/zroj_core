@@ -3,10 +3,10 @@
 use std::sync::Arc;
 
 use crate::data::{
-    mysql::MysqlConfig,
+    file_system::FileSysDb,
+    mysql::MysqlDb,
     problem_ojdata::{self, OJDataDB},
     problem_statement,
-    problem_statement::StmtDB,
     types::*,
     user,
 };
@@ -18,7 +18,6 @@ use actix_web::{
     web, App,
 };
 use problem::sample::{a_plus_b_data, a_plus_b_statment};
-use store::Handle;
 use tracing_actix_web::TracingLogger;
 
 /// 将非 `/api` 开头的请求转发到 localhost:3000
@@ -56,8 +55,8 @@ pub fn dev_server(
 /// 存储在文件中的用户数据库
 ///
 /// 预先插入用户名 `testtest`，密码 `testtest` 的用户
-pub fn test_userdb(cfg: &MysqlConfig) -> web::Data<dyn user::Manager + Send + Sync> {
-    let db = user::Mysql::new(cfg);
+pub fn test_userdb(mysqldb: &MysqlDb) -> web::Data<dyn user::Manager + Send + Sync> {
+    let db = user::Mysql::new(mysqldb);
     let r = mkdata!(crate::data::user::UserDB, db);
     // 预先插入一个用户方便测试
     if r.query_by_username(&Username::new("testtest").unwrap())
@@ -80,8 +79,11 @@ pub fn test_userdb(cfg: &MysqlConfig) -> web::Data<dyn user::Manager + Send + Sy
 /// 用于测试的题面数据库
 ///
 /// 预先插入若干个 A + B problem 的题面
-pub fn test_stmtdb(cfg: &MysqlConfig, dir: Handle) -> web::Data<StmtDB> {
-    let stmt_db = mkdata!(StmtDB, problem_statement::Mysql::new(cfg, dir));
+pub fn test_stmtdb(
+    mysqldb: &MysqlDb,
+    filesysdb: &FileSysDb,
+) -> web::Data<problem_statement::Mysql> {
+    let stmt_db = problem_statement::Mysql::new(mysqldb, filesysdb);
     if stmt_db.get(1).is_err() {
         let id = stmt_db
             .insert_new(a_plus_b_statment())
@@ -89,14 +91,11 @@ pub fn test_stmtdb(cfg: &MysqlConfig, dir: Handle) -> web::Data<StmtDB> {
         assert!(id == 1);
     }
     tracing::info!("test statement db initialized");
-    stmt_db
+    web::Data::new(stmt_db)
 }
 
-pub async fn test_ojdata_db(dir: impl AsRef<std::path::Path>) -> web::Data<OJDataDB> {
-    let db = mkdata!(
-        OJDataDB,
-        problem_ojdata::DefaultDB::new(dir.as_ref().join("stmt_data")).unwrap()
-    );
+pub async fn test_ojdata_db(filesysdb: &FileSysDb) -> web::Data<OJDataDB> {
+    let db = mkdata!(OJDataDB, problem_ojdata::DefaultDB::new(filesysdb).unwrap());
 
     db.insert(1, a_plus_b_data())
         .expect("fail to insert A + B Problem data");

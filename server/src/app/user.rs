@@ -2,14 +2,14 @@ use crate::{
     auth::Authentication,
     block_it,
     data::{
-        gravatar::GravatarDB,
+        gravatar::{DefaultDB, GravatarClient},
         types::*,
         user::{UserDB, UserDisplayInfo, UserEditInfo, UserUpdateInfo},
     },
     marker::*,
 };
-use actix_files::NamedFile;
-use actix_web::{error, web::Json};
+use actix_http::StatusCode;
+use actix_web::{error, web::Json, HttpResponse};
 use serde::Deserialize;
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
@@ -49,6 +49,8 @@ async fn edit_post(
     Ok("ok".to_string())
 }
 
+type GravatarDB = DefaultDB;
+
 #[derive(Deserialize, TsType)]
 pub struct GravatarInfo {
     pub email: EmailAddress,
@@ -58,23 +60,27 @@ pub struct GravatarInfo {
 #[api(method = get, path = "/gravatar")]
 async fn gravatar(
     info: QueryParam<GravatarInfo>,
+    gclient: ServerData<GravatarClient>,
     db: ServerData<GravatarDB>,
-) -> actix_web::Result<NamedFile> {
-    if info.no_cache.unwrap_or(false) {
-        db.fetch(&info.email)
-            .await
-            .map_err(error::ErrorInternalServerError)
-    } else {
-        db.get(&info.email)
-            .await
-            .map_err(error::ErrorInternalServerError)
-    }
+) -> actix_web::Result<HttpResponse> {
+    let img_content = db
+        .fetch(gclient.into_inner(), &info.email)
+        .await
+        .map_err(error::ErrorInternalServerError)?;
+    Ok(HttpResponse::build(StatusCode::OK)
+        .content_type("image/jpeg")
+        .body(img_content))
 }
 
 #[scope_service(path = "/user")]
-pub fn service(user_database: ServerData<UserDB>, gravatar_db: ServerData<GravatarDB>) {
+pub fn service(
+    user_database: ServerData<UserDB>,
+    gclient: ServerData<GravatarClient>,
+    gravatar_db: ServerData<GravatarDB>,
+) {
     app_data(user_database);
     app_data(gravatar_db);
+    app_data(gclient);
     service(profile);
     service(edit_get);
     service(edit_post);

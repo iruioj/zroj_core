@@ -1,14 +1,15 @@
 use super::{
     error::DataError,
+    file_system::{FileSysDb, FileSysTable, SanitizeError, SanitizedString},
     mysql::{
         last_insert_id,
         schema::problems,
         schema_model::{Problem, ProblemStatement},
-        MysqlConfig, MysqlDb,
+        MysqlDb,
     },
 };
 use crate::{
-    data::{mysql::schema::problem_statements, types::JsonStr},
+    data::{file_system::schema::staticdata, mysql::schema::problem_statements, types::JsonStr},
     ProblemID,
 };
 use actix_files::NamedFile;
@@ -17,10 +18,6 @@ use diesel::*;
 use problem::render_data::{self, statement::StmtMeta, Mdast};
 use serde::Serialize;
 use serde_ts_typing::TsType;
-use std::sync::RwLock;
-use store::Handle;
-
-pub type StmtDB = dyn Manager + Sync + Send;
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = problems)]
@@ -60,40 +57,18 @@ pub struct ProblemMeta {
     pub tags: String,
 }
 
-pub trait Manager {
-    /// HTML statement
-    fn get(&self, id: ProblemID) -> Result<Statement, DataError>;
-    /// parse statement for reader and insert (update) it
-    fn insert_new(&self, stmt: render_data::Statement) -> Result<ProblemID, DataError>;
-    fn update(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), DataError>;
-    fn get_assets(&self, id: ProblemID, name: &str) -> Result<NamedFile, DataError>;
-    fn insert_assets(
-        &self,
-        id: ProblemID,
-        file: std::fs::File,
-        name: &str,
-    ) -> Result<(), DataError>;
-    /// get problem meta list, often used for problem listing
-    fn get_metas(
-        &self,
-        max_count: u8,
-        offset: usize,
-        pattern: Option<String>,
-    ) -> Result<Vec<ProblemMeta>, DataError>;
-}
-
-pub struct Mysql(MysqlDb, RwLock<Handle>);
+pub struct Mysql(MysqlDb, FileSysDb);
 
 impl Mysql {
     /// note that assert directory should be only accessible by
     /// this database, so you pass its ownership to it
-    pub fn new(cfg: &MysqlConfig, asset_dir: Handle) -> Self {
-        Self(MysqlDb::new(cfg), RwLock::new(asset_dir))
+    pub fn new(mysqldb: &MysqlDb, filesysdb: &FileSysDb) -> Self {
+        Self(mysqldb.clone(), filesysdb.clone())
     }
 }
 
-impl Manager for Mysql {
-    fn get(&self, id: ProblemID) -> Result<Statement, DataError> {
+impl Mysql {
+    pub fn get(&self, id: ProblemID) -> Result<Statement, DataError> {
         self.0.transaction(|conn| {
             let problem: Problem = problems::table.filter(problems::id.eq(id)).first(conn)?;
             let statement: ProblemStatement =
@@ -106,7 +81,7 @@ impl Manager for Mysql {
         })
     }
 
-    fn insert_new(&self, stmt: render_data::Statement) -> Result<ProblemID, DataError> {
+    pub fn insert_new(&self, stmt: render_data::Statement) -> Result<ProblemID, DataError> {
         self.0.transaction(|conn| {
             diesel::insert_into(problems::table)
                 .values(NewProblem {
@@ -125,7 +100,7 @@ impl Manager for Mysql {
             Ok(pid as ProblemID)
         })
     }
-    fn update(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), DataError> {
+    pub fn update(&self, id: ProblemID, stmt: render_data::Statement) -> Result<(), DataError> {
         self.0.transaction(|conn| {
             diesel::update(problem_statements::table.filter(problem_statements::pid.eq(id)))
                 .set(problem_statements::content.eq(JsonStr(stmt.statement.render_mdast())))
@@ -140,11 +115,16 @@ impl Manager for Mysql {
         })
     }
 
+    fn build_key(&self, id: ProblemID, name: &str) -> Result<SanitizedString, SanitizeError> {
+        SanitizedString::new(&format!("problem_statement/{id}/{name}"))
+    }
+
     fn get_assets(&self, id: ProblemID, name: &str) -> Result<NamedFile, DataError> {
-        Ok(
-            NamedFile::open(self.1.read()?.join(id.to_string()).join(name).as_ref())
-                .context("open asset file")?,
-        )
+        let key = self.build_key(id, name)?;
+        self.1.transaction(|ctx| {
+            let (file, ctx) = staticdata::conn(ctx).query_with_ctx(&key)?;
+            Ok(NamedFile::from_file(file, ctx.path()).context("open asset file")?)
+        })
     }
 
     fn insert_assets(
@@ -153,14 +133,12 @@ impl Manager for Mysql {
         mut file: std::fs::File,
         name: &str,
     ) -> Result<(), DataError> {
-        let path = self.1.write()?.join(id.to_string()).join(name);
-        path.remove_all().context("remove asset path")?;
-        let mut dest = path.create_new_file().context("create new asset dest")?;
-        std::io::copy(&mut file, &mut dest).context("copy asset file")?;
-        Ok(())
+        let key = self.build_key(id, name)?;
+        self.1
+            .transaction(|ctx| staticdata::conn(ctx).replace(&key, &mut file))
     }
 
-    fn get_metas(
+    pub fn get_metas(
         &self,
         max_count: u8,
         offset: usize,

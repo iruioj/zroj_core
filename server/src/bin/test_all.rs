@@ -3,10 +3,15 @@ use actix_web::{web, HttpServer};
 use server::{
     app,
     auth::{injector::AuthInjector, AuthStorage},
-    data::{gravatar::GravatarDB, mysql::MysqlConfig, submission::SubmDB},
+    data::{
+        file_system::FileSysDb,
+        gravatar::GravatarClient,
+        mysql::{MysqlConfig, MysqlDb},
+        submission::SubmDB,
+    },
     dev,
     manager::{one_off::OneOffManager, problem_judger::ProblemJudger},
-    mkdata,
+    mkdata, rustls_config,
 };
 
 #[actix_web::main]
@@ -28,23 +33,21 @@ async fn main() -> std::io::Result<()> {
     };
     // by diesel migration we dont need to setup manually
     // server::data::mysql::MysqlDb::setup_new(&sql_cfg).expect("setup mysql database");
+    let mysqldb = MysqlDb::new(&sql_cfg);
+    let filesysdb = FileSysDb::new(dir.path());
 
-    let user_db = dev::test_userdb(&sql_cfg);
+    let user_db = dev::test_userdb(&mysqldb);
     tracing::info!("user_db initialized");
 
-    let stmt_db = dev::test_stmtdb(&sql_cfg, store::Handle::new(dir.path()).join("stmt_assets"));
+    let stmt_db = dev::test_stmtdb(&mysqldb, &filesysdb);
 
-    let ojdata_db = dev::test_ojdata_db(dir.path()).await;
+    let ojdata_db = dev::test_ojdata_db(&filesysdb).await;
     let oneoff = web::Data::new(OneOffManager::new(dir.path().join("oneoff")));
-    let gravatar = mkdata!(
-        GravatarDB,
-        server::data::gravatar::DefaultDB::new(
-            dir.path().join("gravatar"),
-            "http://sdn.geekzu.org/avatar/".into()
-        )
-    );
+    let gravatar = web::Data::new(server::data::gravatar::DefaultDB::new(
+        "https://sdn.geekzu.org/avatar/",
+    ));
     let judger = web::Data::new(ProblemJudger::new(dir.path().join("problem_judge")));
-    let subm_db = mkdata!(SubmDB, server::data::submission::Mysql::new(&sql_cfg));
+    let subm_db = mkdata!(SubmDB, server::data::submission::Mysql::new(&mysqldb));
 
     // once finish judging, update submission database
     {
@@ -77,12 +80,15 @@ async fn main() -> std::io::Result<()> {
     println!("server listen at http://{addr}");
 
     let auth_storage = AuthStorage::default();
+    let tlscfg = std::sync::Arc::new(rustls_config());
     HttpServer::new(move || {
+        let gclient = web::Data::new(GravatarClient::new(tlscfg.clone()));
+
         dev::dev_server(revproxy.clone()).service(
             web::scope("/api")
                 .service(app::auth::service(auth_storage.clone(), user_db.clone()))
                 .service(
-                    app::user::service(user_db.clone(), gravatar.clone())
+                    app::user::service(user_db.clone(), gclient, gravatar.clone())
                         .wrap(AuthInjector::require_auth(auth_storage.clone())),
                 )
                 .service(

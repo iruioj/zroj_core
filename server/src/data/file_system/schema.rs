@@ -1,6 +1,6 @@
 use crate::ProblemID;
 
-use super::FileSysTable;
+use super::{FileSysTable, SanitizedString};
 use problem::StandardProblem;
 use store::Handle;
 
@@ -27,4 +27,4 @@ macro_rules! def_schema {
 }
 
 def_schema!(ojdata, ProblemID, StandardProblem);
-def_schema!(staticdata, (), ());
+def_schema!(staticdata, SanitizedString, std::fs::File);
