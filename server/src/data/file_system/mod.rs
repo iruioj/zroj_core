@@ -37,8 +37,8 @@ impl FileSysDb {
 /// ```
 /// # use server::data::file_system::SanitizedString;
 /// let key = SanitizedString::new("dir/hello_123").unwrap();
-/// assert!(SanitizedString::new("hello 123").is_none());
-/// assert!(SanitizedString::new("hello?123").is_none());
+/// assert!(SanitizedString::new("hello 123").is_err());
+/// assert!(SanitizedString::new("hello?123").is_err());
 /// ```
 pub struct SanitizedString(String);
 

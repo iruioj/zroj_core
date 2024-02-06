@@ -1,4 +1,4 @@
-use actix_web::web::Json;
+use actix_web::{error, web::Json};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
@@ -6,7 +6,7 @@ use server_derive::{api, scope_service};
 use crate::{
     block_it,
     data::submission::{SubmDB, SubmInfo, SubmMeta},
-    manager::problem_judger::ProblemJudger,
+    manager::ProblemJudger,
     marker::*,
     SubmID,
 };
@@ -30,7 +30,9 @@ async fn detail(
     subm_db: ServerData<SubmDB>,
     judger: ServerData<ProblemJudger>,
 ) -> JsonResult<DetailReturn> {
-    let logs = judger.get_logs(&payload.sid)?;
+    let logs = judger
+        .get_logs(&payload.sid)
+        .map_err(error::ErrorInternalServerError)?;
     let info = block_it!(subm_db.get_info(&payload.sid))?;
 
     Ok(Json(DetailReturn {

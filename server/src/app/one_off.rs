@@ -1,9 +1,7 @@
-use crate::{
-    app::parse_named_file, auth::Authentication, manager::one_off::OneOffManager, marker::*,
-};
+use crate::{app::parse_named_file, auth::Authentication, manager::OneOffManager, marker::*};
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{
-    error::{ErrorBadRequest, ErrorUnauthorized},
+    error::{ErrorBadRequest, ErrorInternalServerError},
     web::Json,
 };
 use judger::{StoreFile, TaskReport};
@@ -40,7 +38,9 @@ async fn custom_test_post(
         file: payload.input.file.reopen()?,
         file_type: judger::FileType::Plain,
     };
-    oneoff.add_test(uid, source, input)?;
+    oneoff
+        .add_test(uid, source, input)
+        .map_err(ErrorInternalServerError)?;
     Ok("Judge started".to_string())
 }
 
@@ -57,7 +57,7 @@ async fn custom_test_get(
 ) -> JsonResult<CustomTestResult> {
     let uid = auth.user_id_or_unauthorized()?;
     Ok(Json(CustomTestResult {
-        result: oneoff.get_result(&uid)?,
+        result: oneoff.get_result(&uid).map_err(ErrorInternalServerError)?,
     }))
 }
 

@@ -28,21 +28,12 @@ struct Inner {
 /// Usage:
 ///
 /// ```rust
-/// # use server::auth::session::AuthInjector;
-/// # use server::auth::SessionManager;
-/// let session_container = SessionManager::default();
+/// # use server::auth::injector::AuthInjector;
+/// # use server::auth::AuthStorage;
+/// let auth_storage = AuthStorage::default();
 ///
 /// actix_web::App::new()
-///     .wrap(
-///         actix_session::SessionMiddleware::builder(
-///             actix_session::storage::CookieSessionStore::default(),
-///             actix_web::cookie::Key::generate(),
-///         )
-///         .cookie_secure(false)
-///         .cookie_path("/".into())
-///         .build(),
-///     )
-///     .wrap(AuthInjector::require_auth(session_container.clone()));
+///     .wrap(AuthInjector::require_auth(auth_storage.clone()));
 /// ```
 pub struct AuthInjector(Rc<Inner>);
 

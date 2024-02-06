@@ -8,7 +8,7 @@ use crate::{
         submission::SubmDB,
         types::SubmRaw,
     },
-    manager::problem_judger::ProblemJudger,
+    manager::ProblemJudger,
     marker::*,
     ProblemID, SubmID,
 };
@@ -168,7 +168,9 @@ async fn judge(
                     .remove("source")
                     .ok_or(error::ErrorBadRequest("source file not found"))?,
             };
-            judger.add_test::<_, _, _, Traditional>(subm_id, ojdata, subm)?;
+            judger
+                .add_test::<_, _, _, Traditional>(subm_id, ojdata, subm)
+                .map_err(error::ErrorInternalServerError)?;
             subm_id
         }
     };

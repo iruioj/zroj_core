@@ -1,10 +1,24 @@
 pub type Job = Box<dyn FnOnce() + Send + Sync + 'static>;
 
-/// A general job runner, which spawns a new thread for job running
+/// A general job runner, which spawns a new thread for job running.
+///
+/// To close the channel and detach the job thread, simply drop it.
+///
+/// ```rust
+#[doc = include_str!("../../examples/job_runner.rs")]
+/// ```
 pub struct JobRunner {
+    // channel is closed after dropping the sender
     sender: crossbeam_channel::Sender<Job>,
+    // thread is detached after dropping the handle
     handle: std::thread::JoinHandle<()>,
 }
+impl Default for JobRunner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl JobRunner {
     pub fn new() -> Self {
         let (sender, receiver) = crossbeam_channel::unbounded::<Job>();
@@ -35,11 +49,9 @@ impl JobRunner {
         let job = Box::new(f);
         self.sender.send(job)
     }
-    /// Wait for job thread to finish and then close it. Its ok if you don't
-    /// call it, since the thread automatically becomes detached after dropping
-    /// its handle.
-    pub fn terminate(self) {
-        drop(self.sender); // explicitly drop sender to close job thread
-        self.handle.join().unwrap();
+    /// drop the sender to close the channel, and join the job thread
+    pub fn terminate_join(self) -> Result<(), Box<dyn std::any::Any + Send>> {
+        drop(self.sender);
+        self.handle.join()
     }
 }

@@ -1,6 +1,6 @@
 use super::job_runner::JobRunner;
 use crate::{data::types::FullJudgeReport, SubmID};
-use actix_web::error;
+use anyhow::{anyhow, Context};
 use judger::{LogMessage, MpscJudger};
 use problem::{
     data::OJData,
@@ -27,6 +27,11 @@ fn update_state_data(
     }
 }
 
+/// # Example
+///
+/// ```rust
+#[doc = include_str!("../../examples/problem_judger.rs")]
+/// ```
 pub struct ProblemJudger {
     base_dir: Handle,
     state: Arc<RwLock<HashMap<SubmID, Result<FullJudgeReport, String>>>>,
@@ -41,25 +46,25 @@ impl ProblemJudger {
     /// create `base_dir` if not exist
     ///
     /// spawn a new thread for job running
-    pub fn new(base_dir: impl AsRef<std::path::Path>) -> Self {
-        std::fs::create_dir_all(base_dir.as_ref()).expect("creating oneoff dir");
+    pub fn new(base_dir: impl AsRef<std::path::Path>) -> Result<Self, std::io::Error> {
+        std::fs::create_dir_all(base_dir.as_ref())?;
 
-        Self {
+        Ok(Self {
             base_dir: Handle::new(base_dir),
             state: Arc::new(RwLock::new(HashMap::new())),
             logs: Default::default(),
             runner: JobRunner::new(),
             channel: crossbeam_channel::unbounded(),
-        }
+        })
     }
     pub fn reciver(&self) -> crossbeam_channel::Receiver<(SubmID, FullJudgeReport)> {
         self.channel.1.clone()
     }
-    pub fn get_logs(&self, sid: &SubmID) -> actix_web::Result<Option<Vec<LogMessage>>> {
+    pub fn get_logs(&self, sid: &SubmID) -> anyhow::Result<Option<Vec<LogMessage>>> {
         Ok(self
             .logs
             .read()
-            .map_err(|e| error::ErrorInternalServerError(e.to_string()))?
+            .map_err(|e| anyhow!("get read lock for logs: {e}"))?
             .get(sid)
             .cloned())
     }
@@ -69,7 +74,7 @@ impl ProblemJudger {
         ojdata: OJData<T, M, S>,
         mut subm: J::Subm,
         // callback: impl FnOnce(Result<FullJudgeReport, String>) -> Result<(), String> + Send + Sync,
-    ) -> actix_web::Result<()>
+    ) -> anyhow::Result<()>
     where
         T: FsStore + Send + Sync + 'static,
         M: FsStore + Clone + Send + Sync + 'static,
@@ -146,51 +151,6 @@ impl ProblemJudger {
             }
             eprintln!("[job] problem test done.");
         };
-        self.runner
-            .add_job(job)
-            .map_err(error::ErrorInternalServerError)
-    }
-    pub fn terminate(self) {
-        self.runner.terminate();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::time::Duration;
-
-    use problem::{
-        prelude::Traditional,
-        sample::{a_plus_b_data, a_plus_b_std},
-        StandardProblem,
-    };
-
-    use super::*;
-    #[test]
-    fn test_lock() {
-        let lock = super::RwLock::new(0);
-        *lock.write().unwrap() = 5;
-        *lock.try_write().unwrap() = 6;
-    }
-
-    #[test]
-    fn test_problem_judger() {
-        let dir = tempfile::TempDir::new().unwrap();
-        let dir_handle = Handle::new(dir.path());
-        let problem_judger = ProblemJudger::new(dir_handle);
-
-        let StandardProblem::Traditional(ojdata) = a_plus_b_data();
-        let subm = a_plus_b_std();
-
-        problem_judger
-            .add_test::<_, _, _, Traditional>(0, ojdata, subm)
-            .unwrap();
-        println!("test added");
-
-        std::thread::sleep(Duration::from_secs(5));
-        dbg!(problem_judger.logs.read().unwrap().get(&0));
-
-        problem_judger.terminate();
-        drop(dir)
+        self.runner.add_job(job).context("add job")
     }
 }

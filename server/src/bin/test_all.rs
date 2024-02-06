@@ -10,7 +10,7 @@ use server::{
         submission::SubmDB,
     },
     dev,
-    manager::{one_off::OneOffManager, problem_judger::ProblemJudger},
+    manager::{OneOffManager, ProblemJudger},
     mkdata, rustls_config,
 };
 
@@ -42,11 +42,11 @@ async fn main() -> std::io::Result<()> {
     let stmt_db = dev::test_stmtdb(&mysqldb, &filesysdb);
 
     let ojdata_db = dev::test_ojdata_db(&filesysdb).await;
-    let oneoff = web::Data::new(OneOffManager::new(dir.path().join("oneoff")));
+    let oneoff = web::Data::new(OneOffManager::new(dir.path().join("oneoff"))?);
     let gravatar = web::Data::new(server::data::gravatar::DefaultDB::new(
         "https://sdn.geekzu.org/avatar/",
     ));
-    let judger = web::Data::new(ProblemJudger::new(dir.path().join("problem_judge")));
+    let judger = web::Data::new(ProblemJudger::new(dir.path().join("problem_judge"))?);
     let subm_db = mkdata!(SubmDB, server::data::submission::Mysql::new(&mysqldb));
 
     // once finish judging, update submission database
