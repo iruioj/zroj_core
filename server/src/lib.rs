@@ -4,7 +4,7 @@ pub mod data;
 pub mod manager;
 pub mod web;
 
-pub mod dev;
+pub mod utils;
 
 use rustls::{ClientConfig, RootCertStore};
 

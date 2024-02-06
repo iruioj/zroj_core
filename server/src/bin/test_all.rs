@@ -7,7 +7,7 @@ use server::{
         mysql::{MysqlConfig, MysqlDb},
         submission::SubmDB,
     },
-    dev,
+    utils,
     manager::{OneOffManager, ProblemJudger},
     mkdata, rustls_config,
     web::{
@@ -19,7 +19,7 @@ use server::{
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // logging setup
-    server::dev::logging_setup(&tracing::Level::INFO, Some("runtime.log".into()));
+    server::utils::logging_setup(&tracing::Level::INFO, Some("runtime.log".into()));
 
     // fs store setup
     let dir = tempfile::tempdir().unwrap();
@@ -38,12 +38,12 @@ async fn main() -> std::io::Result<()> {
     let mysqldb = MysqlDb::new(&sql_cfg);
     let filesysdb = FileSysDb::new(dir.path());
 
-    let user_db = dev::test_userdb(&mysqldb);
+    let user_db = utils::test_userdb(&mysqldb);
     tracing::info!("user_db initialized");
 
-    let stmt_db = dev::test_stmtdb(&mysqldb, &filesysdb);
+    let stmt_db = utils::test_stmtdb(&mysqldb, &filesysdb);
 
-    let ojdata_db = dev::test_ojdata_db(&filesysdb).await;
+    let ojdata_db = utils::test_ojdata_db(&filesysdb).await;
     let oneoff = web::Data::new(OneOffManager::new(dir.path().join("oneoff"))?);
     let gravatar = web::Data::new(server::data::gravatar::DefaultDB::new(
         "https://sdn.geekzu.org/avatar/",
@@ -75,7 +75,7 @@ async fn main() -> std::io::Result<()> {
             })?;
     }
 
-    let revproxy = web::Data::new(dev::frontend_rev_proxy(3456));
+    let revproxy = web::Data::new(utils::frontend_rev_proxy(3456));
 
     let addr = "localhost:8080";
     tracing::info!("server listen at http://{addr}");
@@ -86,7 +86,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         let gclient = web::Data::new(GravatarClient::new(tlscfg.clone()));
 
-        dev::dev_server(revproxy.clone()).service(
+        utils::dev_server(revproxy.clone()).service(
             web::scope("/api")
                 .service(services::auth::service(
                     auth_storage.clone(),
