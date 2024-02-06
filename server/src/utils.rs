@@ -23,8 +23,8 @@ use problem::sample::{a_plus_b_data, a_plus_b_statment};
 use tracing_actix_web::TracingLogger;
 
 /// 将非 `/api` 开头的请求转发到 localhost:3000
-pub fn frontend_rev_proxy(port: u16) -> RevProxy {
-    RevProxy::create(format!("http://localhost:{port}")).path_trans(|s| {
+pub fn frontend_rev_proxy(base_url: String) -> RevProxy {
+    RevProxy::create(base_url).path_trans(|s| {
         if s.starts_with("/api") {
             None
         } else {
@@ -97,7 +97,7 @@ pub fn test_stmtdb(
 }
 
 pub fn test_ojdata_db(filesysdb: &FileSysDb) -> web::Data<OJDataDB> {
-    let db = mkdata!(OJDataDB, problem_ojdata::DefaultDB::new(filesysdb).unwrap());
+    let db = mkdata!(OJDataDB, problem_ojdata::DefaultDB::new(filesysdb));
 
     db.insert(1, a_plus_b_data())
         .expect("fail to insert A + B Problem data");

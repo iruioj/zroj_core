@@ -24,7 +24,7 @@ pub struct MysqlConfig {
     pub dbname: String,
 }
 
-/// A `MysqlDb` is simply a connection pool
+/// (Clonable) A `MysqlDb` is simply a connection pool
 #[derive(Clone)]
 pub struct MysqlDb(MysqlPool);
 
@@ -82,7 +82,7 @@ impl MysqlDb {
     {
         self.0.get()?.transaction(f)
     }
-    /// Insert a record into a database.
+    /// Insert or update a record into a database.
     /// Make sure `R` derives [`diesel::Insertable`].
     pub fn migrate_replace<T, R>(&mut self, table: T, rcd: R) -> Result<(), DataError>
     where
@@ -146,7 +146,7 @@ use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./src/data/mysql/db_setup");
 
 /// create a SQL connection according to config (often for debugging)
-pub fn establish_conn(cfg: MysqlConfig) -> diesel::MysqlConnection {
+pub fn establish_conn(cfg: &MysqlConfig) -> diesel::MysqlConnection {
     let MysqlConfig {
         user,
         password,
@@ -160,7 +160,7 @@ pub fn establish_conn(cfg: MysqlConfig) -> diesel::MysqlConnection {
     .expect("establish connection")
 }
 
-pub fn run_migrations(cfg: MysqlConfig) -> anyhow::Result<()> {
+pub fn run_migrations(cfg: &MysqlConfig) -> anyhow::Result<()> {
     let mut conn = establish_conn(cfg);
     conn.run_pending_migrations(MIGRATIONS)
         .map_err(|e| anyhow::Error::msg(e.to_string()))?;

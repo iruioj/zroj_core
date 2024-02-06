@@ -6,7 +6,7 @@ use store::{FsStore, Handle};
 
 use super::error::DataError;
 
-/// A File System database is simply a [`Handle`] of its root directory.
+/// (Clonable) A File System database is simply a [`Handle`] of its root directory.
 #[derive(Clone)]
 pub struct FileSysDb(Handle);
 

@@ -57,6 +57,8 @@ pub struct ProblemMeta {
     pub tags: String,
 }
 
+pub type StmtDB = Mysql;
+
 pub struct Mysql(MysqlDb, FileSysDb);
 
 impl Mysql {

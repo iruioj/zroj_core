@@ -12,8 +12,8 @@ pub type OJDataDB = DefaultDB;
 
 pub struct DefaultDB(FileSysDb);
 impl DefaultDB {
-    pub fn new(filesysdb: &FileSysDb) -> Result<Self, DataError> {
-        Ok(Self(filesysdb.clone()))
+    pub fn new(filesysdb: &FileSysDb) -> Self {
+        Self(filesysdb.clone())
     }
 }
 impl DefaultDB {
