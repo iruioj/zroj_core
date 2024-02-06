@@ -12,9 +12,6 @@ use diesel::{self, prelude::*, Insertable};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 
-pub type Mysql = DbManager;
-pub type UserDB = dyn Manager + Sync + Send;
-
 #[derive(Serialize, TsType)]
 pub struct UserDisplayInfo {
     id: u32,
@@ -93,20 +90,6 @@ impl crate::Override<User> for UserUpdateInfo {
     }
 }
 
-// Result<Option<...>> pattern: Err 表示出错， None 表示未查到，Some 表示查到的值
-// #[async_trait(?Send)]
-pub trait Manager {
-    fn query_by_username(&self, username: &Username) -> Result<User, DataError>;
-    fn query_by_userid(&self, uid: UserID) -> Result<User, DataError>;
-    fn new_user(
-        &self,
-        username: &Username,
-        password_hash: &str,
-        email: &EmailAddress,
-    ) -> Result<UserID, DataError>;
-    fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError>;
-}
-
 #[derive(Debug, Insertable)]
 #[diesel(table_name = users)]
 pub struct NewUser<'a> {
@@ -118,27 +101,30 @@ pub struct NewUser<'a> {
     name: &'a str,
     motto: &'a str,
 }
-pub struct DbManager(MysqlDb);
+
+pub type UserDB = Mysql;
+
+pub struct Mysql(MysqlDb);
 
 /// 数据库存储
-impl DbManager {
+impl Mysql {
     pub fn new(db: &MysqlDb) -> Self {
         Self(db.clone())
     }
 }
-impl Manager for DbManager {
-    fn query_by_username(&self, username: &Username) -> Result<User, DataError> {
+impl Mysql {
+    pub fn query_by_username(&self, username: &Username) -> Result<User, DataError> {
         self.0.transaction(|conn| {
             Ok(users::table
                 .filter(users::username.eq(username))
                 .first(conn)?)
         })
     }
-    fn query_by_userid(&self, uid: UserID) -> Result<User, DataError> {
+    pub fn query_by_userid(&self, uid: UserID) -> Result<User, DataError> {
         self.0
             .transaction(|conn| Ok(users::table.filter(users::id.eq(uid)).first(conn)?))
     }
-    fn new_user(
+    pub fn new_user(
         &self,
         username: &Username,
         password_hash: &str,
@@ -161,7 +147,7 @@ impl Manager for DbManager {
             Ok(id as UserID)
         })
     }
-    fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError> {
+    pub fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError> {
         self.0.transaction(|conn| {
             let mut user = users::table.filter(users::id.eq(uid)).first(conn)?;
             info.over(&mut user);

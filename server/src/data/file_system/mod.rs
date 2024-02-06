@@ -11,11 +11,13 @@ use super::error::DataError;
 pub struct FileSysDb(Handle);
 
 impl FileSysDb {
-    pub fn new(path: impl AsRef<std::path::Path>) -> Self {
-        Self(Handle::new(path))
+    pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self, std::io::Error> {
+        std::fs::create_dir_all(path.as_ref())?;
+
+        Ok(Self(Handle::new(path)))
     }
     /// remove original directory and create a new one
-    pub fn setup_new(path: impl AsRef<std::path::Path>) -> Result<Self, DataError> {
+    pub fn setup_new(path: impl AsRef<std::path::Path>) -> Result<Self, std::io::Error> {
         if path.as_ref().exists() {
             std::fs::remove_dir_all(path.as_ref())?;
         }

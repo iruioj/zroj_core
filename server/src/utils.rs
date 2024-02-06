@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use crate::data::{
+    self,
     file_system::FileSysDb,
     mysql::MysqlDb,
     problem_ojdata::{self, OJDataDB},
@@ -15,7 +16,8 @@ use crate::web::rev_proxy::RevProxy;
 use actix_http::body::MessageBody;
 use actix_web::{
     dev::{ServiceFactory, ServiceRequest, ServiceResponse},
-    web, App,
+    web::{self, Data},
+    App,
 };
 use problem::sample::{a_plus_b_data, a_plus_b_statment};
 use tracing_actix_web::TracingLogger;
@@ -55,8 +57,8 @@ pub fn dev_server(
 /// 存储在文件中的用户数据库
 ///
 /// 预先插入用户名 `testtest`，密码 `testtest` 的用户
-pub fn test_userdb(mysqldb: &MysqlDb) -> web::Data<dyn user::Manager + Send + Sync> {
-    let db = user::Mysql::new(mysqldb);
+pub fn test_userdb(mysqldb: &MysqlDb) -> Data<data::user::UserDB> {
+    let db = user::UserDB::new(mysqldb);
     let r = mkdata!(crate::data::user::UserDB, db);
     // 预先插入一个用户方便测试
     if r.query_by_username(&Username::new("testtest").unwrap())
@@ -94,7 +96,7 @@ pub fn test_stmtdb(
     web::Data::new(stmt_db)
 }
 
-pub async fn test_ojdata_db(filesysdb: &FileSysDb) -> web::Data<OJDataDB> {
+pub fn test_ojdata_db(filesysdb: &FileSysDb) -> web::Data<OJDataDB> {
     let db = mkdata!(OJDataDB, problem_ojdata::DefaultDB::new(filesysdb).unwrap());
 
     db.insert(1, a_plus_b_data())
@@ -141,4 +143,26 @@ pub fn logging_setup(max_level: &'static tracing::Level, log_file: Option<String
         .with(file_log)
         .with(terminal_log)
         .init();
+}
+
+use rustls::{ClientConfig, RootCertStore};
+
+/// Create simple rustls client config from root certificates.
+pub fn rustls_config() -> ClientConfig {
+    let mut root_store = RootCertStore::empty();
+    root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+
+    ClientConfig::builder()
+        .with_root_certificates(root_store)
+        .with_no_client_auth()
+}
+
+/// Convenient shortcut for [`actix_web::web::block`], which executes blocking
+/// function on a thread pool, returns future that resolves to result
+/// of the function execution.
+#[macro_export]
+macro_rules! block_it {
+    {$( $line:stmt );*} => {
+        actix_web::web::block(move || { $( $line );* }).await?
+    };
 }

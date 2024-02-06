@@ -30,7 +30,7 @@ pub struct MysqlDb(MysqlPool);
 
 /// 数据库存储
 impl MysqlDb {
-    pub fn new(cfg: &MysqlConfig) -> Self {
+    pub fn new(cfg: &MysqlConfig) -> Result<Self, r2d2::Error> {
         let MysqlConfig {
             user,
             password,
@@ -39,19 +39,18 @@ impl MysqlDb {
             dbname,
         } = cfg;
         let url = format!("mysql://{user}:{password}@{host}:{port}/{dbname}");
-        Self(
+        Ok(Self(
             Pool::builder()
                 .max_size(15)
-                .build(ConnectionManager::<MysqlConnection>::new(url))
-                .expect("fail to establish database connection pool"),
-        )
+                .build(ConnectionManager::<MysqlConnection>::new(url))?,
+        ))
     }
     /// remove original tables and create new ones
     pub fn setup_new(cfg: &MysqlConfig) -> Result<Self, DataError> {
         setup_database(cfg, SetupDatabaseFlag::ForceNew)?;
         tracing::debug!(?cfg, "create database");
 
-        let r = Self::new(cfg);
+        let r = Self::new(cfg)?;
         // r.transaction(|conn| {
         //     todo!();
         //     // for cmd in include_str!("./drop_tables.sql").split(";").map(str::trim) {

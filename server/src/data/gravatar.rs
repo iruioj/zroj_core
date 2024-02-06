@@ -69,7 +69,7 @@ mod tests {
     async fn test_it() {
         // let db = DefaultDB::new("https://cn.gravatar.com/avatar/".into());
         let db = DefaultDB::new("https://sdn.geekzu.org/avatar/");
-        let gclient = Arc::new(GravatarClient::new(Arc::new(crate::rustls_config())));
+        let gclient = Arc::new(GravatarClient::new(Arc::new(crate::utils::rustls_config())));
         let _ = dbg!(
             db.fetch(gclient, &EmailAddress::new("jy.cat@qq.com").unwrap())
                 .await

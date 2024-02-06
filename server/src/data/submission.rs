@@ -63,28 +63,7 @@ struct NewSubmissionDetail {
     raw: SubmRaw,
 }
 
-pub type SubmDB = dyn Manager + Sync + Send;
-
-pub trait Manager {
-    fn insert_new(
-        &self,
-        uid: UserID,
-        pid: ProblemID,
-        lang: Option<judger::FileType>,
-        raw: &SubmRaw,
-    ) -> Result<SubmID, DataError>;
-    fn get_info(&self, sid: &SubmID) -> Result<SubmInfo, DataError>;
-    fn update(&self, sid: &SubmID, report: FullJudgeReport) -> Result<(), DataError>;
-    /// get submission meta list
-    fn get_metas(
-        &self,
-        max_count: u8,
-        offset: usize,
-        pid: Option<ProblemID>,
-        uid: Option<UserID>,
-        lang: Option<judger::FileType>,
-    ) -> Result<Vec<SubmMeta>, DataError>;
-}
+pub type SubmDB = Mysql;
 
 pub struct Mysql(MysqlDb);
 
@@ -94,8 +73,8 @@ impl Mysql {
     }
 }
 
-impl Manager for Mysql {
-    fn insert_new(
+impl Mysql {
+    pub fn insert_new(
         &self,
         uid: UserID,
         pid: ProblemID,
@@ -123,7 +102,7 @@ impl Manager for Mysql {
         })
     }
 
-    fn get_info(&self, sid: &SubmID) -> Result<SubmInfo, DataError> {
+    pub fn get_info(&self, sid: &SubmID) -> Result<SubmInfo, DataError> {
         self.0.transaction(|conn| {
             let meta: SubmissionMeta = submission_metas::table
                 .filter(submission_metas::id.eq(*sid))
@@ -145,7 +124,7 @@ impl Manager for Mysql {
         })
     }
 
-    fn update(&self, sid: &SubmID, report: FullJudgeReport) -> Result<(), DataError> {
+    pub fn update(&self, sid: &SubmID, report: FullJudgeReport) -> Result<(), DataError> {
         let memory = CastMemory(report.max_memory());
         let time = CastElapse(report.max_time());
         let status = report.status().map(JsonStr);
@@ -166,7 +145,7 @@ impl Manager for Mysql {
         })
     }
 
-    fn get_metas(
+    pub fn get_metas(
         &self,
         max_count: u8,
         offset: usize,

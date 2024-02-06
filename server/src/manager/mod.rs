@@ -1,5 +1,5 @@
 //! Problem judger and job runner.
-//! 
+//!
 //! View the detailed page of each structure for examples.
 
 mod job_runner;

@@ -2,11 +2,10 @@
 
 pub mod data;
 pub mod manager;
-pub mod web;
-
+mod server_app;
 pub mod utils;
-
-use rustls::{ClientConfig, RootCertStore};
+pub mod web;
+pub use server_app::{test_server_app_cfg, ServerApp, ServerAppConfig};
 
 // pub mod config;
 pub type GroupID = u32;
@@ -39,16 +38,6 @@ pub(crate) mod marker {
     pub type FormData<T> = actix_multipart::form::MultipartForm<T>;
 }
 
-/// Convenient shortcut for [`actix_web::web::block`], which executes blocking
-/// function on a thread pool, returns future that resolves to result
-/// of the function execution.
-#[macro_export]
-macro_rules! block_it {
-    {$( $line:stmt );*} => {
-        actix_web::web::block(move || { $( $line );* }).await?
-    };
-}
-
 /// The returning value of api document metadata generator.
 #[derive(Debug)]
 pub struct ApiDocMeta {
@@ -66,14 +55,4 @@ pub struct ApiDocMeta {
 pub struct ServiceDoc {
     pub path: String,
     pub apis: Vec<ApiDocMeta>,
-}
-
-/// Create simple rustls client config from root certificates.
-pub fn rustls_config() -> ClientConfig {
-    let mut root_store = RootCertStore::empty();
-    root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-
-    ClientConfig::builder()
-        .with_root_certificates(root_store)
-        .with_no_client_auth()
 }
