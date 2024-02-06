@@ -145,9 +145,7 @@ async fn judge(
     subm_db: ServerData<SubmDB>,
     ojdata_db: ServerData<OJDataDB>,
 ) -> JsonResult<JudgeReturn> {
-    let Some(uid) = auth.user_id() else {
-        return Err(error::ErrorUnauthorized("no user info"));
-    };
+    let uid = auth.user_id_or_unauthorized()?;
     tracing::info!("run judge handler");
 
     let payload = payload.into_inner();

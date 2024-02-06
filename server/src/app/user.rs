@@ -29,9 +29,7 @@ async fn profile(
 
 #[api(method = get, path = "/edit")]
 async fn edit_get(auth: Authentication, user_db: ServerData<UserDB>) -> JsonResult<UserEditInfo> {
-    let Some(uid) = auth.user_id() else {
-        return Err(error::ErrorUnauthorized("no user info"));
-    };
+    let uid = auth.user_id_or_unauthorized()?;
     let result = block_it!(user_db.query_by_userid(uid))?;
     Ok(Json(UserEditInfo::from(result)))
 }
@@ -42,9 +40,7 @@ async fn edit_post(
     info: JsonBody<UserUpdateInfo>,
     user_db: ServerData<UserDB>,
 ) -> actix_web::Result<String> {
-    let Some(uid) = auth.user_id() else {
-        return Err(error::ErrorUnauthorized("no user info"));
-    };
+    let uid = auth.user_id_or_unauthorized()?;
     block_it!(user_db.update(uid, info.into_inner()))?;
     Ok("ok".to_string())
 }

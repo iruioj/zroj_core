@@ -35,6 +35,10 @@ impl Authentication {
     pub fn user_id(&self) -> Option<UserID> {
         self.0.as_ref().map(|c| c.1.uid)
     }
+    pub fn user_id_or_unauthorized(&self) -> Result<UserID, actix_web::Error> {
+        self.user_id()
+            .ok_or(actix_web::error::ErrorUnauthorized("user_id not found"))
+    }
 }
 
 impl FromRequest for Authentication {

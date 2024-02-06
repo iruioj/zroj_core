@@ -29,9 +29,7 @@ async fn custom_test_post(
     oneoff: ServerData<OneOffManager>,
     auth: Authentication,
 ) -> AnyResult<String> {
-    let Some(uid) = auth.user_id() else {
-        return Err(ErrorUnauthorized("no user info"));
-    };
+    let uid = auth.user_id_or_unauthorized()?;
     let Some((_, source)) = parse_named_file(&payload.source) else {
         return Err(ErrorBadRequest("invalid payload file"));
     };
@@ -57,9 +55,7 @@ async fn custom_test_get(
     oneoff: ServerData<OneOffManager>,
     auth: Authentication,
 ) -> JsonResult<CustomTestResult> {
-    let Some(uid) = auth.user_id() else {
-        return Err(ErrorUnauthorized("no user info"));
-    };
+    let uid = auth.user_id_or_unauthorized()?;
     Ok(Json(CustomTestResult {
         result: oneoff.get_result(&uid)?,
     }))

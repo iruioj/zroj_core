@@ -123,11 +123,11 @@ pub fn logging_setup(max_level: &'static tracing::Level, log_file: Option<String
     let file_log = log_file
         .and_then(|log_file| std::fs::File::create(log_file).ok())
         .map(|file| {
-            let file = Arc::new(std::sync::Mutex::new(Arc::new(file)));
+            let file = std::sync::Mutex::new(Arc::new(file));
             tracing_subscriber::fmt::layer()
                 .json()
                 .with_thread_names(true)
-                .with_writer(move || file.clone().lock().unwrap().clone())
+                .with_writer(move || file.lock().unwrap().clone())
                 .with_filter(filter::filter_fn(|meta| {
                     // the smaller, the more prior
                     meta.level() <= max_level &&

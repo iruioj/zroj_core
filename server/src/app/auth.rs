@@ -89,14 +89,12 @@ struct AuthInfoRes {
 /// 查看当前的鉴权信息，用于菜单栏显示
 #[api(method = get, path = "/info")]
 async fn inspect(user_db: ServerData<UserDB>, auth: Authentication) -> JsonResult<AuthInfoRes> {
-    if let Some(id) = auth.user_id() {
-        let user = block_it!(user_db.query_by_userid(id))?;
-        return Ok(web::Json(AuthInfoRes {
-            username: user.username,
-            email: user.email,
-        }));
-    }
-    Err(error::ErrorBadRequest("invalid identity"))
+    let id = auth.user_id_or_unauthorized()?;
+    let user = block_it!(user_db.query_by_userid(id))?;
+    Ok(web::Json(AuthInfoRes {
+        username: user.username,
+        email: user.email,
+    }))
 }
 
 #[api(method = post, path = "/logout")]
