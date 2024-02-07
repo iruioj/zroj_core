@@ -85,7 +85,7 @@ impl MysqlDb {
     }
     /// Insert or update a record into a database.
     /// Make sure `R` derives [`diesel::Insertable`].
-    pub fn migrate_replace<T, R>(&mut self, table: T, rcd: R) -> Result<(), DataError>
+    pub fn upsert<T, R>(&self, table: T, rcd: R) -> Result<(), DataError>
     where
         T: diesel::Table + diesel::query_builder::QueryId + 'static,
         <T as diesel::QuerySource>::FromClause:

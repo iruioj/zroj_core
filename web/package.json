@@ -28,7 +28,7 @@
     "katex": "^0.16.8",
     "nuxt": "^3.7.3",
     "nuxt-icons": "^3.2.1",
-    "passwd": "link:../passwd/pkg",
+    "passwd": "link:../crates/passwd/pkg",
     "pinia": "^2.1.6",
     "postcss-custom-properties": "^13.3.0",
     "prettier": "^3.0.3",

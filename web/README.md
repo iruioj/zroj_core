@@ -12,7 +12,7 @@ wasm-pack 0.12.1
 
 # 本地开发
 
-首先使用 wasm-pack 在 `<ProjectRoot>/passwd` 目录构建 passwd 包，如果卡住，可以进行终端代理：
+首先使用 wasm-pack 在 `<ProjectRoot>/crates/passwd` 目录构建 passwd 包，如果卡住，可以进行终端代理：
 
 ```bash
 wasm-pack build --features wasm

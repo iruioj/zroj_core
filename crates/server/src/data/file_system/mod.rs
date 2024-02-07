@@ -16,14 +16,13 @@ impl FileSysDb {
 
         Ok(Self(Handle::new(path)))
     }
-    /// remove original directory and create a new one
-    pub fn setup_new(path: impl AsRef<std::path::Path>) -> Result<Self, std::io::Error> {
+    /// remove original directory and create a new empty one
+    pub fn setup_new(path: impl AsRef<std::path::Path>) -> Result<(), std::io::Error> {
         if path.as_ref().exists() {
             std::fs::remove_dir_all(path.as_ref())?;
         }
         std::fs::create_dir_all(path.as_ref())?;
-
-        Ok(Self(Handle::new(path)))
+        Ok(())
     }
 
     pub fn transaction<T, F>(&self, f: F) -> Result<T, DataError>

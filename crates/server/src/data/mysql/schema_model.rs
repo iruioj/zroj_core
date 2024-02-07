@@ -6,7 +6,7 @@ use crate::{ProblemID, SubmID, UserID};
 use diesel::*;
 use problem::render_data::{statement::StmtMeta, Mdast};
 
-#[derive(Debug, Identifiable, Clone, Queryable, AsChangeset)]
+#[derive(Debug, Identifiable, Clone, Queryable, AsChangeset, Selectable, Insertable)]
 #[diesel(table_name = users)]
 pub struct User {
     /// 用户 id

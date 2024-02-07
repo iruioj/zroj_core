@@ -15,10 +15,34 @@ diesel print-schema > server/src/data/mysql/schema.rs
 
 ## Testing
 
+First init database and generate data for testing:
+
 ```bash
-# clear database
-diesel migration redo -n 5
+cargo run --bin gen_testdata
 ```
+
+Then start the dev server:
+
+```bash
+cargo run --bin test_all -- nocapture
+```
+
+CD into `crates/passwd` and run
+
+```bash
+wasm-pack build --features wasm
+```
+
+to build the `passwd` WASM package for front end.
+
+CD into `web` and run
+
+```bash
+pnpm i
+pnpm dev
+```
+
+to start the frondend dev server.
 
 ## Formatting and Linting
 

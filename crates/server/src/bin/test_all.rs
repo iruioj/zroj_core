@@ -1,4 +1,6 @@
-//! 约定：放在这里测试的服务也需要写在 gen_docs 里面
+//! Launch a server application for test/development.
+//! 
+//! You may run `pnpm dev` at `web` to start the frontend dev server.
 
 #[actix_web::main]
 

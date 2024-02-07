@@ -118,6 +118,10 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         .context("force reset mysql database")?;
         data::mysql::run_migrations(&self.config.sql_config)
     }
+    pub fn reset_filesys_database(&self) -> anyhow::Result<()> {
+        FileSysDb::setup_new(&self.config.fs_data_root)?;
+        Ok(())
+    }
     /// Prepare runtime data, but not start the http server
     pub fn prepare_data(&mut self) -> anyhow::Result<()> {
         let mysqldb = MysqlDb::new(&self.config.sql_config)?;
