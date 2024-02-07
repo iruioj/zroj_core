@@ -8,7 +8,7 @@ import Root from "./Root.vue";
 import Text from "./Text.vue";
 import TwoColumns from "./TwoColumns.vue";
 import Strong from "./Strong.vue";
-import { Node } from "@/composables/api";
+import type { Node } from "@/composables/api";
 
 defineProps<{
   data: Node;

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import Node from "./Node.vue";
-import { NodeStrong } from "@/composables/api";
+import type { NodeStrong } from "@/composables/api";
 
 defineProps<{
   data: NodeStrong;

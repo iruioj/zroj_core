@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ProblemStatementGetReturn } from "@/composables/api";
+import type { ProblemStatementGetReturn } from "@/composables/api";
 
 defineProps<{
   data: ProblemStatementGetReturn | null;

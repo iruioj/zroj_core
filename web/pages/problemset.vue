@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ProbMetasQuery } from "~/composables/api";
+import type { ProbMetasQuery } from "@/composables/api";
 
 const route = useRoute();
 const router = useRouter();

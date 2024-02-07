@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { NodeTwoColumns } from "composables/api";
+import type { NodeTwoColumns } from "@/composables/api";
 import Node from "./Node.vue";
 import Code from "./Code.vue";
 

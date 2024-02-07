@@ -5,7 +5,9 @@ import topLevelAwait from "vite-plugin-top-level-await";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  modules: ["@nuxtjs/tailwindcss", "nuxt-icons", "@pinia/nuxt"],
+  modules: ["nuxt-icons", "@pinia/nuxt"],
+
+  css: ['~/assets/main.css'],
 
   runtimeConfig: {
     // The private keys which are only available server-side
@@ -20,6 +22,14 @@ export default defineNuxtConfig({
 
   devServer: {
     port: 3456,
+    host: "127.0.0.1",
+  },
+
+  postcss: {
+    plugins: {
+      tailwindcss: {},
+      autoprefixer: {},
+    },
   },
 
   vite: {

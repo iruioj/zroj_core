@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { NodeText } from "composables/api";
+import type { NodeText } from "@/composables/api";
 
 defineProps<{
   data: NodeText;

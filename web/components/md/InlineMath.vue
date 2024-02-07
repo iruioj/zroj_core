@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import "katex/dist/katex.min.css";
 import katex from "katex";
-import { NodeInlineMath } from "composables/api";
+import type { NodeInlineMath } from "@/composables/api";
 
 defineProps<{
   data: NodeInlineMath;

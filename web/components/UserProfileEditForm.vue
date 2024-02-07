@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UserEditGetReturn } from "composables/api";
+import type { UserEditGetReturn } from "@/composables/api";
 
 const { error } = useMsgStore();
 const props = defineProps<{

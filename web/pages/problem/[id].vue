@@ -6,7 +6,7 @@ const { data } = await useAPI().problem.statement.get.use({ id: id.value });
 watch(data, (val) => {
   if (val) {
     useHead({
-      title: val.meta.title,
+      title: val.title,
     });
   }
 });
@@ -16,7 +16,7 @@ watch(data, (val) => {
   <PageContainer>
     <div v-if="data" class="mt-8 mb-4 flex">
       <div class="grow text-2xl text-brand">
-        #{{ id }} {{ data.meta.title }}
+        #{{ id }} {{ data.title }}
       </div>
       <RouterTabsBar
         class="print:hidden"

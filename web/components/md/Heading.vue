@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import Node from "./Node.vue";
-import { NodeHeading } from "@/composables/api";
+import type { NodeHeading } from "@/composables/api";
 
 defineProps<{
   data: NodeHeading;

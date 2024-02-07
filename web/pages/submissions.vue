@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SubmMetasQuery, FileType } from "~/composables/api";
+import type { SubmMetasQuery, FileType } from "@/composables/api";
 
 const route = useRoute();
 // computed from url query, thus not reactive

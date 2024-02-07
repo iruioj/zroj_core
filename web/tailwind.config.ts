@@ -1,8 +1,17 @@
 import color from "tailwindcss/colors";
-import { Config } from "tailwindcss";
+import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 
 const config: Partial<Config> = {
+  darkMode: 'class',
+  content: [
+    "./components/**/*.{js,vue,ts}",
+    "./layouts/**/*.vue",
+    "./pages/**/*.vue",
+    "./plugins/**/*.{js,ts}",
+    "./nuxt.config.{js,ts}",
+    "./app.vue",
+  ],
   theme: {
     screens: {
       sm: "480px",
