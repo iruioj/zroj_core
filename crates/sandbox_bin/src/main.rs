@@ -3,54 +3,26 @@ use std::{ffi::CString, os::unix::ffi::OsStrExt, path::PathBuf, str::FromStr};
 use anyhow::Context;
 use clap::{error::ErrorKind, CommandFactory, Parser};
 use sandbox::{unix::Limitation, ExecSandBox};
-use shadow_rs::shadow;
-
-shadow!(build);
-
-pub fn print_build() {
-    // println!("version:{}", build::VERSION);
-    println!("version:{}", build::CLAP_LONG_VERSION);
-    // println!("pkg_version:{}", build::PKG_VERSION);
-    // println!("pkg_version_major:{}", build::PKG_VERSION_MAJOR);
-    // println!("pkg_version_minor:{}", build::PKG_VERSION_MINOR);
-    // println!("pkg_version_patch:{}", build::PKG_VERSION_PATCH);
-    // println!("pkg_version_pre:{}", build::PKG_VERSION_PRE);
-
-    // println!("tag:{}", build::TAG);
-    // println!("branch:{}", build::BRANCH);
-    // println!("commit_id:{}", build::COMMIT_HASH);
-    // println!("short_commit:{}", build::SHORT_COMMIT);
-    // println!("commit_date:{}", build::COMMIT_DATE);
-    // println!("commit_date_2822:{}", build::COMMIT_DATE_2822);
-    // println!("commit_date_3339:{}", build::COMMIT_DATE_3339);
-    // println!("commit_author:{}", build::COMMIT_AUTHOR);
-    // println!("commit_email:{}", build::COMMIT_EMAIL);
-
-    // println!("build_os:{}", build::BUILD_OS);
-    // println!("rust_version:{}", build::RUST_VERSION);
-    // println!("rust_channel:{}", build::RUST_CHANNEL);
-    // println!("cargo_version:{}", build::CARGO_VERSION);
-    // println!("cargo_tree:{}", build::CARGO_TREE);
-
-    // println!("project_name:{}", build::PROJECT_NAME);
-    // println!("build_time:{}", build::BUILD_TIME);
-    // println!("build_time_2822:{}", build::BUILD_TIME_2822);
-    // println!("build_time:{}", build::BUILD_TIME_3339);
-    // println!("build_rust_channel:{}", build::BUILD_RUST_CHANNEL);
-}
 
 /// ZROJ sandbox
 #[derive(Parser)]
-#[command(name = "zroj-sandbox", author, disable_version_flag = true, about, long_about = None)]
+#[command(
+    name = "zroj-sandbox", 
+    author,
+    disable_version_flag = true, 
+    about,
+    long_about = None, 
+    styles = sandbox_bin::get_styles(),
+)]
 struct Cli {
-    /// executable path
+    /// path of the executable
     exec: Option<PathBuf>,
 
-    /// arguments
+    /// arguments passed to the executable
     args: Vec<String>,
 
-    /// specify full arguments. i. e. the first argument denotes the name of executable
-    /// if unset, the name will be set to the path of executable
+    /// If set, the first argument denotes the name of executable.
+    /// Otherwise `exec` is inserted at the begining of the argument list.
     #[arg(long)]
     full_args: bool,
 
@@ -91,7 +63,7 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     if cli.version {
-        print_build();
+        sandbox_bin::print_build();
         return Ok(());
     }
     let mut cmd = Cli::command();
