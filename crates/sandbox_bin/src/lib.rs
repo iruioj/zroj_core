@@ -45,9 +45,17 @@ pub fn print_build() {
         .bold()
         .fg_color(Some(Color::Ansi(AnsiColor::BrightGreen)));
     println!("{label}version{label:#}: {}", build::PKG_VERSION);
-    println!("{label}commit{label:#}: {}, {}", build::SHORT_COMMIT, build::BRANCH);
+    println!(
+        "{label}commit{label:#}: {}, {}",
+        build::SHORT_COMMIT,
+        build::BRANCH
+    );
     println!("{label}build_os{label:#}: {}", build::BUILD_OS);
     println!("{label}rust_version{label:#}: {}", build::RUST_VERSION);
-    println!("{label}build_channel{label:#}: {}, {}", build::RUST_CHANNEL, build::BUILD_RUST_CHANNEL);
+    println!(
+        "{label}build_channel{label:#}: {}, {}",
+        build::RUST_CHANNEL,
+        build::BUILD_RUST_CHANNEL
+    );
     println!("{label}build_time{label:#}: {}", build::BUILD_TIME);
 }

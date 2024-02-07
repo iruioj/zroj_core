@@ -41,6 +41,42 @@ pub struct ServerAppConfig<A: ToSocketAddrs> {
     frontend_base_url: String,
 }
 
+impl<A> ServerAppConfig<A>
+where
+    A: ToSocketAddrs + store::SerdeSerialize,
+    for<'a> A: store::SerdeDeserialize<'a>,
+{
+    /// Try to load config file from path. If not successful,
+    /// use the default one and save it to the path.
+    ///
+    /// ```
+    /// let app_cfg = server::ServerAppConfig::load_or_save_default(
+    ///     "local.server_app_test.json",
+    ///     server::test_server_app_cfg,
+    /// ).unwrap();
+    /// ```
+    pub fn load_or_save_default(
+        path: impl AsRef<std::path::Path>,
+        default: impl FnOnce() -> ServerAppConfig<A>,
+    ) -> anyhow::Result<ServerAppConfig<A>> {
+        let app_cfg = std::fs::File::open(&path)
+            .context("try to open local test config")
+            .and_then(|file| {
+                tracing::info!("find local test config");
+                serde_json::from_reader(file).context("try to deserialize local test config")
+            })
+            .unwrap_or_else(|_| default());
+
+        let cfg_file = std::fs::File::options()
+            .create(true)
+            .write(true)
+            .open(&path)
+            .context("save local test config")?;
+        serde_json::to_writer_pretty(&cfg_file, &app_cfg).context("serialize local test config")?;
+        Ok(app_cfg)
+    }
+}
+
 pub fn test_server_app_cfg() -> ServerAppConfig<String> {
     ServerAppConfig {
         sql_config: MysqlConfig {

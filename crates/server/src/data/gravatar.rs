@@ -40,7 +40,7 @@ impl DefaultDB {
     /// return content of the jpg image
     pub async fn fetch(
         &self,
-        client: Arc<GravatarClient>,
+        client: &GravatarClient,
         email: &EmailAddress,
     ) -> Result<Bytes, DataError> {
         let hash = hash(email);
@@ -69,9 +69,9 @@ mod tests {
     async fn test_it() {
         // let db = DefaultDB::new("https://cn.gravatar.com/avatar/".into());
         let db = DefaultDB::new("https://sdn.geekzu.org/avatar/");
-        let gclient = Arc::new(GravatarClient::new(Arc::new(crate::utils::rustls_config())));
+        let gclient = GravatarClient::new(Arc::new(crate::utils::rustls_config()));
         let _ = dbg!(
-            db.fetch(gclient, &EmailAddress::new("jy.cat@qq.com").unwrap())
+            db.fetch(&gclient, &EmailAddress::new("jy.cat@qq.com").unwrap())
                 .await
         )
         .unwrap();

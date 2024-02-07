@@ -60,7 +60,7 @@ async fn gravatar(
     db: ServerData<GravatarDB>,
 ) -> actix_web::Result<HttpResponse> {
     let img_content = db
-        .fetch(gclient.into_inner(), &info.email)
+        .fetch(gclient.get_ref(), &info.email)
         .await
         .map_err(error::ErrorInternalServerError)?;
     Ok(HttpResponse::build(StatusCode::OK)

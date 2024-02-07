@@ -9,9 +9,9 @@ use sandbox::{unix::Limitation, ExecSandBox};
 #[command(
     name = "zroj-sandbox", 
     author,
-    disable_version_flag = true, 
+    disable_version_flag = true,
     about,
-    long_about = None, 
+    long_about = None,
     styles = sandbox_bin::get_styles(),
 )]
 struct Cli {
