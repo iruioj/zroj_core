@@ -1,4 +1,4 @@
-//! 对 schema 的基础 model，一个数据类型对应一个 table
+//! Define rust types modeling each table schema.
 
 use super::super::types::*;
 use super::schema::*;

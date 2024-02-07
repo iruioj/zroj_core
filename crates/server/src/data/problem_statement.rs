@@ -117,18 +117,24 @@ impl Mysql {
         })
     }
 
+    /// Try to get the file from problem-scope data, if not found, then fallback to
+    /// global static data.
     fn get_assets(&self, id: ProblemID, name: &str) -> Result<NamedFile, DataError> {
         self.1.transaction(|ctx| {
-            let (file, ctx) = problem_staticdata::conn(ctx).query_with_ctx((&id, name))?;
-            Ok(NamedFile::from_file(file, ctx.path()).context("open asset file")?)
+            let (file, ctx) = problem_staticdata::conn(ctx)
+                .query_with_ctx((&id, name))
+                .or_else(|_| global_staticdata::conn(ctx).query_with_ctx(name))?;
+            Ok(NamedFile::from_file(file, ctx.path())
+                .with_context(|| format!("open asset file: {}", ctx.path().display()))?)
         })
     }
 
+    /// Add a new file to the problem-scope static data.
     fn insert_assets(
         &self,
         id: ProblemID,
-        mut file: std::fs::File,
         name: &str,
+        mut file: std::fs::File,
     ) -> Result<(), DataError> {
         self.1
             .transaction(|ctx| problem_staticdata::conn(ctx).replace((&id, name), &mut file))

@@ -1,5 +1,6 @@
 //! sql database backend and its corresponding schemas
 
+/// Automatically generated MySQL table schemas.
 pub mod schema;
 pub mod schema_model;
 // pub use schema::users;
