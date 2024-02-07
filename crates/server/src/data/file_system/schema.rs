@@ -1,12 +1,13 @@
 use crate::ProblemID;
 
-use super::{FileSysTable, SanitizedString};
+use super::{FileSysTable, SanitizeError, SanitizedString};
 use problem::StandardProblem;
 use store::Handle;
 
 macro_rules! def_schema {
-    ($name:ident, $key:ty, $item:ty) => {
+    ($( #[$attrs:meta] )* $name:ident <$life:lifetime>, $key:ty, $item:ty $(,)?) => {
         #[allow(non_camel_case_types)]
+        $( #[$attrs] )*
         pub struct $name(Handle);
 
         impl $name {
@@ -15,7 +16,7 @@ macro_rules! def_schema {
             }
         }
 
-        impl FileSysTable for $name {
+        impl <$life> FileSysTable <$life> for $name {
             type Key = $key;
             type Item = $item;
 
@@ -26,5 +27,24 @@ macro_rules! def_schema {
     };
 }
 
-def_schema!(ojdata, ProblemID, StandardProblem);
-def_schema!(staticdata, SanitizedString, std::fs::File);
+def_schema!(
+    /// OJ problem data
+    ojdata<'t>,
+    &'t ProblemID,
+    StandardProblem,
+);
+
+def_schema!(
+    /// problem static data (e.g. pdf files)
+    problem_staticdata<'t>,
+    (&'t ProblemID, &'t str),
+    std::fs::File,
+);
+
+impl TryFrom<(&ProblemID, &str)> for SanitizedString {
+    type Error = SanitizeError;
+
+    fn try_from((id, s): (&ProblemID, &str)) -> Result<Self, Self::Error> {
+        SanitizedString::new(&format!("{id}/{s}"))
+    }
+}

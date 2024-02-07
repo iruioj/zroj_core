@@ -1,6 +1,6 @@
 use super::{
     error::DataError,
-    file_system::{FileSysDb, FileSysTable, SanitizeError, SanitizedString},
+    file_system::{FileSysDb, FileSysTable},
     mysql::{
         last_insert_id,
         schema::problems,
@@ -9,7 +9,7 @@ use super::{
     },
 };
 use crate::{
-    data::{file_system::schema::staticdata, mysql::schema::problem_statements, types::JsonStr},
+    data::{file_system::schema::*, mysql::schema::problem_statements, types::JsonStr},
     ProblemID,
 };
 use actix_files::NamedFile;
@@ -117,14 +117,9 @@ impl Mysql {
         })
     }
 
-    fn build_key(&self, id: ProblemID, name: &str) -> Result<SanitizedString, SanitizeError> {
-        SanitizedString::new(&format!("problem_statement/{id}/{name}"))
-    }
-
     fn get_assets(&self, id: ProblemID, name: &str) -> Result<NamedFile, DataError> {
-        let key = self.build_key(id, name)?;
         self.1.transaction(|ctx| {
-            let (file, ctx) = staticdata::conn(ctx).query_with_ctx(&key)?;
+            let (file, ctx) = problem_staticdata::conn(ctx).query_with_ctx((&id, name))?;
             Ok(NamedFile::from_file(file, ctx.path()).context("open asset file")?)
         })
     }
@@ -135,9 +130,8 @@ impl Mysql {
         mut file: std::fs::File,
         name: &str,
     ) -> Result<(), DataError> {
-        let key = self.build_key(id, name)?;
         self.1
-            .transaction(|ctx| staticdata::conn(ctx).replace(&key, &mut file))
+            .transaction(|ctx| problem_staticdata::conn(ctx).replace((&id, name), &mut file))
     }
 
     pub fn get_metas(

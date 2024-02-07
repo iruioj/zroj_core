@@ -50,10 +50,14 @@ pub enum SanitizeError {
     InvalidChar(char),
     #[error("string of length {0} too long")]
     LengthExceeded(usize),
+    #[error("path normalization error: {0}")]
+    Canonicalize(std::io::Error),
 }
 
 impl SanitizedString {
     pub fn new(str: &str) -> Result<Self, SanitizeError> {
+        let str = std::fs::canonicalize(str).map_err(SanitizeError::Canonicalize)?;
+        let str = str.to_str().unwrap();
         let err = str
             .chars()
             .find_map(|c| {
@@ -72,6 +76,12 @@ impl SanitizedString {
             Some(e) => Err(e),
             None => Ok(Self(str.to_string())),
         }
+    }
+}
+
+impl std::fmt::Display for SanitizedString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 
@@ -98,38 +108,38 @@ impl From<SanitizeError> for DataError {
 }
 
 /// Each table is a kv store
-pub trait FileSysTable
+pub trait FileSysTable<'t>
 where
-    for<'a> &'a Self::Key: TryInto<SanitizedString, Error = SanitizeError>,
+    Self::Key: TryInto<SanitizedString, Error = SanitizeError>,
 {
-    type Key;
+    type Key: 't;
     type Item: FsStore;
 
     fn ctx(&self) -> &Handle;
 
-    fn ctx_with_key(&self, key: &Self::Key) -> Result<Handle, SanitizeError> {
+    fn ctx_with_key(&self, key: Self::Key) -> Result<Handle, SanitizeError> {
         let key: SanitizedString = key.try_into()?;
         Ok(self.ctx().join(key.0))
     }
 
     /// try to get the data
-    fn query(&self, key: &Self::Key) -> Result<Self::Item, DataError> {
+    fn query(&self, key: Self::Key) -> Result<Self::Item, DataError> {
         let ctx = self.ctx_with_key(key)?;
         Ok(Self::Item::open(&ctx)?)
     }
     /// try to get the data and its path
-    fn query_with_ctx(&self, key: &Self::Key) -> Result<(Self::Item, Handle), DataError> {
+    fn query_with_ctx(&self, key: Self::Key) -> Result<(Self::Item, Handle), DataError> {
         let ctx = self.ctx_with_key(key)?;
         Ok((Self::Item::open(&ctx)?, ctx))
     }
     /// insert or update
-    fn replace(&self, key: &Self::Key, item: &mut Self::Item) -> Result<(), DataError> {
+    fn replace(&self, key: Self::Key, item: &'t mut Self::Item) -> Result<(), DataError> {
         let ctx = self.ctx_with_key(key)?;
         item.safe_save(&ctx)?;
         Ok(())
     }
     /// update if exists
-    fn update(&self, key: &Self::Key, item: &mut Self::Item) -> Result<(), DataError> {
+    fn update(&self, key: Self::Key, item: &'t mut Self::Item) -> Result<(), DataError> {
         let ctx = self.ctx_with_key(key)?;
         if ctx.path().exists() {
             item.safe_save(&ctx)?;
@@ -137,7 +147,7 @@ where
         Ok(())
     }
     /// remove if exists
-    fn remove(&self, key: &Self::Key) -> Result<(), DataError> {
+    fn remove(&self, key: Self::Key) -> Result<(), DataError> {
         let ctx = self.ctx_with_key(key)?;
         if ctx.path().exists() {
             ctx.remove_all()?;
