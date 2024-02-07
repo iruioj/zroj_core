@@ -3,21 +3,7 @@
 # https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 resolver = "2"
 
-members = [
-    "contest",
-    "judger",
-    "passwd",
-    "problem",
-    "sandbox", 
-    "server",
-    "server_derive",
-    "store",
-    "store_derive",
-    "serde_ts_typing",
-    "serde_ts_typing_derive",
-    "md",
-    "cli"
-, "structural_macro_utils"]
+members = ["crates/*"]
 
 [workspace.package]
 authors = ["ZROJ Team"]
