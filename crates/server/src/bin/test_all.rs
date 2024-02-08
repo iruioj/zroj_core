@@ -1,5 +1,5 @@
 //! Launch a server application for test/development.
-//! 
+//!
 //! You may run `pnpm dev` at `web` to start the frontend dev server.
 
 #[actix_web::main]

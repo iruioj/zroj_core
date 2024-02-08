@@ -1,5 +1,4 @@
 use std::io::Write;
-use std::os::unix::ffi::OsStrExt;
 use tempfile::tempdir;
 
 macro_rules! cstring {
@@ -12,6 +11,7 @@ macro_rules! cstring {
 #[cfg(target_os = "linux")]
 fn test_cat_stdio() -> anyhow::Result<()> {
     use std::io::Write;
+    use std::os::unix::ffi::OsStrExt;
 
     use sandbox::{
         unix::{Lim, Limitation, Singleton},

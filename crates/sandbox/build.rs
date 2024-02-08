@@ -20,7 +20,7 @@ fn main() {
             .header("src/unix/sigutils.h")
             // Tell cargo to invalidate the built crate whenever any of the
             // included header files changed.
-            .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+            .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
             // Finish the builder and generate the bindings.
             .generate()
             .expect("Unable to generate sigutils.h bindings")
@@ -31,7 +31,7 @@ fn main() {
             .header("src/unix/share.h")
             // Tell cargo to invalidate the built crate whenever any of the
             // included header files changed.
-            .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+            .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
             // Finish the builder and generate the bindings.
             .generate()
             .expect("Unable to generate share.h bindings")

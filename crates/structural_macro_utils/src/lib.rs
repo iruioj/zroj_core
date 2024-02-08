@@ -93,7 +93,7 @@ mod tests {
         pub(crate) name: &'a mut str,
         #[cfg(unix)]
         pub(super) id: &'b i32,
-        #[cfg_attr(target_os = "macos", deny(lint))]
+        #[cfg_attr(target_os = "windows", deny(lint))]
         pub(in crate::tests) admin: &'c bool,
     }
 

@@ -1,6 +1,5 @@
 #include "share.h"
 #include "sigutils.h"
-#include <asm-generic/errno-base.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/mman.h>
@@ -122,9 +121,9 @@ int wrap_WEXITSTATUS(int status) { return WEXITSTATUS(status); }
 int wrap_WTERMSIG(int status) { return WTERMSIG(status); }
 
 global_shared_t *init_shared() {
-  global_shared_t *global_shared =
-      mmap(NULL, sizeof *global_shared, PROT_READ | PROT_WRITE,
-           MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+  global_shared_t *global_shared = (global_shared_t *)mmap(
+      NULL, sizeof *global_shared, PROT_READ | PROT_WRITE,
+      MAP_SHARED | MAP_ANONYMOUS, -1, 0);
   if (global_shared == MAP_FAILED) {
     sio_error("mmap error");
   }
