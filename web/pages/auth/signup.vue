@@ -25,7 +25,7 @@ const onSubmit = async (e: Event) => {
             username: username.value,
             passwordHash: pwd.register_hash(passwd.value),
           }),
-        }
+        },
       );
       if (res.ok) {
         msg.value = "注册成功，跳转到登陆...";

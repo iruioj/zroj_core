@@ -1,16 +1,39 @@
 import { defineStore } from "pinia";
 
-export const useAuth = () =>
-  useLazyAsyncData("authinfo", async () => {
-    if (process.server) {
-      return;
+// todo: https://github.com/damien-hl/nuxt3-auth-example/blob/main/composables/auth/useAuth.ts
+export const useAuth = defineStore("auth_store", () => {
+  const username = ref<null | string>(null);
+
+  async function refresh() {
+    if (process.client) {
+      const res = await fetch(
+        useRuntimeConfig().public.apiBase + "/auth/info",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          mode: "cors",
+        },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        username.value = data.username;
+      } else if ((await res.text()) === "user not found") {
+        username.value = null;
+      }
     }
-    const res = await fetch(useRuntimeConfig().public.apiBase + "/auth/info");
-    if (res.ok) {
-      return await res.json();
-    }
-    // console.log(res.status, res);
-  });
+  }
+
+  if (process.client) {
+    refresh();
+  }
+
+  return {
+    username,
+    refresh,
+  };
+});
 
 type Message = {
   id: number;
@@ -39,3 +62,5 @@ export const useMsgStore = defineStore("message_list", () => {
 
   return { info, error, list };
 });
+
+export const useSubmExpandID = () => useState("subm_expand_id", () => "");

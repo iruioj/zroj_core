@@ -1,21 +1,22 @@
 <!-- 题目描述页面 -->
 <script setup lang="ts">
-const data = {
-  id: 1,
-  title: "树上 KMP",
-  meta: {
-    timeLimit: 1,
-    memoryLimit: 2147483648,
-    io: "standard",
-  },
-};
+const id = computed(() => parseInt(useRoute().params.id as string));
+const { data } = await useAPI().problem.statement.get.use({ id: id.value });
+
+watch(data, (val) => {
+  if (val) {
+    useHead({
+      title: val.title,
+    });
+  }
+});
 </script>
 
 <template>
   <PageContainer>
-    <div class="mt-8 mb-4 flex">
+    <div v-if="data" class="mt-8 mb-4 flex">
       <div class="grow text-2xl text-brand">
-        #{{ data.id }} {{ data.title }}
+        #{{ id }} {{ data.title }}
       </div>
       <RouterTabsBar
         class="print:hidden"
@@ -35,10 +36,15 @@ const data = {
             key: 'problem-id-statics',
             link: '/problem/' + $route.params.id + '/statics',
           },
+          {
+            title: '管理',
+            key: 'problem-id-manage',
+            link: '/problem/' + $route.params.id + '/manage',
+          },
         ]"
       />
     </div>
 
-    <NuxtPage :data="data" />
+    <NuxtPage :data="data" :pid="id" />
   </PageContainer>
 </template>

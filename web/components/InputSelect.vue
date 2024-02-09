@@ -1,28 +1,31 @@
-<script setup lang="ts">
+<script lang="ts">
 type Item = {
   title: string;
   value: string;
 };
+</script>
 
+<script setup lang="ts">
 const props = defineProps<{
   items: Item[];
   placeholder?: string;
+  modelValue?: Item | null;
 }>();
 
 const emit = defineEmits<{
-  (e: "change", payload: Item): void;
+  // (e: "change", payload: Item): void;
+  (e: "update:modelValue", payload: Item): void;
 }>();
 
 const showSelect = ref(false);
-const selected = ref<{ title: string; value: string } | null>(null);
+// const selected = ref<{ title: string; value: string } | null>(null);
 const onToggle = () => {
   showSelect.value = !showSelect.value;
 };
 const onSelect = (value: string) => {
   const item = props.items.find((o) => o.value === value);
   if (item) {
-    selected.value = item;
-    emit("change", item);
+    emit("update:modelValue", item);
   }
   showSelect.value = false;
 };
@@ -36,9 +39,9 @@ const onSelect = (value: string) => {
     >
       <div
         class="w-full select-none py-1"
-        :class="!selected && 'text-secondary'"
+        :class="!modelValue && 'text-secondary'"
       >
-        {{ selected?.title || placeholder || "" }}
+        {{ modelValue?.title || placeholder || "" }}
       </div>
       <NuxtIcon
         name="expand_more"
@@ -52,7 +55,7 @@ const onSelect = (value: string) => {
           v-for="item in items"
           :key="item.value"
           class="p-2 select-none hover:text-brand cursor-pointer border-b border-dashed border-b-black/20 last:border-b-0"
-          :class="selected?.value === item.value && 'text-brand'"
+          :class="modelValue?.value === item.value && 'text-brand'"
           @click="onSelect(item.value)"
         >
           {{ item.title }}

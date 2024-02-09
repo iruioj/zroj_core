@@ -1,21 +1,13 @@
 [workspace]
 
-members = [
-    "sandbox", 
-    "tools",
-    "contest",
-    "problem",
-    "server",
-    "judger",
-    "cli",
-    "passwd",
-    "macros",
-    "store_derive",
-    "store"
-]
+# https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
+resolver = "2"
+
+members = ["crates/*"]
 
 [workspace.package]
 authors = ["ZROJ Team"]
 edition = "2021"
-keywords = ["Online Judge", "Sandbox"]
+keywords = ["online_judge", "sandbox"]
 version = "0.1.0"
+repository = "https://github.com/iruioj/zroj_core"

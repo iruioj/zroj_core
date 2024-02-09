@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { TaskReport } from "~/composables/api";
+
 const { error } = useMsgStore();
 
 const value = ref(`#include<iostream>
@@ -11,11 +13,7 @@ int main() {
 }
 `);
 const inp = ref("1 2");
-const lang = ref({
-  title: "文本",
-  value: "plain",
-  editorlang: "plain",
-});
+const lang = ref<(typeof langs)[0] | null>(null);
 
 const langs = [
   {
@@ -29,65 +27,24 @@ const langs = [
     editorlang: "python",
   },
 ];
-const onChangeLang = (item: Pick<(typeof langs)[0], "title" | "value">) => {
-  // console.log(item);
-  lang.value = langs.find((o) => o.value === item.value)!;
-};
 
-const isJudging = ref(false);
-const judgeResult = ref<{
-  status: {
-    name: string;
-  };
-  time: number;
-  memory: number;
-  payload: [
-    string,
-    {
-      limit: number;
-      str: string;
-      truncated: number;
-    }
-  ][];
-}>();
+const isJudging = useState("oneoff_is_judging", () => false);
+const judgeResult = useState<TaskReport | null>("oneoff_report", () => null);
 
 const onSubmit = async () => {
   const data = new FormData();
-  const srcFile = new File([value.value], `main.${lang.value.value}.cpp`);
+  const srcFile = new File([value.value], `main.${lang.value!.value}.cpp`);
   const inpFile = new File([inp.value], `input.txt`);
 
   data.append("source", srcFile);
   data.append("input", inpFile);
 
   try {
-    const submitRes = await fetch(
-      useRuntimeConfig().public.apiBase + "/custom_test",
-      {
-        method: "POST",
-        body: data,
-        credentials: "include",
-      }
-    );
-
-    if (!submitRes.ok) {
-      error(await submitRes.text());
-      return;
-    }
+    await useAPI().custom_test.post.fetch(data);
     isJudging.value = true;
-    const queryResult = async () => {
-      const query = await fetch(
-        useRuntimeConfig().public.apiBase + "/custom_test",
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
-      if (!query.ok) {
-        error(await submitRes.text());
-        return;
-      }
-      const data = await query.json();
-      if (data.result === null) {
+    const queryResult = async (): Promise<TaskReport> => {
+      const data = await useAPI().custom_test.get.fetch();
+      if (!data.result) {
         return new Promise((resolve, reject) => {
           setTimeout(() => {
             // console.debug("try again");
@@ -102,7 +59,7 @@ const onSubmit = async () => {
     const res = await queryResult();
     judgeResult.value = res;
   } catch (e) {
-    error((e as any).message);
+    error((e as any).data); // actually as FetchError
   }
   isJudging.value = false;
 };
@@ -113,10 +70,10 @@ const onSubmit = async () => {
     <div class="mt-8 mb-4 text-2xl text-brand font-medium">自定义测试</div>
     <div class="flex my-2">
       <InputSelect
+        v-model="lang"
         :items="langs"
         placeholder="选择语言"
         class="w-32"
-        @change="onChangeLang"
       />
       <UBtn class="mx-2" @click="onSubmit">提交</UBtn>
     </div>
@@ -132,8 +89,6 @@ const onSubmit = async () => {
       class="bg-back border border-slate-400 w-full overflow-y-auto font-mono p-2 h-32 outline-brand rounded"
     ></textarea>
     <div v-if="isJudging">评测中...</div>
-    <div v-else-if="judgeResult">
-      {{ judgeResult }}
-    </div>
+    <ReportTask v-else-if="judgeResult" :data="judgeResult" expand />
   </PageContainer>
 </template>

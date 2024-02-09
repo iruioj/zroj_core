@@ -1,17 +1,11 @@
 <!-- 使用 aleph 指示 hydration -->
 <script setup lang="ts">
-import NavButton from "./NavButton.vue";
-
-const { data: authinfo, refresh } = useAuth();
+const auth = useAuth();
 const { list } = useMsgStore();
-
-if (process.client) {
-  refresh();
-}
 </script>
 
 <template>
-  <header class="bg-back sticky top-0 z-30 border-b border-theme">
+  <header class="bg-back fixed w-full top-0 z-30 border-b border-theme">
     <div class="flex items-center">
       <NuxtLink to="/">
         <div class="inline-block px-4 font-bold text-xl text-brand">
@@ -24,13 +18,13 @@ if (process.client) {
       <div class="print:hidden hidden sm:flex">
         <NavButton to="/problemset">Problems</NavButton>
         <NavButton to="/contests">Contests</NavButton>
-        <NavButton to="/submission/2">Submissions</NavButton>
+        <NavButton to="/submissions">Submissions</NavButton>
         <NavButton to="/oneoff">Customtest</NavButton>
       </div>
       <div class="grow"></div>
       <div class="py-2 px-4 print:hidden">
-        <TextLink v-if="authinfo" to="/user/me">{{
-          authinfo.username
+        <TextLink v-if="auth.username" to="/user/me">{{
+          auth.username
         }}</TextLink>
         <TextLink v-else to="/auth/signin">Sign In/Up</TextLink>
       </div>
@@ -38,7 +32,7 @@ if (process.client) {
     <div class="text-xs mx-2 print:hidden sm:hidden border-t border-theme">
       <NavButton to="/problemset">Problems</NavButton>
       <NavButton to="/contests">Contests</NavButton>
-      <NavButton to="/submission/2">Submissions</NavButton>
+      <NavButton to="/submissions">Submissions</NavButton>
       <NavButton to="/oneoff">Customtest</NavButton>
     </div>
     <TransitionGroup name="msg-list" tag="div">
@@ -64,10 +58,12 @@ if (process.client) {
 .msg-list-leave-active {
   transition: all 0.5s ease;
 }
+
 .msg-list-enter-from,
 .msg-list-leave-to {
   opacity: 0;
 }
+
 /* ensure leaving items are taken out of layout flow so that moving
    animations can be calculated correctly. */
 .msg-list-leave-active {

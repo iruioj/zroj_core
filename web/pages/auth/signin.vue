@@ -3,7 +3,7 @@ const username = ref("");
 const passwd = ref("");
 const msg = ref("");
 const { error } = useMsgStore();
-const { refresh } = useAuth();
+const auth = useAuth();
 
 const onSubmit = async (e: Event) => {
   e.preventDefault();
@@ -24,12 +24,12 @@ const onSubmit = async (e: Event) => {
             passwordHash: pwd.login_hash(passwd.value),
           }),
           credentials: "include",
-        }
+        },
       );
       if (res.status === 200) {
         msg.value = "登陆成功";
-        await refresh();
-        navigateTo("/");
+        await auth.refresh();
+        useRouter().back();
       } else {
         msg.value = "登陆失败：" + (await res.text());
       }
