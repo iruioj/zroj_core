@@ -53,14 +53,22 @@ cargo fmt
 
 ## Add Hooks before commit
 
-editing `.git/hooks/pre-commit`:
+This hook helps to prevent committing to the `master` branch directly.
+
+Editing `.git/hooks/pre-commit` as:
 
 ```sh
 #!/bin/zsh
 
-cargo clippy --fix --allow-dirty --all-features -- --allow "clippy::type_complexity"
-cargo fmt
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+if [ "$branch" = "master" ]; then
+  echo "You can't commit directly to master branch"
+  exit 1
+fi
 ```
+
+and make it executable.
 
 ## Document Generation
 
