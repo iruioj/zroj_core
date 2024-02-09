@@ -119,7 +119,7 @@ impl Mysql {
 
     /// Try to get the file from problem-scope data, if not found, then fallback to
     /// global static data.
-    fn get_assets(&self, id: ProblemID, name: &str) -> Result<NamedFile, DataError> {
+    pub fn get_assets(&self, id: ProblemID, name: &str) -> Result<NamedFile, DataError> {
         self.1.transaction(|ctx| {
             let (file, ctx) = problem_staticdata::conn(ctx)
                 .query_with_ctx((&id, name))
@@ -130,7 +130,7 @@ impl Mysql {
     }
 
     /// Add a new file to the problem-scope static data.
-    fn insert_assets(
+    pub fn insert_assets(
         &self,
         id: ProblemID,
         name: &str,

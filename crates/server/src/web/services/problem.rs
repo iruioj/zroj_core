@@ -47,6 +47,23 @@ async fn statement(
 }
 
 #[derive(Deserialize, TsType)]
+struct StmtAssetQuery {
+    /// 题目 id
+    id: ProblemID,
+    /// 文件相对路径
+    name: String,
+}
+
+/// 获取题面附加文件
+#[api(method = get, path = "/statement_assets")]
+async fn statement_assets(
+    stmt_db: ServerData<StmtDB>,
+    query: QueryParam<StmtAssetQuery>,
+) -> AnyResult<actix_files::NamedFile> {
+    Ok(block_it!(stmt_db.get_assets(query.id, &query.name))?)
+}
+
+#[derive(Deserialize, TsType)]
 struct ProbMetasQuery {
     #[serde(flatten)]
     list: super::ListQuery,
