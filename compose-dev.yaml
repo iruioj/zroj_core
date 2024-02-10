@@ -1,0 +1,14 @@
+services:
+  app:
+    entrypoint:
+    - sleep
+    - infinity
+    image: docker/dev-environments-default:stable-1
+    init: true
+    volumes:
+    - type: bind
+      source: /var/run/docker.sock
+      target: /var/run/docker.sock
+    extra_hosts:
+      # you may access host proxy by http://host.docker.internal:[port]
+      - "host.docker.internal:host-gateway"
