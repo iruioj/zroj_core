@@ -13,7 +13,7 @@ pub enum DataError {
     NotFound,
     #[error("diesel: {0}")]
     Diesel(diesel::result::Error),
-    #[error("database error: {0}")]
+    #[error("database anyhow error: {0}")]
     AnyError(#[from] anyhow::Error),
     #[error("io error: {0}")]
     IOError(#[from] std::io::Error),

@@ -45,18 +45,14 @@ pub struct SanitizedString(String);
 
 #[derive(thiserror::Error, Debug)]
 pub enum SanitizeError {
-    #[error("invalid character {0:?}")]
+    #[error("invalid character {0:?} during sanitization")]
     InvalidChar(char),
-    #[error("string of length {0} too long")]
+    #[error("string of length {0} too long during sanitization")]
     LengthExceeded(usize),
-    #[error("path normalization error: {0}")]
-    Canonicalize(std::io::Error),
 }
 
 impl SanitizedString {
     pub fn new(str: &str) -> Result<Self, SanitizeError> {
-        let str = std::fs::canonicalize(str).map_err(SanitizeError::Canonicalize)?;
-        let str = str.to_str().unwrap();
         let err = str
             .chars()
             .find_map(|c| {
