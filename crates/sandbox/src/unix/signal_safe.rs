@@ -41,13 +41,13 @@ pub fn errno_result<T>() -> Result<T, Errno> {
 }
 
 fn error_exit(msg: &[u8]) -> ! {
-    unsafe { cbind::sio_error(msg.as_ptr() as *const i8) }
+    unsafe { cbind::sio_error(msg.as_ptr().cast()) }
     unreachable!()
 }
 
 pub fn dprint(fd: i32, s: &[u8]) -> isize {
     debug_assert!(*s.last().unwrap() == 0);
-    unsafe { cbind::sio_dputs(fd, s.as_ptr() as *const i8) }
+    unsafe { cbind::sio_dputs(fd, s.as_ptr().cast()) }
 }
 
 pub fn dprint_i64(fd: i32, num: i64) -> isize {
