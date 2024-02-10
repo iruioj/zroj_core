@@ -1,4 +1,10 @@
-use std::io::Write;
+use anyhow::Context;
+use sandbox::{
+    unix::{Lim, Limitation, Singleton},
+    ExecSandBox, Status,
+};
+use std::os::unix::ffi::OsStrExt;
+use std::{io::Write, process::Command};
 use tempfile::tempdir;
 
 macro_rules! cstring {
@@ -7,18 +13,105 @@ macro_rules! cstring {
     };
 }
 
+fn get_exec_path(name: &str) -> String {
+    let r = Command::new("which")
+        .arg(name)
+        .output()
+        .expect("execute which error");
+    String::from_utf8(r.stdout)
+        .expect("decode utf8 error")
+        .trim()
+        .to_owned()
+}
+
 #[test]
-#[cfg(target_os = "linux")]
+fn test_ls() -> anyhow::Result<()> {
+    let ls_path = get_exec_path("ls");
+
+    let singleton =
+        Singleton::new(cstring!(ls_path)).push_arg([cstring!("ls"), cstring!("-l"), cstring!(".")]);
+
+    let term = singleton.exec_sandbox()?;
+    assert_eq!(term.status, Status::Ok);
+    println!("termination: {:?}", term);
+    Ok(())
+}
+
+#[test]
+fn test_sleep_tle() -> anyhow::Result<()> {
+    let sleep_path = get_exec_path("sleep");
+    // sleep 5 秒，触发 TLE
+    let singleton = Singleton::new(cstring!(sleep_path))
+        .push_arg([cstring!("sleep"), cstring!("2")])
+        .set_limits(|mut l| {
+            l.cpu_time = Lim::Double(1000.into(), 3000.into());
+            l.real_time = Lim::Double(1000.into(), 2000.into());
+            l
+        });
+
+    let term = singleton.exec_sandbox()?;
+    assert_eq!(term.status, Status::TimeLimitExceeded);
+    // println!("termination: {:?}", term);
+    Ok(())
+}
+
+#[test]
+fn test_env() -> anyhow::Result<()> {
+    let env_path = get_exec_path("env");
+
+    let singleton = Singleton::new(cstring!(env_path)).push_arg([
+        cstring!("env"),
+        cstring!("DIR=/usr"),
+        cstring!("A=b"),
+    ]);
+
+    let term = singleton.exec_sandbox()?;
+    assert_eq!(term.status, Status::Ok);
+    // println!("termination: {:?}", term);
+    Ok(())
+}
+
+#[test]
+fn test_loop() -> anyhow::Result<()> {
+    let dir = tempfile::TempDir::new().unwrap();
+    let main_path = dir.path().join("main.c");
+    let exec_path = dir.path().join("main");
+    std::fs::write(&main_path, r"int main() { for(;;); }").unwrap();
+    let mut p = Command::new("gcc")
+        .arg(&main_path)
+        .arg("-o")
+        .arg(&exec_path)
+        .spawn()
+        .unwrap();
+    let r = p.wait().unwrap();
+    assert!(exec_path.is_file() && r.success());
+
+    let term = Singleton::new(cstring!(exec_path.as_os_str()))
+        .set_limits(|mut l| {
+            l.cpu_time = Lim::Double(1000.into(), 3000.into());
+            l.real_time = Lim::Double(1000.into(), 2000.into());
+            l
+        })
+        .exec_sandbox()
+        .context("the first time")?;
+    assert_eq!(term.status, Status::TimeLimitExceeded);
+
+    let term = Singleton::new(cstring!(exec_path.as_os_str()))
+        .set_limits(|mut l| {
+            l.cpu_time = Lim::Double(1000.into(), 3000.into());
+            l.real_time = Lim::Double(1000.into(), 2000.into());
+            l
+        })
+        .exec_sandbox()
+        .context("the second time")?;
+    assert_eq!(term.status, Status::TimeLimitExceeded);
+
+    drop(dir);
+    Ok(())
+}
+
+#[test]
 fn test_cat_stdio() -> anyhow::Result<()> {
-    use std::io::Write;
-    use std::os::unix::ffi::OsStrExt;
-
-    use sandbox::{
-        unix::{Lim, Limitation, Singleton},
-        ExecSandBox,
-    };
-    use tempfile::tempdir;
-
     let dir = tempdir().unwrap();
     let filepath = &dir.path().join("input.txt");
     let outputpath = &dir.path().join("output.txt");
@@ -28,7 +121,8 @@ fn test_cat_stdio() -> anyhow::Result<()> {
     fin.write_all(content.as_bytes()).unwrap();
     drop(fin);
 
-    let s = Singleton::new(cstring!("/usr/bin/cat"))
+    let s = Singleton::new(cstring!(get_exec_path("cat")))
+        .push_arg([cstring!("cat")])
         .stdin(cstring!(filepath.as_os_str()))
         .stdout(cstring!(outputpath.as_os_str()))
         .set_limits(|_| Limitation {
@@ -53,16 +147,8 @@ fn test_cat_stdio() -> anyhow::Result<()> {
 }
 
 #[test]
-#[cfg(unix)]
-#[cfg_attr(not(target_os = "linux"), ignore = "not linux")]
+#[cfg(target_os = "linux")]
 fn test_gcc_linux() -> anyhow::Result<()> {
-    use std::os::unix::ffi::OsStrExt;
-
-    use sandbox::{
-        unix::{Lim, Limitation, Singleton},
-        ExecSandBox, Status,
-    };
-
     let dir = tempdir().unwrap();
     let filepath = &dir.path().join("main.cpp");
     let execpath = &dir.path().join("main");

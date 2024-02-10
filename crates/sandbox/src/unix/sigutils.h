@@ -1,11 +1,12 @@
+#ifndef SANDBOX_SIGUTILS_H
+#define SANDBOX_SIGUTILS_H
+
 #include "sio.h"
 #include <errno.h>
 #include <signal.h>
-#include <stdarg.h>
-#include <string.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <sys/resource.h>
 
 int get_errno();
 
@@ -23,3 +24,9 @@ int wrap_WTERMSIG(int status);
 
 // a echo handler for signal (for debugging)
 void * signal_echo(int signo);
+
+int get_sigchld();
+int get_sigkill();
+int get_sigxcpu();
+
+#endif

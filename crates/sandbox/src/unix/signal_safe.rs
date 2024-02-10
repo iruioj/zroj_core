@@ -76,7 +76,7 @@ pub fn dup2(to: i32, from: i32) {
 pub fn set_self_grp() {
     unsafe {
         if cbind::setpgid(0, 0) < 0 {
-            error_exit(b"setpgid error\n\x00"); /* abort */
+            error_exit(b"setpgid error\x00"); /* abort */
         }
     }
 }
@@ -84,7 +84,7 @@ pub fn set_self_grp() {
 pub fn execve(path: &CStr, argv: &[*mut std::ffi::c_char], envp: &[*mut std::ffi::c_char]) -> ! {
     unsafe {
         if cbind::execve(path.as_ptr(), argv.as_ptr(), envp.as_ptr()) < 0 {
-            error_exit(b"execve error\n\x00")
+            error_exit(b"execve error\x00")
         }
     }
     unreachable!()
@@ -140,7 +140,7 @@ impl SigblockGuard {
     }
     /// see [`sigsuspend`]
     pub fn suspend(&self) {
-        sigsuspend(self.0)
+        sigsuspend(&self.0)
     }
 }
 
@@ -174,10 +174,7 @@ pub const RLIMIT_FSIZE: u32 = cbind::__rlimit_resource_RLIMIT_FSIZE;
 pub const RLIMIT_NOFILE: u32 = cbind::__rlimit_resource_RLIMIT_NOFILE;
 
 #[cfg(target_os = "macos")]
-pub use {
-    cbind::RLIMIT_AS, cbind::RLIMIT_CPU, cbind::RLIMIT_FSIZE, cbind::RLIMIT_NOFILE,
-    cbind::RLIMIT_STACK,
-};
+pub use {cbind::RLIMIT_CPU, cbind::RLIMIT_FSIZE, cbind::RLIMIT_NOFILE};
 
 pub fn setrlimit(resource: i32, rlim_cur: u64, rlim_max: u64) -> Result<(), Errno> {
     unsafe {
@@ -229,13 +226,17 @@ pub fn waitpid(pid: i32, options: u32) -> Result<(i32, WaitStatus), Errno> {
     }
 }
 
-pub fn sigsuspend(sigmask: Sigset) {
+pub fn sigsuspend(sigmask: &Sigset) {
     unsafe {
-        let rc = cbind::sigsuspend(&sigmask as *const Sigset);
+        let rc = cbind::sigsuspend(sigmask as *const Sigset);
         if rc < 0 && cbind::get_errno() as u32 == cbind::EFAULT {
             error_exit(b"sigsuspend: invalid sigmask\n\x00")
         }
     }
+}
+
+pub fn getpid() -> i32 {
+    unsafe { cbind::getpid() }
 }
 
 /// register a signal handler that print the signal
@@ -251,7 +252,6 @@ pub fn sleep(sec: u32) {
     }
 }
 
-pub use cbind::{SIGCHLD, SIGKILL};
 pub fn kill(pid: i32, sig: u32) -> Result<(), Errno> {
     unsafe {
         let r = cbind::kill(pid, sig as i32);
@@ -261,6 +261,18 @@ pub fn kill(pid: i32, sig: u32) -> Result<(), Errno> {
             Ok(())
         }
     }
+}
+
+/// Using `cbind::SIGCHLD` in linux dev container on MacOS results
+/// in incorrect signal number. It looks like a bug of bindgen.
+pub fn get_sigchld() -> u32 {
+    unsafe { cbind::get_sigchld() as u32 }
+}
+pub fn get_sigkill() -> u32 {
+    unsafe { cbind::get_sigkill() as u32 }
+}
+pub fn get_sigxcpu() -> u32 {
+    unsafe { cbind::get_sigxcpu() as u32 }
 }
 
 #[cfg(test)]
@@ -285,5 +297,12 @@ mod tests {
             }
         }
         println!("Hello, world!");
+    }
+    #[test]
+    fn test_signo() {
+        println!("SIGCHLD = {} (should be 17 on linux)", cbind::SIGCHLD);
+        println!("get_sigchld = {} (should be 17 on linux)", unsafe {
+            cbind::get_sigchld()
+        });
     }
 }

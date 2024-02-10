@@ -1,4 +1,6 @@
 /* memory sharing utils */
+#ifndef SANDBOX_SHARE_H
+#define SANDBOX_SHARE_H
 
 #include "sio.h"
 #include <sys/resource.h>
@@ -22,3 +24,5 @@ typedef struct {
 
 global_shared_t *init_shared();
 void free_shared(global_shared_t *);
+
+#endif

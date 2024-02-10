@@ -1,11 +1,8 @@
+#ifndef SANDBOX_SIO_H
+#define SANDBOX_SIO_H
+
 /** This header defines async-signal-safe IO utilities */
-#include <errno.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <string.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#include <unistd.h>
+#include <sys/types.h>
 
 /* Private sio_functions */
 /* sio_reverse - Reverse a string (from K&R) */
@@ -25,3 +22,5 @@ ssize_t sio_dputl(int fd, long v);
 
 /* Put error message and exit */
 void sio_error(const char *const s);
+
+#endif

@@ -2,7 +2,7 @@ use crate::{
     unix::{share_mem, signal_safe, Limitation},
     Elapse, Memory, Status, Termination,
 };
-use anyhow::Context;
+use anyhow::{bail, Context};
 use serde::{Deserialize, Serialize};
 use std::{
     ffi::{CStr, CString},
@@ -35,13 +35,16 @@ impl Singleton {
         shared: share_mem::GlobalShared,
     ) -> Result<(), signal_safe::Errno> {
         // register a handler for SIGCHLD to make sigsuspend work
-        signal_safe::signal_echo(signal_safe::SIGCHLD);
+        signal_safe::signal_echo(signal_safe::get_sigchld());
 
         // at this time, all signals are blocked, so we can fork directly
         let pid_child = signal_safe::fork()?;
 
         // fork another child process to execute program
         if pid_child == 0 {
+            signal_safe::print_cstr(b"(child-child) pid = \x00");
+            signal_safe::print_i64(signal_safe::getpid() as i64);
+            signal_safe::print_cstr(b"\n\x00");
             signal_safe::set_self_grp();
             // redirect standard IO
             if let Some(stdin) = &self.stdin {
@@ -63,11 +66,11 @@ impl Singleton {
             macro_rules! setlim {
                 ($i:ident, $r:ident, $f:ident) => {
                     match self.limits.$i {
-                        crate::unix::Lim::None => {}
-                        crate::unix::Lim::Single(s) => {
+                        super::Lim::None => {}
+                        super::Lim::Single(s) => {
                             signal_safe::setrlimit(signal_safe::$r as i32, s.$f(), s.$f())?;
                         }
-                        crate::unix::Lim::Double(s, h) => {
+                        super::Lim::Double(s, h) => {
                             signal_safe::setrlimit(signal_safe::$r as i32, s.$f(), h.$f())?;
                         }
                     }
@@ -94,8 +97,8 @@ impl Singleton {
 
         // at this time, all signals are blocked, so we can fork directly
         let pid_timer = match self.limits.real_time {
-            crate::unix::Lim::None => None,
-            crate::unix::Lim::Single(s) | crate::unix::Lim::Double(s, _) => {
+            super::Lim::None => None,
+            super::Lim::Single(s) | super::Lim::Double(s, _) => {
                 let pid = signal_safe::fork()?;
                 if pid == 0 {
                     // fork a process to setup timer
@@ -118,7 +121,7 @@ impl Singleton {
             // either calling handler function or exit (thus sometimes you need to
             // register handler for a signal to make it work).
             guard.suspend();
-            signal_safe::print_cstr(b"(child) wait beep\n\x00");
+            signal_safe::print_cstr(b"(child) suspend over\n\x00");
             loop {
                 // since all signals are blocked, SIGCHLD will not interrupt
                 let r = signal_safe::waitpid(-1, signal_safe::WNOHANG);
@@ -130,7 +133,9 @@ impl Singleton {
                             if status.exited() {
                                 timer_first = true;
                                 // at this time, child hasn't been reaped, thus it's pid is not freed
-                                if let Err(e) = signal_safe::kill(pid_child, signal_safe::SIGKILL) {
+                                if let Err(e) =
+                                    signal_safe::kill(pid_child, signal_safe::get_sigkill())
+                                {
                                     if self.stderr.is_none() {
                                         signal_safe::print_cstr(
                                             b"(child) timer kill child failed\n\x00",
@@ -146,7 +151,7 @@ impl Singleton {
                                 // at this time, timer hasn't been reaped, thus it's pid is not freed
                                 if let Some(pid_timer) = pid_timer {
                                     if let Err(e) =
-                                        signal_safe::kill(pid_timer, signal_safe::SIGKILL)
+                                        signal_safe::kill(pid_timer, signal_safe::get_sigkill())
                                     {
                                         if self.stderr.is_none() {
                                             signal_safe::print_cstr(
@@ -199,16 +204,20 @@ impl Singleton {
         // do something before waiting for child process
         drop(guard);
 
+        println!("(parent) wait for child process id: {child}");
+
         let (_, child_status) =
             signal_safe::waitpid(child, 0).context("parent wait child error")?;
+
+        println!("(parent) wait done.");
 
         let real_time = start.elapsed().into();
 
         if !(child_status.exited() && child_status.exitstatus() == 0) {
-            return Err(anyhow::anyhow!(
+            bail!(
                 "child (parent) not normally terminated, with status {}",
                 child_status.0
-            ));
+            );
         }
         let share_mem::global_shared_t {
             rusage,
@@ -229,7 +238,7 @@ impl Singleton {
         }
         let child_status = signal_safe::WaitStatus(status);
         let status: Status = if child_status.exited() {
-            println!("子进程正常退出");
+            println!("子进程正常退出, exit_code = {}", child_status.exitstatus());
             let exit_code = child_status.exitstatus();
             if !self.limits.real_memory.check(&memory) {
                 Status::MemoryLimitExceeded
@@ -244,9 +253,12 @@ impl Singleton {
             if !child_status.signaled() {
                 return Err(anyhow::anyhow!("unknown child status {}", child_status.0));
             }
-            println!("子进程被信号终止");
+            println!("子进程被信号终止, signal = {}", child_status.termsig());
             let signal = child_status.termsig();
-            if signal == signal_safe::SIGKILL || real_tle!() {
+            if signal == signal_safe::get_sigkill()
+                || signal == signal_safe::get_sigxcpu()
+                || real_tle!()
+            {
                 println!("子进程被计时线程终止");
                 Status::TimeLimitExceeded
             } else {
@@ -265,17 +277,23 @@ impl Singleton {
 
 impl crate::ExecSandBox for Singleton {
     fn exec_sandbox(&self) -> anyhow::Result<crate::Termination> {
+        eprintln!("exec: {:?}", self);
+        eprintln!("pid: {}", signal_safe::getpid());
         // prepare for arguments
         let args = crate::to_exec_array(self.arguments.clone());
         let env = crate::to_exec_array(self.envs.clone());
 
         let start = Instant::now(); // record the real time duration of tested process
+
         let guard = signal_safe::sigblockall(); // block all signals before forking
-        if guard.contains(signal_safe::SIGCHLD)? {
-            return Err(anyhow::anyhow!("previous block sigset contains SIGCHLD"));
+        if guard.contains(signal_safe::get_sigchld())? {
+            bail!("previous block sigset contains SIGCHLD");
         }
+
         let shared = share_mem::GlobalShared::init(); // should be freed in exec_parent
 
+        // flush rust codes' outputs
+        std::io::stdout().flush()?;
         std::io::stderr().flush()?;
 
         let r = match signal_safe::fork() {
@@ -347,127 +365,5 @@ impl Singleton {
     pub fn set_limits(mut self, modifier: impl FnOnce(Limitation) -> Limitation) -> Self {
         self.limits = modifier(self.limits);
         self
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::os::unix::ffi::OsStrExt;
-    use std::process::Command;
-
-    use super::*;
-    use crate::unix::Lim;
-    use crate::ExecSandBox;
-
-    macro_rules! cstring {
-        ($e:expr) => {
-            CString::new($e.as_bytes().to_vec()).unwrap()
-        };
-    }
-
-    #[test]
-    #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_free() -> anyhow::Result<()> {
-        let ls_path = if cfg!(target_os = "linux") {
-            "/usr/bin/ls"
-        } else {
-            "/bin/ls"
-        };
-
-        let singleton = Singleton::new(cstring!(ls_path)).push_arg([
-            cstring!("ls"),
-            cstring!("-l"),
-            cstring!("."),
-        ]);
-
-        let term = singleton.exec_sandbox()?;
-        assert_eq!(term.status, Status::Ok);
-        println!("termination: {:?}", term);
-        Ok(())
-    }
-
-    #[test]
-    #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_tle_real() -> anyhow::Result<()> {
-        let sleep_path = if cfg!(target_os = "linux") {
-            "/usr/bin/sleep"
-        } else {
-            "/bin/sleep"
-        };
-        // sleep 5 秒，触发 TLE
-        let singleton = Singleton::new(cstring!(sleep_path))
-            .push_arg([cstring!("sleep"), cstring!("2")])
-            .set_limits(|mut l| {
-                l.cpu_time = Lim::Double(1000.into(), 3000.into());
-                l.real_time = Lim::Double(1000.into(), 2000.into());
-                l
-            });
-
-        let term = singleton.exec_sandbox()?;
-        assert_eq!(term.status, Status::TimeLimitExceeded);
-        // println!("termination: {:?}", term);
-        Ok(())
-    }
-
-    #[test]
-    #[cfg_attr(not(unix), ignore = "not unix os")]
-    fn singleton_env() -> anyhow::Result<()> {
-        let env_path = "/usr/bin/env";
-
-        let singleton = Singleton::new(cstring!(env_path)).push_arg([
-            cstring!("env"),
-            cstring!("DIR=/usr"),
-            cstring!("A=b"),
-        ]);
-
-        let term = singleton.exec_sandbox()?;
-        assert_eq!(term.status, Status::Ok);
-        // println!("termination: {:?}", term);
-        Ok(())
-    }
-
-    #[test]
-    fn singleton_loop() -> anyhow::Result<()> {
-        let dir = tempfile::TempDir::new().unwrap();
-        let main_path = dir.path().join("main.c");
-        let exec_path = dir.path().join("main");
-        std::fs::write(
-            &main_path,
-            r"
-int main() {
-    for(;;);
-}
-",
-        )
-        .unwrap();
-        let mut p = Command::new("gcc")
-            .arg(&main_path)
-            .arg("-o")
-            .arg(&exec_path)
-            .spawn()
-            .unwrap();
-        let r = p.wait().unwrap();
-        assert!(exec_path.is_file());
-        assert!(r.success());
-
-        let term = Singleton::new(cstring!(exec_path.as_os_str()))
-            .set_limits(|mut l| {
-                l.cpu_time = Lim::Double(1000.into(), 3000.into());
-                l.real_time = Lim::Double(1000.into(), 2000.into());
-                l
-            })
-            .exec_sandbox()?;
-        assert_eq!(term.status, Status::TimeLimitExceeded);
-        let term = Singleton::new(cstring!(exec_path.as_os_str()))
-            .set_limits(|mut l| {
-                l.cpu_time = Lim::Double(1000.into(), 3000.into());
-                l.real_time = Lim::Double(1000.into(), 2000.into());
-                l
-            })
-            .exec_sandbox()?;
-        assert_eq!(term.status, Status::TimeLimitExceeded);
-
-        drop(dir);
-        Ok(())
     }
 }

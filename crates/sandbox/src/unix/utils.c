@@ -1,10 +1,10 @@
 #include "share.h"
 #include "sigutils.h"
+
 #include <fcntl.h>
-#include <signal.h>
 #include <sys/mman.h>
-#include <sys/resource.h>
 #include <unistd.h>
+#include <string.h>
 
 #define MAXLINE 1024 /* max line size */
 
@@ -144,5 +144,18 @@ int get_children_rusage(rusage_t *ru) {
   return rc;
 }
 
-void signal_echo_handler(int signo) { psignal(signo, "receve signal"); }
+void signal_echo_handler(int signo) {
+  pid_t pid = getpid();
+  sio_dputs(STDERR_FILENO, "[signal_echo_handler] receive signal, pid = ");
+  sio_dputl(STDERR_FILENO, pid);
+  sio_dputs(STDERR_FILENO, ", signo = ");
+  sio_dputl(STDERR_FILENO, signo);
+  sio_dputs(STDERR_FILENO, "\n");
+  // psignal(signo, "receve signal");
+}
+
+inline int get_sigchld(){ return SIGCHLD; }
+inline int get_sigkill(){ return SIGKILL; }
+inline int get_sigxcpu(){ return SIGXCPU; }
+
 void *signal_echo(int signo) { return signal(signo, signal_echo_handler); }
