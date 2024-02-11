@@ -4,7 +4,7 @@
 
 This project is currently under active development.
 
-recommand VSCode extension: `mtxr.sqltools`
+recommand VSCode extensions: `mtxr.sqltools`, `rust-lang.rust-analyzer`, `mhutchie.git-graph`, `Vue.volar`
 
 Diesel:
 
