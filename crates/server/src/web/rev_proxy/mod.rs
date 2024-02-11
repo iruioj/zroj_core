@@ -3,7 +3,7 @@ use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use actix_web::{
     http::header::{HeaderMap, HeaderName},
     web::Payload,
-    Error, HttpRequest, HttpResponse,
+    HttpRequest, HttpResponse,
 };
 use futures::TryStreamExt;
 use lazy_static::lazy_static;
@@ -67,22 +67,21 @@ impl RevProxy {
     fn forward_uri(&self, req: &HttpRequest) -> String {
         let forward_url = self.base_url.display();
 
+        let origin = req.uri().path();
+        let transformed_path = match (self.path_transform)(origin) {
+            Some(s) => s,
+            None => {
+                tracing::warn!("invalid request uri for forwarding: {:?}", origin);
+                origin.to_owned()
+            }
+        };
         let forward_uri = match req.uri().query() {
-            Some(query) => format!(
-                "{}{}?{}",
-                forward_url,
-                (self.path_transform)(req.uri().path()).unwrap(),
-                query
-            ),
-            None => format!("{}{}", forward_url, req.uri().path()),
+            Some(query) => format!("{}{}?{}", forward_url, transformed_path, query),
+            None => format!("{}{}", forward_url, transformed_path),
         };
 
         forward_uri
     }
-
-    // pub fn path_trans(&self, path: &str) -> Option<String> {
-    //     (self.0.path_transform)(path.to_owned())
-    // }
 
     /// 目前是把 body 直接当 bytes 提取
     pub async fn forward(
@@ -90,7 +89,7 @@ impl RevProxy {
         client: &awc::Client,
         http_req: HttpRequest,
         payload: Payload,
-    ) -> Result<HttpResponse, Error> {
+    ) -> Result<HttpResponse, actix_web::Error> {
         let payload = payload.into_inner();
         // let (http_req, payload) = req.parts_mut();
         let mut forward_req = client
@@ -114,15 +113,13 @@ impl RevProxy {
             .insert_header_if_none((actix_web::http::header::USER_AGENT, ""))
             .insert_header(("host", self.base_url.to_str().unwrap()));
 
-        // println!("#### REVERSE PROXY REQUEST HEADERS");
-        // for (key, value) in forward_req.headers() {
-        //     println!("[{:?}] = {:?}", key, value);
-        // }
-
         let resp = forward_req.send_stream(payload).await.map_err(|error| {
-            println!("Error: {}", error);
-            actix_web::error::ErrorInternalServerError(error)
-            // error.to_string().into()
+            actix_web::error::ErrorInternalServerError(anyhow::anyhow!(
+                "error forwarding request ({}) to {}: {}",
+                http_req.uri().to_string(),
+                self.base_url.display(),
+                error
+            ))
         })?;
         let mut back_rsp = HttpResponse::build(resp.status());
 

@@ -39,7 +39,10 @@ impl Handle {
         if self.dir.is_file() {
             Ok(fs::File::open(self).context("open file")?)
         } else {
-            Err(anyhow::anyhow!("try to open a non-file item"))?
+            Err(anyhow::anyhow!(
+                "try to open a non-file item: {:?}",
+                self.path()
+            ))?
         }
     }
     /// 在该路径下新建文件，会自动补齐父级目录，要求其不存在

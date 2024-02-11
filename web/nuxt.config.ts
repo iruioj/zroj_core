@@ -34,6 +34,25 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [wasm(), topLevelAwait()],
+    server: {
+      strictPort: true,
+      hmr: {
+        port: 3456,
+        protocol: 'ws',
+        host: 'localhost',
+      },
+    }
+  },
+  hooks: {
+    'vite:extendConfig' (viteInlineConfig, env) {
+      viteInlineConfig.server = {
+        ...viteInlineConfig.server,
+        hmr: {
+          protocol: 'ws',
+          host: 'localhost',
+        },
+      }
+    },
   },
 
   devtools: {
