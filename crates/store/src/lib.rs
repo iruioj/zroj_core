@@ -190,26 +190,29 @@ pub trait FsStore: Sized {
     /// first save to a temporary directory, then rename it to the destination
     fn safe_save(&mut self, ctx: &Handle) -> Result<(), Error> {
         let dir = tempfile::tempdir().context("create tmp dir")?;
-        self.save(&Handle::new(dir.path()))?;
-        ctx.remove_all()?;
+        let tmpdest = Handle::new(dir.path().join("dest"));
+        self.save(&tmpdest)
+            .with_context(|| format!("save to tmp dir {}", tmpdest.path().display()))?;
+        ctx.remove_all().context("remove original dest data")?;
         if let Some(par) = ctx.path().parent() {
             if !par.exists() {
                 fs::create_dir_all(par).context("create parent dir before renaming")?;
             }
         }
         // try to rename; if failed, then do copy
-        fs::rename(dir.path(), ctx.path())
+        fs::rename(tmpdest.path(), ctx.path())
             .context("rename dir during safe_save")
             .or_else(|_| {
-                if dir.path().is_dir() {
-                    copy_recursively(dir.path(), ctx.path())
+                if tmpdest.path().is_dir() {
+                    copy_recursively(tmpdest.path(), ctx.path())
                         .context("copy dir recursively during safe_save")
                 } else {
-                    std::fs::copy(dir.path(), ctx.path())
+                    std::fs::copy(tmpdest.path(), ctx.path())
                         .map(|_| ())
                         .context("copy file during save_safe")
                 }
-            })?;
+            })
+            .context("rename/copy tmp data to dest")?;
         Ok(())
     }
 }
@@ -288,7 +291,9 @@ impl FsStore for fs::File {
     }
 
     fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
-        let mut dest = ctx.create_new_file()?;
+        let mut dest = ctx
+            .create_new_file()
+            .with_context(|| format!("save fs::File to {:?}", ctx.path()))?;
         self.seek(std::io::SeekFrom::Start(0)).unwrap();
         std::io::copy(self, &mut dest).unwrap();
         Ok(())
