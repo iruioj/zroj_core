@@ -49,6 +49,9 @@ to start the frondend dev server.
 ## Formatting and Linting
 
 ```bash
+# just give hints on linting
+cargo clippy -- --allow "clippy::type_complexity"
+# lint your code
 cargo clippy --fix --allow-dirty --all-features -- --allow "clippy::type_complexity"
 cargo fmt
 ```

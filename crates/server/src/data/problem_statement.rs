@@ -35,9 +35,9 @@ struct NewProblemStatement<'a> {
 
 #[derive(Debug, Serialize, TsType)]
 pub struct Statement {
-    title: String,
-    statement: Mdast,
-    meta: StmtMeta,
+    pub title: String,
+    pub statement: Mdast,
+    pub meta: StmtMeta,
 }
 
 impl From<&render_data::Statement> for Statement {

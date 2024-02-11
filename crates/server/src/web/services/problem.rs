@@ -1,3 +1,5 @@
+use std::os::unix::fs::MetadataExt;
+
 use crate::{
     block_it,
     data::{
@@ -12,8 +14,8 @@ use crate::{
     ProblemID, SubmID,
 };
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
-use actix_web::{error, web::Json};
-use problem::{prelude::*, ProblemFullData};
+use actix_web::{error, http::header::ContentDisposition, web::Json};
+use problem::{prelude::*, render_data::Mdast, ProblemFullData};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
@@ -43,7 +45,24 @@ async fn statement(
     stmt_db: ServerData<StmtDB>,
     query: QueryParam<StmtQuery>,
 ) -> JsonResult<problem_statement::Statement> {
-    Ok(Json(block_it!(stmt_db.get(query.id))?))
+    let pid = query.id;
+    let mut ast = block_it!(stmt_db.get(pid))?;
+    #[inline]
+    fn is_extern_link(link: &str) -> bool {
+        link.contains("://")
+    }
+    fn replace_assets_link(node: &mut Mdast, pid: u32) {
+        if let Mdast::Link(link) = node {
+            if !is_extern_link(&link.url) {
+                link.url = format!("/api/problem/statement_assets?id={pid}&name={}", link.url)
+            }
+        }
+        for c in node.child_nodes().unwrap_or_default() {
+            replace_assets_link(c, pid)
+        }
+    }
+    replace_assets_link(&mut ast.statement, pid);
+    Ok(Json(ast))
 }
 
 #[derive(Deserialize, TsType)]
@@ -54,13 +73,30 @@ struct StmtAssetQuery {
     name: String,
 }
 
+pub const PDF_INLINE_SIZE: u64 = 5 * 1024 * 1024;
+
 /// 获取题面附加文件
 #[api(method = get, path = "/statement_assets")]
 async fn statement_assets(
     stmt_db: ServerData<StmtDB>,
     query: QueryParam<StmtAssetQuery>,
 ) -> AnyResult<actix_files::NamedFile> {
-    Ok(block_it!(stmt_db.get_assets(query.id, &query.name))?)
+    let mut ret = block_it!(stmt_db.get_assets(query.id, &query.name))?;
+    // make small pdf files inline for frontend problem display
+    if ret.path().extension().is_some_and(|e| e == "pdf")
+        && ret
+            .file()
+            .metadata()
+            .inspect_err(|e| tracing::warn!(error = ?e, "get metadata error"))
+            .is_ok_and(|m| m.size() <= PDF_INLINE_SIZE)
+    {
+        ret = ret.set_content_disposition(ContentDisposition {
+            disposition: actix_web::http::header::DispositionType::Inline,
+            parameters: Vec::new(),
+        });
+        tracing::info!("make asset inline: {:?}", ret.path());
+    }
+    Ok(ret)
 }
 
 #[derive(Deserialize, TsType)]
@@ -72,7 +108,8 @@ struct ProbMetasQuery {
     pattern: Option<String>,
 }
 
-/// 获取题目列表
+/// 获取题目列表。
+/// 后端的 `max_count` 为 u8 类型，限制了此 API 返回的题目数最多为 255 个
 #[api(method = get, path = "/metas")]
 async fn metas(
     stmt_db: ServerData<StmtDB>,
@@ -211,4 +248,5 @@ pub fn service(
     service(fulldata);
     service(fulldata_meta);
     service(judge);
+    service(statement_assets);
 }

@@ -2,6 +2,7 @@
 
 pub mod schema;
 
+use anyhow::Context;
 use store::{FsStore, Handle};
 
 use super::error::DataError;
@@ -130,7 +131,8 @@ where
     /// insert or update
     fn replace(&self, key: Self::Key, item: &'t mut Self::Item) -> Result<(), DataError> {
         let ctx = self.ctx_with_key(key)?;
-        item.safe_save(&ctx)?;
+        item.safe_save(&ctx)
+            .with_context(|| format!("replace (upsert) ctx = {:?}", ctx.path()))?;
         Ok(())
     }
     /// update if exists

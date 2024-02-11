@@ -173,7 +173,7 @@ pub mod statement {
     }
 
     /// 题目显示时的元数据，在渲染 pdf 题面时也会需要
-    #[derive(Debug, Clone, Serialize, Deserialize, TsType)]
+    #[derive(Debug, Clone, Serialize, Deserialize, TsType, Default)]
     pub struct StmtMeta {
         /// 时间限制
         pub time: Option<judger::sandbox::Elapse>,

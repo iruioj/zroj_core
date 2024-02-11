@@ -1,5 +1,6 @@
 pub mod ast;
 pub use ast::Node;
+pub mod utils;
 /// Turn markdown into a syntax tree.
 ///
 /// ## Errors
