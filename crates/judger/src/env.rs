@@ -4,8 +4,6 @@
 
 use std::path::PathBuf;
 
-use crate::Error;
-
 /// return "windows" or "unix".
 #[allow(dead_code)]
 pub fn os_family() -> &'static str {
@@ -18,7 +16,7 @@ pub fn os_family() -> &'static str {
 /// 注意，我们希望 judger 执行的命令都是我们已知的命令，
 /// 而不考虑用户自定义命令（不安全），因此使用 string literal
 /// 作为参数。此外命令名字里不应当包含路径（/或者\）
-pub fn which(cmd_name: &'static str) -> Result<PathBuf, Error> {
+pub fn which(cmd_name: &'static str) -> anyhow::Result<PathBuf> {
     let os_cmd_name = std::ffi::OsString::from(cmd_name);
     if let Ok(path) = std::env::var("PATH") {
         if cfg!(all(unix)) {
@@ -49,7 +47,7 @@ pub fn which(cmd_name: &'static str) -> Result<PathBuf, Error> {
             todo!()
         }
     }
-    Err(Error::CmdNotFound)
+    Err(anyhow::anyhow!("command not found: {cmd_name}"))
 }
 
 #[cfg(test)]

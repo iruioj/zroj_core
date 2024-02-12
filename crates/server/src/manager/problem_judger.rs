@@ -1,10 +1,9 @@
 use super::job_runner::JobRunner;
 use crate::{data::types::FullJudgeReport, SubmID};
 use anyhow::{anyhow, Context};
-use judger::{LogMessage, MpscJudger};
 use problem::{
     data::OJData,
-    judger_framework::{self, JudgeTask},
+    judger_framework::{judge, JudgeTask, LogMessage, MpscJudger},
     Override,
 };
 use std::{
@@ -113,9 +112,8 @@ impl ProblemJudger {
                     }
                 });
 
-                let data_report =
-                    judger_framework::judge::<_, _, _, J>(&mut data, &mut judger, &mut subm)
-                        .map_err(|e| e.to_string())?;
+                let data_report = judge::<_, _, _, J>(&mut data, &mut judger, &mut subm)
+                    .map_err(|e| e.to_string())?;
                 update_state_data(
                     &mut state.write().expect("save data state"),
                     sid,

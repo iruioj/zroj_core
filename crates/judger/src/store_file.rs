@@ -6,7 +6,7 @@ use std::io::{self, Seek, Write};
 use store::FsStore;
 
 /// 一个带类型的 buffer
-#[derive(Debug, Serialize, Deserialize, TsType, Clone)]
+#[derive(Debug, Serialize, Deserialize, TsType, Clone, Hash)]
 pub struct SourceFile {
     pub source: String,
     pub file_type: FileType,
@@ -21,12 +21,12 @@ impl SourceFile {
         let source = content.as_ref().to_string();
         Self { source, file_type }
     }
-    pub fn copy_all(&mut self, dest: &mut impl Write) -> Result<(), std::io::Error> {
+    pub fn copy_all(&mut self, dest: &mut impl Write) -> Result<(), io::Error> {
         dest.write_all(self.source.as_bytes())?;
         Ok(())
     }
     /// 将内容复制到对应路径的文件
-    pub fn copy_to(&mut self, path: impl AsRef<std::path::Path>) -> Result<(), std::io::Error> {
+    pub fn copy_to(&mut self, path: impl AsRef<std::path::Path>) -> Result<(), io::Error> {
         let mut file = std::fs::File::create(path.as_ref())?;
         self.copy_all(&mut file)
     }
@@ -58,11 +58,11 @@ pub struct StoreFile {
 }
 
 impl StoreFile {
-    pub fn reset_cursor(&mut self) -> Result<(), std::io::Error> {
+    pub fn reset_cursor(&mut self) -> Result<(), io::Error> {
         self.file.seek(io::SeekFrom::Start(0))?;
         Ok(())
     }
-    pub fn copy_all(&mut self, dest: &mut impl Write) -> Result<(), std::io::Error> {
+    pub fn copy_all(&mut self, dest: &mut impl Write) -> Result<(), io::Error> {
         self.reset_cursor()?;
         std::io::copy(&mut self.file, dest)?;
         Ok(())
@@ -70,7 +70,7 @@ impl StoreFile {
     /// 将文件内容复制到对应路径的文件
     ///
     /// create a file if it does not exist, and will truncate it if it does.
-    pub fn copy_to(&mut self, path: impl AsRef<std::path::Path>) -> Result<(), std::io::Error> {
+    pub fn copy_to(&mut self, path: impl AsRef<std::path::Path>) -> Result<(), io::Error> {
         // dbg!(path.as_ref());
         let mut file = std::fs::File::create(path.as_ref())?;
         self.copy_all(&mut file)
@@ -82,9 +82,14 @@ impl StoreFile {
             .expect("cannot write content to file");
         Self { file, file_type }
     }
-    pub fn read_to_string(&mut self) -> Result<String, std::io::Error> {
+    /// read (from start) the whole content to byte array
+    pub fn read_to_bytes(&mut self) -> Result<Vec<u8>, io::Error> {
         let mut buf = io::BufWriter::new(Vec::new());
         self.copy_all(&mut buf)?;
-        Ok(String::from_utf8(buf.into_inner()?).expect("text encoding should be utf8"))
+        Ok(buf.into_inner()?)
+    }
+    /// read (from start) the whole content to string
+    pub fn read_to_string(&mut self) -> anyhow::Result<String> {
+        Ok(String::from_utf8(self.read_to_bytes()?).context("text encoding should be utf8")?)
     }
 }

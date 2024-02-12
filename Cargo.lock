@@ -1463,12 +1463,9 @@ dependencies = [
  "anyhow",
  "sandbox",
  "serde",
- "serde_json",
  "serde_ts_typing",
- "sha2",
  "store",
  "tempfile",
- "thiserror",
 ]
 
 [[package]]

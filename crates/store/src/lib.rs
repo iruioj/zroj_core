@@ -10,13 +10,14 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Debug,
     fs,
-    io::Seek,
+    io::{Seek, Write},
+    os::unix::fs::{OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
     str::FromStr,
 };
 
 /// 文件系统中的一个文件或文件夹的句柄，不保证其存在性
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Handle {
     dir: PathBuf,
 }
@@ -236,6 +237,32 @@ impl FsStore for () {
     }
 }
 
+impl FsStore for String {
+    fn open(ctx: &Handle) -> Result<Self, Error> {
+        Ok(std::fs::read_to_string(ctx).context("read to string")?)
+    }
+
+    fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
+        Ok(ctx
+            .create_new_file()?
+            .write_all(self.as_bytes())
+            .context("write string to file")?)
+    }
+}
+
+/// a helper struct for store serializable data in file
+pub struct SerdeFsStore<T: serde::Serialize + for<'a> serde::Deserialize<'a>>(pub T);
+
+impl<T: serde::Serialize + for<'a> serde::Deserialize<'a>> FsStore for SerdeFsStore<T> {
+    fn open(ctx: &Handle) -> Result<Self, Error> {
+        Ok(Self(ctx.deserialize()?))
+    }
+
+    fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
+        ctx.serialize_new_file(&self.0)
+    }
+}
+
 macro_rules! impl_tuple {
     ( $( $type:ident ),*  ) => {
 
@@ -300,11 +327,19 @@ impl FsStore for fs::File {
     }
 
     fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
-        let mut dest = ctx
-            .create_new_file()
+        let mut dest = std::fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .mode(
+                self.metadata()
+                    .context("get original file permission")?
+                    .permissions()
+                    .mode(),
+            )
+            .open(ctx)
             .with_context(|| format!("save fs::File to {:?}", ctx.path()))?;
         self.seek(std::io::SeekFrom::Start(0)).unwrap();
-        std::io::copy(self, &mut dest).unwrap();
+        std::io::copy(self, &mut dest).context("copying data")?;
         Ok(())
     }
 }

@@ -7,16 +7,13 @@
 //! - 同一个题目可能有不同的评测方式（一个常见的情况是将 stdio 的题目转化为文件 IO 供线下比赛评测）
 mod checker;
 pub mod data;
-mod error;
 pub mod judger_framework;
 pub mod prelude;
 pub mod render_data;
 pub mod sample;
-mod utils;
 
 pub use crate::prelude::StandardProblem;
 pub use checker::Checker;
-pub use error::RuntimeError;
 pub use judger::sandbox::{Elapse, Memory};
 use store::FsStore;
 

@@ -9,9 +9,10 @@ use judger::{
 
 use crate::{
     data::{Data, Rule},
-    Override, RuntimeError,
+    Override,
 };
-use judger::{JudgeReport, LogMessage, SubtaskReport};
+use judger::{JudgeReport, SubtaskReport};
+use std::sync::mpsc;
 use store::FsStore;
 
 pub struct Summarizer {
@@ -77,11 +78,50 @@ where
     /// 从“多测试点评测”的概念上看，其最本质的写法就是对不同的测试点，把所有的流程都走一遍。
     /// 当然我们可以在实现的时候结合缓存系统来提高效率。
     fn judge_task(
-        judger: &mut impl judger::Judger,
+        judger: &mut impl judger::Judger<LogMessage>,
         meta: &mut Self::M,
         task: &mut Self::T,
         subm: &mut Self::Subm,
-    ) -> Result<judger::TaskReport, RuntimeError>;
+    ) -> anyhow::Result<judger::TaskReport>;
+}
+
+/// 通过 channel 发送评测日志
+pub struct MpscJudger {
+    wd: store::Handle,
+    sender: mpsc::SyncSender<LogMessage>,
+}
+
+impl MpscJudger {
+    pub fn new(wd: store::Handle) -> (Self, mpsc::Receiver<LogMessage>) {
+        let (sender, receiver) = std::sync::mpsc::sync_channel::<LogMessage>(128);
+        (Self { wd, sender }, receiver)
+    }
+}
+
+impl judger::Judger<LogMessage> for MpscJudger {
+    fn working_dir(&self) -> store::Handle {
+        self.wd.clone()
+    }
+
+    fn runtime_log(&mut self, msg: LogMessage) {
+        // ignore send error
+        let _ = self.sender.send(msg);
+    }
+}
+
+/// use thiserror to conveniently define message content
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum LogMessage {
+    #[error("start judging (task kind: subtasks)")]
+    StartSubtasks,
+    #[error("start judging (task kind: tests)")]
+    StartTests,
+    #[error("judging subtask #{0} task #{1}")]
+    SubtaskTask(usize, usize),
+    #[error("judging task #{0}")]
+    TestTask(usize),
+    #[error("finished")]
+    End,
 }
 
 /// 题目的评测
@@ -95,9 +135,9 @@ where
 /// 子任务中的测试点默认按照 Min 的策略记分
 pub fn judge<T, M, S, J>(
     data: &mut Data<T, M, S>,
-    judger: &mut impl judger::Judger,
+    judger: &mut impl judger::Judger<LogMessage>,
     subm: &mut J::Subm,
-) -> Result<judger::JudgeReport, RuntimeError>
+) -> anyhow::Result<judger::JudgeReport>
 where
     T: FsStore + Send + Sync + 'static,
     M: FsStore + Clone + Send + Sync + 'static,

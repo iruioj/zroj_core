@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod one_off {
-    use judger::{Error, FileType, OneOff, SourceFile, Status, StoreFile};
+    use judger::{FileType, OneOff, SourceFile, Status, StoreFile};
     use store::Handle;
 
     #[test]
-    fn test_gnu_cpp() -> Result<(), Error> {
+    fn test_gnu_cpp() -> anyhow::Result<()> {
         let a_plus_b_raw = r#"
 #include <iostream>
 
@@ -24,7 +24,7 @@ int main() {
         let src = SourceFile::from_str(a_plus_b_raw, FileType::GnuCpp17O2);
         let inp = StoreFile::from_str(input_content, FileType::Plain);
 
-        let mut one = OneOff::new(src, inp, None);
+        let mut one = OneOff::new(src, inp);
         one.set_wd(Handle::new(&dir));
 
         let res = one.exec()?;

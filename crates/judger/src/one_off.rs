@@ -1,11 +1,9 @@
 //! Experimental. one off mode: 自定义评测
 
-use std::path::PathBuf;
-
 use sandbox::{unix::Limitation, Elapse, Memory};
 use store::Handle;
 
-use crate::{lang::Compile, Error, SourceFile, Status, StoreFile, TaskReport};
+use crate::{lang::Compile, SourceFile, Status, StoreFile, TaskReport};
 
 /// OneOff 用于执行自定义测试，流程包含：编译、运行可执行文件。
 ///
@@ -21,12 +19,11 @@ pub struct OneOff {
     memory_limit: Memory,
     output_limit: Memory,
     fileno_limit: u64,
-    sandbox_exec: Option<PathBuf>,
 }
 
 impl OneOff {
     /// 新建一个 OneOff 评测环境，工作目录默认为 cwd（生成可执行文件的路径），编译语言为 lang
-    pub fn new(file: SourceFile, stdin: StoreFile, sandbox_exec: Option<PathBuf>) -> Self {
+    pub fn new(file: SourceFile, stdin: StoreFile) -> Self {
         Self {
             file,
             stdin,
@@ -35,7 +32,6 @@ impl OneOff {
             memory_limit: Memory::from_mb(1024),
             output_limit: Memory::from_mb(128),
             fileno_limit: 6,
-            sandbox_exec,
         }
     }
     pub fn set_wd(&mut self, dir: Handle) -> &mut Self {
@@ -43,17 +39,18 @@ impl OneOff {
         self
     }
     #[cfg(unix)]
-    pub fn exec(&mut self) -> Result<TaskReport, Error> {
+    pub fn exec(&mut self) -> anyhow::Result<TaskReport> {
         use crate::TaskMeta;
         use sandbox::{
             unix::{Lim, Singleton},
             ExecSandBox,
         };
-        use std::{ffi::CString, os::unix::ffi::OsStrExt, process::Command};
+        use std::{ffi::CString, os::unix::ffi::OsStrExt};
 
         let src = self
             .working_dir
-            .join(String::from("main") + self.file.file_type.ext());
+            .join("main")
+            .with_extension(self.file.file_type.ext());
         self.file.copy_to(&src).expect("cannot copy source file");
         // 可执行文件名
         let dest = self.working_dir.join("main");
@@ -107,44 +104,7 @@ impl OneOff {
         let input = self.working_dir.join("main.in");
         self.stdin.copy_to(&input).expect("cannot copy input file");
         assert!(dest.as_ref().exists());
-        let term: sandbox::Termination = if let Some(sandbox_exec) = &self.sandbox_exec {
-            eprintln!("sandbox executable path: {}", sandbox_exec.display());
-            let term_f = self.working_dir.join("term.json");
-            let mut p = Command::new(sandbox_exec)
-                .arg(dest.path())
-                .arg("--stdin")
-                .arg(input.path())
-                .arg("--stdout")
-                .arg(out.path())
-                .arg("--stderr")
-                .arg(log.path())
-                .arg("--lim")
-                .arg(
-                    Limitation {
-                        real_time: Lim::Double(
-                            self.time_limit,
-                            Elapse::from(self.time_limit.ms() * 2),
-                        ),
-                        cpu_time: self.time_limit.into(),
-                        virtual_memory: self.memory_limit.into(),
-                        real_memory: self.memory_limit.into(),
-                        stack_memory: self.memory_limit.into(),
-                        output_memory: self.output_limit.into(),
-                        fileno: self.fileno_limit.into(),
-                    }
-                    .to_string(),
-                )
-                .arg("--save")
-                .arg(term_f.path())
-                .spawn()
-                .unwrap();
-            let status = p.wait().unwrap();
-            if !status.success() {
-                return Err(Error::SandboxExit(status));
-            }
-            let term_file = term_f.open_file().unwrap();
-            serde_json::from_reader(&term_file).unwrap()
-        } else {
+        let term: sandbox::Termination = {
             let s = Singleton::new(CString::new(dest.as_ref().as_os_str().as_bytes()).unwrap())
                 .set_limits(|_| Limitation {
                     real_time: Lim::Double(self.time_limit, Elapse::from(self.time_limit.ms() * 2)),
@@ -202,7 +162,7 @@ int main() {
         );
         let input = StoreFile::from_str(r"1 2", FileType::Plain);
         // let mut oneoff = OneOff::new(source, input, Some("/Users/sshwy/zroj_core/target/debug/zroj-sandbox".into()));
-        let mut oneoff = OneOff::new(source, input, None);
+        let mut oneoff = OneOff::new(source, input);
         let dir = tempfile::TempDir::new().unwrap();
         oneoff.set_wd(Handle::new(dir.path()));
         let rep = oneoff.exec().unwrap();

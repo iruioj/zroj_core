@@ -277,7 +277,10 @@ impl Singleton {
 
 impl crate::ExecSandBox for Singleton {
     fn exec_sandbox(&self) -> anyhow::Result<crate::Termination> {
-        eprintln!("exec: {:?}", self);
+        eprintln!(
+            "exec: {:?} {:?} {{ stdin: {:?}, stdout: {:?}, stderr: {:?} }}",
+            self.exec_path, self.arguments, self.stdin, self.stdout, self.stderr
+        );
         eprintln!("pid: {}", signal_safe::getpid());
         // prepare for arguments
         let args = crate::to_exec_array(self.arguments.clone());

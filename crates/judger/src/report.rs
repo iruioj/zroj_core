@@ -1,7 +1,8 @@
 //! Judger 返回的结果，可以直接在前端显示的数据格式，
 //! 打通从 judger 到前端传递数据的过程
 
-use crate::{truncstr::TruncStr, Error};
+use crate::truncstr::TruncStr;
+use anyhow::Context;
 use sandbox::{Elapse, Memory};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
@@ -90,16 +91,22 @@ impl TaskReport {
 }
 
 impl TaskReport {
+    pub fn add_payload_str(&mut self, name: impl AsRef<str>, content: String) -> anyhow::Result<()> {
+        self.payload
+            .push((name.as_ref().to_string(), content.into()));
+        Ok(())
+    }
+
     /// 从 path 中读取文件内容作为 payload
     pub fn add_payload(
         &mut self,
         name: impl AsRef<str>,
         path: impl AsRef<std::path::Path>,
-    ) -> Result<(), Error> {
+    ) -> anyhow::Result<()> {
         self.payload.push((
             name.as_ref().to_string(),
             std::fs::read_to_string(path)
-                .map_err(Error::IOError)?
+                .context("add payload to task report")?
                 .into(),
         ));
         Ok(())
@@ -152,45 +159,3 @@ pub struct JudgeReport {
 
 // 一次 hack 的结果
 // struct HackResult {}
-
-#[cfg(test)]
-mod tests {
-    use crate::{JudgeReport, TaskReport};
-
-    use super::SubtaskReport;
-
-    #[test]
-    fn test_judge_result_serde() {
-        let r = JudgeReport {
-            meta: crate::TaskMeta {
-                score_rate: 0.0,
-                status: crate::Status::WrongAnswer,
-                time: 114.into(),
-                memory: 514.into(),
-            },
-            detail: super::JudgeDetail::Subtask(vec![SubtaskReport {
-                total_score: 1.0,
-                meta: crate::TaskMeta {
-                    score_rate: 0.0,
-                    status: crate::Status::WrongAnswer,
-                    time: 114.into(),
-                    memory: 514.into(),
-                },
-                tasks: vec![Some(TaskReport {
-                    meta: crate::TaskMeta {
-                        score_rate: 0.5,
-                        status: crate::Status::Good,
-                        time: 114.into(),
-                        memory: 514.into(),
-                    },
-                    payload: vec![
-                        ("stdin".to_string(), "1 2".into()),
-                        ("stdout".to_string(), "2".into()),
-                        ("answer".to_string(), "3".into()),
-                    ],
-                })],
-            }]),
-        };
-        eprintln!("{}", serde_json::to_string_pretty(&r).unwrap());
-    }
-}

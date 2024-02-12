@@ -1,7 +1,9 @@
 use std::{ffi::CString, os::unix::ffi::OsStrExt};
 
 use crate::{
-    data::StoreFile, judger_framework::JudgeTask, utils::*, Checker, Override, RuntimeError,
+    data::StoreFile,
+    judger_framework::{JudgeTask, LogMessage},
+    Checker, Override,
 };
 use judger::{
     sandbox::{
@@ -56,16 +58,27 @@ impl JudgeTask for Traditional {
 
     // 先写了一个粗糙的，后面再来错误处理
     fn judge_task(
-        judger: &mut impl judger::Judger,
+        judger: &mut impl judger::Judger<LogMessage>,
         meta: &mut Self::M,
         task: &mut Self::T,
         subm: &mut Self::Subm,
-    ) -> Result<judger::TaskReport, RuntimeError> {
+    ) -> anyhow::Result<judger::TaskReport> {
         let wd = judger.working_dir();
         let Subm { source } = subm;
 
-        eprintln!("编译源文件");
-        let term = compile_in_wd(source, &wd, "main")?;
+        let judger::Compilation {
+            termination: term,
+            log_payload,
+            mut execfile,
+        }: judger::Compilation = judger.cachable_block(
+            |judger, (source, name)| {
+                eprintln!("编译源文件");
+                judger.compile(source, name)
+            },
+            (source, "main-pre"),
+        )?;
+        dbg!(execfile.metadata().unwrap().permissions());
+        let exec = judger.copy_file(&mut execfile, "main")?;
 
         // Compile Error
         if !term.status.ok() {
@@ -80,29 +93,27 @@ impl JudgeTask for Traditional {
                     // todo: add log
                     payload: Vec::new(),
                 };
-                let _ = r.add_payload("compile log", wd.join("main.c.log"));
+                r.payload.push(("compile log".into(), log_payload));
                 r
             });
         }
 
-        eprintln!("复制 IO 文件");
-        copy_in_wd(&mut task.input, &wd, "input")?;
-        copy_in_wd(&mut task.output, &wd, "answer")?;
+        let input = judger.copy_store_file(&mut task.input, "input")?;
+        let output = judger.copy_store_file(&mut task.output, "answer")?;
 
-        let s =
-            Singleton::new(CString::new(wd.join("main").as_ref().as_os_str().as_bytes()).unwrap())
-                .stdin(CString::new(wd.join("input").as_ref().as_os_str().as_bytes()).unwrap())
-                .stdout(CString::new(wd.join("output").as_ref().as_os_str().as_bytes()).unwrap())
-                .stderr(CString::new(wd.join("log").as_ref().as_os_str().as_bytes()).unwrap())
-                .set_limits(|_| judger::sandbox::unix::Limitation {
-                    real_time: Lim::Double(meta.time_limit, Elapse::from(meta.time_limit.ms() * 2)),
-                    cpu_time: meta.time_limit.into(),
-                    virtual_memory: meta.memory_limit.into(),
-                    real_memory: meta.memory_limit.into(),
-                    stack_memory: meta.memory_limit.into(),
-                    output_memory: meta.output_limit.into(),
-                    fileno: 5.into(),
-                });
+        let s = Singleton::new(CString::new(exec.as_ref().as_os_str().as_bytes()).unwrap())
+            .stdin(CString::new(input.as_ref().as_os_str().as_bytes()).unwrap())
+            .stdout(CString::new(output.as_ref().as_os_str().as_bytes()).unwrap())
+            .stderr(CString::new(wd.join("log").as_ref().as_os_str().as_bytes()).unwrap())
+            .set_limits(|_| judger::sandbox::unix::Limitation {
+                real_time: Lim::Double(meta.time_limit, Elapse::from(meta.time_limit.ms() * 2)),
+                cpu_time: meta.time_limit.into(),
+                virtual_memory: meta.memory_limit.into(),
+                real_memory: meta.memory_limit.into(),
+                stack_memory: meta.memory_limit.into(),
+                output_memory: meta.output_limit.into(),
+                fileno: 5.into(),
+            });
 
         let term = s.exec_sandbox().unwrap();
         let term_status = term.status.clone();
@@ -163,7 +174,7 @@ mod tests {
     fn test_a_plus_b() {
         let dir = tempfile::tempdir().unwrap();
         let wd = Handle::new(dir);
-        let mut jd = DefaultJudger::new(wd);
+        let mut jd = DefaultJudger::new(wd, None);
         let mut meta = Meta {
             checker: Checker::FileCmp,
             time_limit: Elapse::from_sec(5),

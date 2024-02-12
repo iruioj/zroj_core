@@ -7,10 +7,8 @@ use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::path::PathBuf;
 
-use crate::sha_hash::{ShaHash, Update};
-
 /// 一个 Compile 是指对 **单个源文件** 指定的语言，并提供对应的编译指令
-pub trait Compile: ShaHash {
+pub trait Compile {
     /// 生成一个编译指令
     ///
     /// - source: 源文件路径
@@ -39,16 +37,6 @@ impl GnuCpp {
         GnuCpp {
             gpp_path,
             extra_args,
-        }
-    }
-}
-
-impl ShaHash for GnuCpp {
-    fn sha_hash(&self, state: &mut sha2::Sha256) {
-        state.update(self.gpp_path.to_str().unwrap().as_bytes());
-        for ele in &self.extra_args {
-            state.update("$".as_bytes());
-            state.update(ele.as_bytes());
         }
     }
 }
@@ -100,7 +88,7 @@ impl Compile for GnuCpp {
 }
 
 /// 内置的支持的文件类型
-#[derive(Serialize, Deserialize, Clone, Debug, TsType, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, TsType, PartialEq, Eq, Hash)]
 pub enum FileType {
     #[serde(rename = "gnu_cpp20_o2")]
     GnuCpp20O2,
@@ -122,23 +110,17 @@ impl FileType {
     /// 获取文件类型对应的后缀名
     pub fn ext(&self) -> &'static str {
         match &self {
-            FileType::GnuCpp20O2 => ".cpp",
-            FileType::GnuCpp17O2 => ".cpp",
-            FileType::GnuCpp14O2 => ".cpp",
-            FileType::Plain => ".txt",
-            FileType::Python => ".py",
-            FileType::Rust => ".rs",
-            FileType::Assembly => ".s",
+            FileType::GnuCpp20O2 => "cpp",
+            FileType::GnuCpp17O2 => "cpp",
+            FileType::GnuCpp14O2 => "cpp",
+            FileType::Plain => "txt",
+            FileType::Python => "py",
+            FileType::Rust => "rs",
+            FileType::Assembly => "s",
         }
     }
     pub fn compileable(&self) -> bool {
         !matches!(self, FileType::Plain)
-    }
-}
-
-impl ShaHash for FileType {
-    fn sha_hash(&self, state: &mut sha2::Sha256) {
-        state.update(serde_json::to_string(self).unwrap().as_bytes())
     }
 }
 

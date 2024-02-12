@@ -62,7 +62,7 @@ impl OneOffManager {
                 state.write().unwrap().remove(&uid);
                 std::fs::create_dir_all(&base).unwrap();
                 #[cfg(target_os = "linux")]
-                let mut one = OneOff::new(source, input, None);
+                let mut one = OneOff::new(source, input);
 
                 // 目前 macos 会出现无法杀死子进程导致评测失败的情况，尚未得到有效解决
                 #[cfg(target_os = "macos")]

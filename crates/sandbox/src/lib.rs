@@ -46,7 +46,7 @@ impl Status {
 }
 
 /// 终止时的信息
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Termination {
     /// 终止状态
     pub status: Status,

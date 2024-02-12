@@ -150,36 +150,25 @@ mod tests {
     #[test]
     fn test_a_plus_b() {
         let dir = tempfile::tempdir().unwrap();
+        let cache_dir = tempfile::tempdir().unwrap();
         let data = a_plus_b_data();
         let StandardProblem::Traditional(data) = data;
         let mut data = data.into_triple().1;
 
-        // let mut data: JudgeData<_, _, _, Traditional> = JudgeData::from_data(data);
+        let mut default_judger =
+            DefaultJudger::new(Handle::new(dir.path()), Some(Handle::new(cache_dir.path())));
 
-        let mut default_judger = DefaultJudger::new(Handle::new(dir.path()));
-
-        let mut subm = traditional::Subm {
-            source: SourceFile::from_str(
-                r#"
-#include<iostream>
-using namespace std;
-int main() {
-    int a, b;
-    cin >> a >> b;
-    cout << a + b;
-    return 0;
-}
-"#,
-                judger::FileType::GnuCpp14O2,
-            ),
-        };
+        let mut subm = a_plus_b_std();
         let report = judger_framework::judge::<_, _, _, Traditional>(
             &mut data,
             &mut default_judger,
             &mut subm,
         )
         .unwrap();
+        // dbg!(&report);
+        assert!((report.meta.score_rate - 1.).abs() < 1e-5);
         dbg!(report.meta);
-        drop(dir)
+        drop(cache_dir);
+        drop(dir);
     }
 }
