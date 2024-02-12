@@ -151,13 +151,14 @@ mod tests {
     #[test]
     fn test_it() {
         let source = SourceFile::from_str(
-            r"
+            r#"
 #include<iostream>
 using namespace std;
 int main() {
-    for(;;);
+    // write for(;;); directly will result in SIGTRAP on MacOS
+    for(;;) cout << "h" << endl;
 }
-",
+"#,
             FileType::GnuCpp17O2,
         );
         let input = StoreFile::from_str(r"1 2", FileType::Plain);

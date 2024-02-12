@@ -91,7 +91,11 @@ impl TaskReport {
 }
 
 impl TaskReport {
-    pub fn add_payload_str(&mut self, name: impl AsRef<str>, content: String) -> anyhow::Result<()> {
+    pub fn add_payload_str(
+        &mut self,
+        name: impl AsRef<str>,
+        content: String,
+    ) -> anyhow::Result<()> {
         self.payload
             .push((name.as_ref().to_string(), content.into()));
         Ok(())

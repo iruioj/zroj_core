@@ -174,7 +174,7 @@ pub const RLIMIT_FSIZE: u32 = cbind::__rlimit_resource_RLIMIT_FSIZE;
 pub const RLIMIT_NOFILE: u32 = cbind::__rlimit_resource_RLIMIT_NOFILE;
 
 #[cfg(target_os = "macos")]
-pub use {cbind::RLIMIT_CPU, cbind::RLIMIT_FSIZE, cbind::RLIMIT_NOFILE};
+pub use {cbind::RLIMIT_FSIZE, cbind::RLIMIT_NOFILE};
 
 pub fn setrlimit(resource: i32, rlim_cur: u64, rlim_max: u64) -> Result<(), Errno> {
     unsafe {

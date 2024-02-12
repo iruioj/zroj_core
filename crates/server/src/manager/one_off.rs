@@ -61,17 +61,8 @@ impl OneOffManager {
                 eprintln!("[job] oneoff uid = {uid}");
                 state.write().unwrap().remove(&uid);
                 std::fs::create_dir_all(&base).unwrap();
-                #[cfg(target_os = "linux")]
                 let mut one = OneOff::new(source, input);
 
-                // 目前 macos 会出现无法杀死子进程导致评测失败的情况，尚未得到有效解决
-                #[cfg(target_os = "macos")]
-                let mut one = OneOff::new(
-                    source,
-                    input,
-                    // TODO make configurable
-                    Some("/Users/sshwy/zroj_core/target/debug/zroj-sandbox".into()),
-                );
                 one.set_wd(base);
                 let result = one.exec().map_err(|e| e.to_string());
                 eprintln!("[job] oneoff exec done.");

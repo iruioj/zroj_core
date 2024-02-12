@@ -76,9 +76,10 @@ impl Singleton {
                     }
                 };
             }
+            // https://issues.chromium.org/issues/40581251#comment3
+            // https://issues.fast-downward.org/issue825
+            #[cfg(not(target_os = "macos"))]
             setlim!(cpu_time, RLIMIT_CPU, sec);
-            // macos 对于内存的控制有自己的见解，如果在这里限制的话会 RE
-            // 这意味着 macos 上的安全性会低一些
             #[cfg(not(target_os = "macos"))]
             setlim!(virtual_memory, RLIMIT_AS, byte);
             #[cfg(not(target_os = "macos"))]
@@ -99,10 +100,14 @@ impl Singleton {
         let pid_timer = match self.limits.real_time {
             super::Lim::None => None,
             super::Lim::Single(s) | super::Lim::Double(s, _) => {
+                // fork a process to setup timer
                 let pid = signal_safe::fork()?;
                 if pid == 0 {
-                    // fork a process to setup timer
-                    signal_safe::sleep(s.sec().clamp(0, u32::MAX as u64) as u32);
+                    let secs = s.sec().clamp(0, u32::MAX as u64) as u32;
+                    signal_safe::print_cstr(b"(child-timer) sleep for \x00");
+                    signal_safe::print_i64(secs as i64);
+                    signal_safe::print_cstr(b" seconds\n\x00");
+                    signal_safe::sleep(secs);
                     signal_safe::print_cstr(b"(child-timer) timmer exit\n\x00");
                     signal_safe::exit(0);
                 }

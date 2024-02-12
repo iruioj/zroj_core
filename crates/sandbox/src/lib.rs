@@ -4,6 +4,9 @@
 //! Sandbox 库负责在限制的条件下执行可执行文件并返回执行的结果
 //!
 //! 为了避免繁琐的编译过程和开发环境搭建，本库将会基于 yaoj-judger 用 Rust 重写。
+//!
+//! Although tests can be passed on MacOS, we do not recommend you running sandbox on it,
+//! since the current implementation is vulnerable due to its bad support of `setrlimit``.
 
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
