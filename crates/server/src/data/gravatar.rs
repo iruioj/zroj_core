@@ -1,4 +1,3 @@
-use actix_web::web::Bytes;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -42,7 +41,7 @@ impl DefaultDB {
         &self,
         client: &GravatarClient,
         email: &EmailAddress,
-    ) -> Result<Bytes, DataError> {
+    ) -> Result<bytes::Bytes, DataError> {
         let hash = hash(email);
 
         let url = self.cdn_base.join(&hash);

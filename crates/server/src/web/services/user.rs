@@ -2,17 +2,76 @@ use crate::{
     block_it,
     data::{
         gravatar::{DefaultDB, GravatarClient},
+        mysql::schema_model::User,
         types::*,
-        user::{UserDB, UserDisplayInfo, UserEditInfo, UserUpdateInfo},
+        user::UserDB,
     },
     marker::*,
     web::auth::Authentication,
 };
 use actix_http::StatusCode;
 use actix_web::{error, web::Json, HttpResponse};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use server_derive::{api, scope_service};
+
+#[derive(Serialize, TsType)]
+pub struct UserDisplayInfo {
+    id: u32,
+    username: Username,
+    email: EmailAddress,
+    motto: String,
+    name: String,
+    register_time: String,
+    gender: Gender,
+}
+impl From<User> for UserDisplayInfo {
+    fn from(value: User) -> Self {
+        Self {
+            id: value.id,
+            username: value.username,
+            email: value.email,
+            motto: value.motto,
+            name: value.name,
+            register_time: value.register_time.to_string(),
+            gender: value.gender,
+        }
+    }
+}
+
+#[derive(Serialize, TsType)]
+pub struct UserEditInfo {
+    id: u32,
+    username: String,
+    email: String,
+    motto: String,
+    name: String,
+    register_time: String,
+    gender: Gender,
+}
+
+impl From<User> for UserEditInfo {
+    fn from(value: User) -> Self {
+        Self {
+            id: value.id,
+            username: value.username.to_string(),
+            email: value.email.to_string(),
+            motto: value.motto,
+            name: value.name,
+            register_time: value.register_time.to_string(),
+            gender: value.gender,
+        }
+    }
+}
+
+#[derive(Deserialize, TsType)]
+pub struct UserUpdateInfo {
+    password_hash: Option<String>,
+    email: Option<EmailAddress>,
+    motto: Option<String>,
+    name: Option<String>,
+    gender: Option<Gender>,
+}
 
 #[derive(Deserialize, TsType)]
 struct ProfileQuery {
@@ -41,7 +100,15 @@ async fn edit_post(
     user_db: ServerData<UserDB>,
 ) -> actix_web::Result<String> {
     let uid = auth.user_id_or_unauthorized()?;
-    block_it!(user_db.update(uid, info.into_inner()))?;
+    let info = info.into_inner();
+    block_it!(user_db.update(
+        uid,
+        info.password_hash,
+        info.email,
+        info.motto,
+        info.name,
+        info.gender
+    ))?;
     Ok("ok".to_string())
 }
 

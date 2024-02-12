@@ -19,8 +19,6 @@ pub type SubmID = u32;
 pub use actix_session;
 use serde_ts_typing::TypeExpr;
 
-use problem::Override;
-
 /// marker are used with the [`server_derive::api`] macro.
 pub(crate) mod marker {
     use actix_web::web;

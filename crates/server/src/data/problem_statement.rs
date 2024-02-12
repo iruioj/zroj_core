@@ -40,16 +40,6 @@ pub struct Statement {
     pub meta: StmtMeta,
 }
 
-impl From<&render_data::Statement> for Statement {
-    fn from(value: &render_data::Statement) -> Self {
-        Self {
-            title: value.title.clone(),
-            statement: value.statement.render_mdast(),
-            meta: value.meta.clone(),
-        }
-    }
-}
-
 #[derive(Serialize, TsType)]
 pub struct ProblemMeta {
     pub id: ProblemID,

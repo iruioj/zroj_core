@@ -1,4 +1,7 @@
-//! 自定义的（SQL）基础类型，目的是利用类型的限制来防止不合法数据的出现，同时可以提供更多类型数据的存储
+//! Define basic data types for SQL serialization.
+//!
+//! It is recommended to create wrapper types as a restriction of data
+//! (e.g. [`Username`], [`EmailAddress`]), so as to prevent attacks.
 
 use diesel::{sql_types::*, *};
 

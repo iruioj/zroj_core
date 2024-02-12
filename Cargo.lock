@@ -2331,6 +2331,7 @@ dependencies = [
  "askama",
  "async-trait",
  "awc",
+ "bytes",
  "chrono",
  "crossbeam-channel",
  "diesel",

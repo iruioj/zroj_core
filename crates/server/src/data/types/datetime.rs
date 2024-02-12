@@ -7,15 +7,13 @@ use std::fmt::Display;
 )]
 #[diesel(sql_type = BigInt)]
 pub struct DateTime(
-    #[serde(with = "chrono::serde::ts_nanoseconds")] chrono::DateTime<chrono::Utc>,
-    i64,
+    #[serde(with = "chrono::serde::ts_milliseconds")] chrono::DateTime<chrono::Utc>,
 );
 
 impl DateTime {
     pub fn now() -> Self {
         let t = chrono::Utc::now();
-        let ts = t.timestamp();
-        Self(t, ts)
+        Self(t)
     }
 }
 impl TryFrom<String> for DateTime {
@@ -23,8 +21,7 @@ impl TryFrom<String> for DateTime {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let v: chrono::DateTime<chrono::Utc> = value.parse()?;
-        let ts = v.timestamp();
-        Ok(Self(v, ts))
+        Ok(Self(v))
     }
 }
 impl TryFrom<i64> for DateTime {
@@ -33,8 +30,7 @@ impl TryFrom<i64> for DateTime {
     fn try_from(value: i64) -> Result<Self, Self::Error> {
         use chrono::TimeZone;
         let t = chrono::Utc.timestamp_millis_opt(value).unwrap();
-        let ts = t.timestamp();
-        Ok(Self(t, ts))
+        Ok(Self(t))
     }
 }
 
@@ -47,13 +43,16 @@ impl Display for DateTime {
 mod mysql {
     use super::*;
 
-    impl<DB> serialize::ToSql<BigInt, DB> for DateTime
+    impl serialize::ToSql<BigInt, diesel::mysql::Mysql> for DateTime
     where
-        DB: backend::Backend,
-        i64: serialize::ToSql<BigInt, DB>,
+        i64: serialize::ToSql<BigInt, diesel::mysql::Mysql>,
     {
-        fn to_sql<'b>(&'b self, out: &mut serialize::Output<'b, '_, DB>) -> serialize::Result {
-            self.1.to_sql(out)
+        fn to_sql<'b>(
+            &'b self,
+            out: &mut serialize::Output<'b, '_, diesel::mysql::Mysql>,
+        ) -> serialize::Result {
+            let v = self.0.timestamp_millis();
+            <i64 as serialize::ToSql<BigInt, diesel::mysql::Mysql>>::to_sql(&v, &mut out.reborrow())
         }
     }
 

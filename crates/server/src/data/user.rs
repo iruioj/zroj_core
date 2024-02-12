@@ -6,89 +6,8 @@ use super::mysql::schema::users;
 use super::mysql::schema_model::User;
 use super::types::*;
 use crate::data::mysql::MysqlDb;
-use crate::Override;
 use crate::UserID;
 use diesel::{self, prelude::*, Insertable};
-use serde::{Deserialize, Serialize};
-use serde_ts_typing::TsType;
-
-#[derive(Serialize, TsType)]
-pub struct UserDisplayInfo {
-    id: u32,
-    username: Username,
-    email: EmailAddress,
-    motto: String,
-    name: String,
-    register_time: String,
-    gender: Gender,
-}
-impl From<User> for UserDisplayInfo {
-    fn from(value: User) -> Self {
-        Self {
-            id: value.id,
-            username: value.username,
-            email: value.email,
-            motto: value.motto,
-            name: value.name,
-            register_time: value.register_time.to_string(),
-            gender: value.gender,
-        }
-    }
-}
-
-#[derive(Serialize, TsType)]
-pub struct UserEditInfo {
-    id: u32,
-    username: String,
-    email: String,
-    motto: String,
-    name: String,
-    register_time: String,
-    gender: Gender,
-}
-
-impl From<User> for UserEditInfo {
-    fn from(value: User) -> Self {
-        Self {
-            id: value.id,
-            username: value.username.to_string(),
-            email: value.email.to_string(),
-            motto: value.motto,
-            name: value.name,
-            register_time: value.register_time.to_string(),
-            gender: value.gender,
-        }
-    }
-}
-
-#[derive(Deserialize, TsType)]
-pub struct UserUpdateInfo {
-    password_hash: Option<String>,
-    email: Option<EmailAddress>,
-    motto: Option<String>,
-    name: Option<String>,
-    gender: Option<Gender>,
-}
-
-impl crate::Override<User> for UserUpdateInfo {
-    fn over(self, origin: &mut User) {
-        if let Some(pw) = self.password_hash {
-            origin.password_hash = pw;
-        }
-        if let Some(e) = self.email {
-            origin.email = e;
-        }
-        if let Some(m) = self.motto {
-            origin.motto = m;
-        }
-        if let Some(n) = self.name {
-            origin.name = n;
-        }
-        if let Some(g) = self.gender {
-            origin.gender = g;
-        }
-    }
-}
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = users)]
@@ -147,10 +66,32 @@ impl Mysql {
             Ok(id as UserID)
         })
     }
-    pub fn update(&self, uid: UserID, info: UserUpdateInfo) -> Result<(), DataError> {
+    pub fn update(
+        &self,
+        uid: UserID,
+        password_hash: Option<String>,
+        email: Option<EmailAddress>,
+        motto: Option<String>,
+        name: Option<String>,
+        gender: Option<Gender>,
+    ) -> Result<(), DataError> {
         self.0.transaction(|conn| {
-            let mut user = users::table.filter(users::id.eq(uid)).first(conn)?;
-            info.over(&mut user);
+            let mut user: User = users::table.filter(users::id.eq(uid)).first(conn)?;
+            if let Some(pw) = password_hash {
+                user.password_hash = pw;
+            }
+            if let Some(e) = email {
+                user.email = e;
+            }
+            if let Some(m) = motto {
+                user.motto = m;
+            }
+            if let Some(n) = name {
+                user.name = n;
+            }
+            if let Some(g) = gender {
+                user.gender = g;
+            }
             diesel::update(users::table.filter(users::id.eq(uid)))
                 .set(user)
                 .execute(conn)?;

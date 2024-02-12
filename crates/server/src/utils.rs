@@ -14,7 +14,6 @@ use tracing_actix_web::TracingLogger;
 use crate::data::{
     self,
     file_system::FileSysDb,
-    mkdata,
     mysql::MysqlDb,
     problem_ojdata::{self, OJDataDB},
     problem_statement,
@@ -140,7 +139,7 @@ pub fn dev_server(
 /// 预先插入用户名 `testtest`，密码 `testtest` 的用户
 pub fn test_userdb(mysqldb: &MysqlDb) -> Data<data::user::UserDB> {
     let db = user::UserDB::new(mysqldb);
-    let r = mkdata!(crate::data::user::UserDB, db);
+    let r = web::Data::new(db);
     // 预先插入一个用户方便测试
     if r.query_by_username(&Username::new("testtest").unwrap())
         .is_err()
@@ -178,7 +177,7 @@ pub fn test_stmtdb(
 }
 
 pub fn test_ojdata_db(filesysdb: &FileSysDb) -> web::Data<OJDataDB> {
-    let db = mkdata!(OJDataDB, problem_ojdata::DefaultDB::new(filesysdb));
+    let db = web::Data::new(problem_ojdata::DefaultDB::new(filesysdb));
 
     db.insert(1, a_plus_b_data())
         .expect("fail to insert A + B Problem data");
