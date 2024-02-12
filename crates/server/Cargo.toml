@@ -13,7 +13,6 @@ actix-rt = "2.9"
 actix-web = "4"
 anyhow = "1.0"
 askama = "0.12.1"
-async-trait = "0.1"
 awc = { version = "3.4", features = ["rustls-0_22-webpki-roots"] }
 rustls = "0.22"
 webpki-roots = "0.26"

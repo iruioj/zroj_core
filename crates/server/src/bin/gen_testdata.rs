@@ -28,7 +28,7 @@ fn main() -> anyhow::Result<()> {
         username: Username::new("testtest")?,
         password_hash: passwd::register_hash("testtest"),
         name: "Test".into(),
-        email: EmailAddress::new("test@test.com")?,
+        email: EmailAddress::new("jy.cat@qq.com")?,
         motto: "Just for test".into(),
         register_time: DateTime::now(),
         gender: Gender::Private,

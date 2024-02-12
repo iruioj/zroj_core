@@ -1,13 +1,9 @@
 use crate::{
     block_it,
-    data::{
-        gravatar::{DefaultDB, GravatarClient},
-        mysql::schema_model::User,
-        types::*,
-        user::UserDB,
-    },
+    data::{mysql::schema_model::User, types::*, user::UserDB},
     marker::*,
     web::auth::Authentication,
+    web::gravatar::GravatarClient,
 };
 use actix_http::StatusCode;
 use actix_web::{error, web::Json, HttpResponse};
@@ -112,8 +108,6 @@ async fn edit_post(
     Ok("ok".to_string())
 }
 
-type GravatarDB = DefaultDB;
-
 #[derive(Deserialize, TsType)]
 pub struct GravatarInfo {
     pub email: EmailAddress,
@@ -124,10 +118,9 @@ pub struct GravatarInfo {
 async fn gravatar(
     info: QueryParam<GravatarInfo>,
     gclient: ServerData<GravatarClient>,
-    db: ServerData<GravatarDB>,
 ) -> actix_web::Result<HttpResponse> {
-    let img_content = db
-        .fetch(gclient.get_ref(), &info.email)
+    let img_content = gclient
+        .fetch(&info.email)
         .await
         .map_err(error::ErrorInternalServerError)?;
     Ok(HttpResponse::build(StatusCode::OK)
@@ -136,13 +129,8 @@ async fn gravatar(
 }
 
 #[scope_service(path = "/user")]
-pub fn service(
-    user_database: ServerData<UserDB>,
-    gclient: ServerData<GravatarClient>,
-    gravatar_db: ServerData<GravatarDB>,
-) {
+pub fn service(user_database: ServerData<UserDB>, gclient: ServerData<GravatarClient>) {
     app_data(user_database);
-    app_data(gravatar_db);
     app_data(gclient);
     service(profile);
     service(edit_get);

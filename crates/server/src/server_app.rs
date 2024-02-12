@@ -22,7 +22,6 @@ struct ServerAppRuntime {
     subm_db: data::submission::SubmDB,
     stmt_db: data::problem_statement::StmtDB,
     ojdata_db: data::problem_ojdata::OJDataDB,
-    gravatar: data::gravatar::DefaultDB,
 }
 
 /// Create an online judge server application.
@@ -130,7 +129,6 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let user_db = data::user::UserDB::new(&mysqldb);
         let stmt_db = data::problem_statement::Mysql::new(&mysqldb, &filesysdb);
         let ojdata_db = data::problem_ojdata::OJDataDB::new(&filesysdb);
-        let gravatar = data::gravatar::DefaultDB::new(&self.config.gravatar_cdn_base);
         let subm_db = data::submission::SubmDB::new(&mysqldb);
 
         self.runtime = Some(ServerAppRuntime {
@@ -139,7 +137,6 @@ impl<A: ToSocketAddrs> ServerApp<A> {
             user_db,
             stmt_db,
             subm_db,
-            gravatar,
             ojdata_db,
         });
         Ok(())
@@ -152,7 +149,6 @@ impl<A: ToSocketAddrs> ServerApp<A> {
             user_db,
             stmt_db,
             subm_db,
-            gravatar,
             ojdata_db,
             ..
         } = self.runtime.unwrap();
@@ -160,7 +156,6 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let user_db = Data::new(user_db);
         let stmt_db = Data::new(stmt_db);
         let subm_db = Data::new(subm_db);
-        let gravatar = Data::new(gravatar);
         let ojdata_db = Data::new(ojdata_db);
 
         let oneoff = Data::new(manager::OneOffManager::new(
@@ -199,7 +194,10 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let auth_storage = AuthStorage::default();
         let tlscfg = std::sync::Arc::new(utils::rustls_config());
         let httpserver = actix_web::HttpServer::new(move || {
-            let gclient = Data::new(crate::data::gravatar::GravatarClient::new(tlscfg.clone()));
+            let gclient = Data::new(crate::web::gravatar::GravatarClient::new(
+                self.config.gravatar_cdn_base.as_ref(),
+                tlscfg.clone(),
+            ));
 
             crate::utils::dev_server(revproxy.clone()).service(
                 actix_web::web::scope("/api")
@@ -208,7 +206,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
                         user_db.clone(),
                     ))
                     .service(
-                        services::user::service(user_db.clone(), gclient, gravatar.clone())
+                        services::user::service(user_db.clone(), gclient)
                             .wrap(AuthInjector::require_auth(auth_storage.clone())),
                     )
                     .service(

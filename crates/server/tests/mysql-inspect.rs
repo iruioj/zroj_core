@@ -18,7 +18,8 @@ struct Table {
 }
 
 /// inspect the database of (new) ZROJ
-fn main() -> anyhow::Result<()> {
+#[test]
+fn test_it() -> anyhow::Result<()> {
     let mut conn =
         diesel::MysqlConnection::establish("mysql://test:test@127.0.0.1:3306/information_schema")
             .context("establish connection")?;
