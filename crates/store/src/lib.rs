@@ -54,7 +54,7 @@ impl Handle {
             .write(true)
             .create_new(true)
             .open(self.as_ref())
-            .context("create new file")?)
+            .with_context(|| format!("create new file {:?}", self.dir))?)
     }
     /// 如果是文件就删除，如果是文件夹就删除它自己和所有子文件夹和子文件
     pub fn remove_all(&self) -> Result<(), Error> {
@@ -77,6 +77,12 @@ impl Handle {
     }
     pub fn path(&self) -> &Path {
         &self.dir
+    }
+    /// See [`Path::with_extension`]
+    pub fn with_extension<S: AsRef<std::ffi::OsStr>>(&self, ext: S) -> Self {
+        Self {
+            dir: self.dir.with_extension(ext),
+        }
     }
 }
 
