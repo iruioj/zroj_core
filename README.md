@@ -21,7 +21,7 @@ First init database and generate data for testing:
 cargo run --bin gen_testdata
 ```
 
-Then start the dev server:
+Then start the dev server (sometimes Cargo complaines during compliation, where you may just rerun Cargo):
 
 ```bash
 cargo run --bin test_all -- --nocapture
