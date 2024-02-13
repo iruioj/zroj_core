@@ -90,7 +90,7 @@ impl std::fmt::Debug for TaskReport {
             .field("time", &self.meta.time)
             .field("memory", &self.meta.memory);
         for (name, content) in &self.payload {
-            builder.field(&name, &content.to_string());
+            builder.field(name, &content.to_string());
         }
         builder.finish()
     }

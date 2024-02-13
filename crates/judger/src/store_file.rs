@@ -81,7 +81,8 @@ impl StoreFile {
         let mut file = tempfile::tempfile().expect("create tmp file");
         std::io::Write::write(&mut file, content.as_ref().as_bytes())
             .expect("cannot write content to file");
-        file.seek(io::SeekFrom::Start(0)).expect("move to the start of file");
+        file.seek(io::SeekFrom::Start(0))
+            .expect("move to the start of file");
         Self { file, file_type }
     }
     /// read (from start) the whole content to byte array
@@ -92,6 +93,6 @@ impl StoreFile {
     }
     /// read (from start) the whole content to string
     pub fn read_to_string(&mut self) -> anyhow::Result<String> {
-        Ok(String::from_utf8(self.read_to_bytes()?).context("text encoding should be utf8")?)
+        String::from_utf8(self.read_to_bytes()?).context("text encoding should be utf8")
     }
 }

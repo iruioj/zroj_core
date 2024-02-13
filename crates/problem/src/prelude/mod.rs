@@ -1,11 +1,10 @@
 use store::{FsStore, Handle};
 
-use crate::data::{Data, OJData};
+use crate::data::OJData;
 
 pub mod traditional;
 pub type Traditional = traditional::Traditional;
-pub type TraditionalOJData = OJData<traditional::Task, traditional::Meta, ()>;
-pub type TraditionalData = Data<traditional::Task, traditional::Meta, ()>;
+type TraditionalOJData = OJData<traditional::Task, traditional::Meta>;
 
 /// OJ 支持的题目类型，用于题目数据的保存和读取
 pub enum StandardProblem {

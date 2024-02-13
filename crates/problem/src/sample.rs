@@ -74,7 +74,6 @@ pub fn a_plus_b_data() -> StandardProblem {
                         gen_a_plus_b_task(1000, 2000),
                         gen_a_plus_b_task(10000, 20000),
                     ],
-                    meta: (),
                     score: 0.5,
                 },
                 crate::data::Subtask {
@@ -83,12 +82,10 @@ pub fn a_plus_b_data() -> StandardProblem {
                         gen_a_plus_b_task(-1000, 2000),
                         gen_a_plus_b_task(-10000, 20000),
                     ],
-                    meta: (),
                     score: 0.3,
                 },
                 crate::data::Subtask {
                     tasks: vec![gen_a_plus_b_task(-10000, -20000)],
-                    meta: (),
                     score: 0.2,
                 },
             ],
@@ -170,30 +167,24 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let cache_dir = tempfile::tempdir().unwrap();
         let data = a_plus_b_data();
-        let StandardProblem::Traditional(data) = data;
-        let mut data = data.into_triple().1;
+        let StandardProblem::Traditional(mut data) = data;
+        let mut data = data.get_data_mut();
 
         let mut default_judger =
             DefaultJudger::new(Handle::new(dir.path()), Some(Handle::new(cache_dir.path())));
 
         let mut subm = a_plus_b_std();
-        let report = judger_framework::judge::<_, _, _, Traditional>(
-            &mut data,
-            &mut default_judger,
-            &mut subm,
-        )
-        .unwrap();
+        let report =
+            judger_framework::judge::<_, _, Traditional>(&mut data, &mut default_judger, &mut subm)
+                .unwrap();
         // dbg!(&report);
         assert!((report.meta.score_rate - 1.).abs() < 1e-5);
         dbg!(report);
 
         let mut subm = a_plus_b_wa();
-        let report = judger_framework::judge::<_, _, _, Traditional>(
-            &mut data,
-            &mut default_judger,
-            &mut subm,
-        )
-        .unwrap();
+        let report =
+            judger_framework::judge::<_, _, Traditional>(&mut data, &mut default_judger, &mut subm)
+                .unwrap();
         dbg!(report);
 
         drop(cache_dir);

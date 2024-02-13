@@ -1,6 +1,5 @@
 //! 题目数据存储
 
-use crate::Override;
 pub use judger::FileType;
 use serde::{Deserialize, Serialize};
 use store::FsStore;
@@ -21,20 +20,17 @@ use store::FsStore;
 ///
 /// - 子任务/测试点的评分模式是可以固定的（分数的计算可以自定义）
 /// - 子任务具有与整个评测任务相似的结构，除了不能有子任务
-#[derive(FsStore, Debug)]
-pub struct Data<T, M, S>
+#[derive(Debug)]
+pub struct Data<'d, T, M>
 where
-    T: FsStore + Send + Sync + 'static,
-    M: FsStore + Clone + Send + Sync + 'static,
-    S: FsStore + Send + Sync + 'static,
-    for<'a> &'a S: Override<M>,
+    T: FsStore,
 {
     /// 测试数据
-    pub tasks: Taskset<T, S>,
+    pub tasks: &'d mut Taskset<T>,
     /// 默认的子任务元数据。
     ///
     /// 在评测时如果没有子任务就按这里的限制评测，如果有那么各自子任务的元数据会代替
-    pub meta: M,
+    pub meta: &'d mut M,
     // 子任务计分规则
     // pub rule: Rule,
 }
@@ -43,35 +39,31 @@ where
 ///
 /// 比题目评测数据多了预测 (pre) 和额外测试 (extra)
 #[derive(FsStore, Debug)]
-pub struct OJData<T, M, S>
+pub struct OJData<T, M>
 where
     T: FsStore,
     M: FsStore,
-    S: FsStore,
-    for<'a> &'a S: Override<M>,
 {
     /// 测试数据
-    pub data: Taskset<T, S>,
+    pub data: Taskset<T>,
     /// 样例评测的数据
     ///
     /// 初始化时与 data 的元信息一致，数据集为空
-    pub pre: Taskset<T, S>,
+    pub pre: Taskset<T>,
     /// 额外的评测数据
     ///
     /// 初始化时与 data 的元信息一致，数据集为空
-    pub extra: Taskset<T, S>,
+    pub extra: Taskset<T>,
     /// see [`Data`]
     pub meta: M,
     // see [`Data`]
     // pub rule: Rule,
 }
 
-impl<T, M, S> OJData<T, M, S>
+impl<T, M> OJData<T, M>
 where
-    T: FsStore + Send + Sync + 'static,
-    M: FsStore + Clone + Send + Sync + 'static,
-    S: FsStore + Send + Sync + 'static,
-    for<'a> &'a S: Override<M>,
+    T: FsStore,
+    M: FsStore,
 {
     pub fn new(meta: M) -> Self {
         Self {
@@ -82,57 +74,44 @@ where
             // rule,
         }
     }
-    pub fn set_data(mut self, data: Taskset<T, S>) -> Self {
+    pub fn set_data(mut self, data: Taskset<T>) -> Self {
         self.data = data;
         self
     }
-    pub fn set_pre(mut self, data: Taskset<T, S>) -> Self {
+    pub fn set_pre(mut self, data: Taskset<T>) -> Self {
         self.pre = data;
         self
     }
-    pub fn set_extra(mut self, data: Taskset<T, S>) -> Self {
+    pub fn set_extra(mut self, data: Taskset<T>) -> Self {
         self.extra = data;
         self
     }
-    pub fn into_triple(self) -> (Data<T, M, S>, Data<T, M, S>, Data<T, M, S>) {
-        (
-            Data {
-                tasks: self.pre,
-                meta: self.meta.clone(),
-            },
-            Data {
-                tasks: self.data,
-                meta: self.meta.clone(),
-            },
-            Data {
-                tasks: self.extra,
-                meta: self.meta,
-            },
-        )
+    pub fn get_data_mut(&mut self) -> Data<'_, T, M> {
+        Data {
+            tasks: &mut self.data,
+            meta: &mut self.meta,
+        }
     }
 }
 
 #[derive(FsStore, Debug)]
-pub struct Subtask<Task, SubtaskMeta>
+pub struct Subtask<Task>
 where
     Task: FsStore,
-    SubtaskMeta: FsStore,
 {
     pub tasks: Vec<Task>,
-    pub meta: SubtaskMeta,
     #[meta]
     pub score: f64,
 }
 
 /// 任务集合，分成测试点模式和子任务模式
 #[derive(FsStore, Debug)]
-pub enum Taskset<Task, SubtaskMeta>
+pub enum Taskset<Task>
 where
     Task: FsStore,
-    SubtaskMeta: FsStore,
 {
     Subtasks {
-        subtasks: Vec<Subtask<Task, SubtaskMeta>>,
+        subtasks: Vec<Subtask<Task>>,
         /// (a, b) 表示  b 依赖 a
         #[meta]
         deps: DepOption,
@@ -142,10 +121,9 @@ where
     },
 }
 
-impl<T, S> Default for Taskset<T, S>
+impl<T> Default for Taskset<T>
 where
     T: FsStore,
-    S: FsStore,
 {
     fn default() -> Self {
         Self::Tests {

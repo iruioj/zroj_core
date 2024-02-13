@@ -4,7 +4,6 @@ use anyhow::{anyhow, Context};
 use problem::{
     data::OJData,
     judger_framework::{judge, JudgeTask, LogMessage, MpscJudger},
-    Override,
 };
 use std::{
     collections::HashMap,
@@ -67,19 +66,17 @@ impl ProblemJudger {
             .get(sid)
             .cloned())
     }
-    pub fn add_test<T, M, S, J>(
+    pub fn add_test<T, M, J>(
         &self,
         sid: SubmID,
-        ojdata: OJData<T, M, S>,
+        mut ojdata: OJData<T, M>,
         mut subm: J::Subm,
         // callback: impl FnOnce(Result<FullJudgeReport, String>) -> Result<(), String> + Send + Sync,
     ) -> anyhow::Result<()>
     where
         T: FsStore + Send + Sync + 'static,
-        M: FsStore + Clone + Send + Sync + 'static,
-        S: FsStore + Send + Sync + 'static,
-        for<'a> &'a S: Override<M>,
-        J: JudgeTask<T = T, M = M, S = S>,
+        M: FsStore + Send + Sync + 'static,
+        J: JudgeTask<T = T, M = M>,
     {
         let state = self.state.clone();
         let logs = self.logs.clone();
@@ -95,7 +92,7 @@ impl ProblemJudger {
                 let (mut judger, receiver) = MpscJudger::new(dir.clone());
 
                 // TODO: pre and extra
-                let (_, mut data, _) = ojdata.into_triple();
+                let mut data = ojdata.get_data_mut();
 
                 // create a new thread for receiving messages
                 let log_handle = std::thread::spawn(move || {
@@ -112,7 +109,7 @@ impl ProblemJudger {
                     }
                 });
 
-                let data_report = judge::<_, _, _, J>(&mut data, &mut judger, &mut subm)
+                let data_report = judge::<_, _, J>(&mut data, &mut judger, &mut subm)
                     .map_err(|e| e.to_string())?;
                 update_state_data(
                     &mut state.write().expect("save data state"),

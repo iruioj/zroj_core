@@ -7,10 +7,7 @@ use judger::{
     Status, TaskMeta, SCOER_EPS,
 };
 
-use crate::{
-    data::{Data, Rule},
-    Override,
-};
+use crate::data::{Data, Rule};
 use judger::{JudgeReport, SubtaskReport};
 use std::sync::mpsc;
 use store::FsStore;
@@ -69,16 +66,11 @@ impl Summarizer {
     }
 }
 
-pub trait JudgeTask
-where
-    for<'a> &'a Self::S: Override<Self::M>,
-{
+pub trait JudgeTask {
     /// task type
     type T: FsStore;
     /// global default task meta
     type M: FsStore;
-    /// subtask meta type (during judging, it overrides the global default task meta)
-    type S: FsStore;
     // any owned data always passes a 'static lifetime bound
     type Subm: FsStore + Send + Sync + 'static;
 
@@ -143,17 +135,15 @@ pub enum LogMessage {
 /// 返回的得分是单位化的（0-1之间）
 ///
 /// 子任务中的测试点默认按照 Min 的策略记分
-pub fn judge<T, M, S, J>(
-    data: &mut Data<T, M, S>,
+pub fn judge<T, M, J>(
+    data: &mut Data<'_, T, M>,
     judger: &mut impl judger::Judger<LogMessage>,
     subm: &mut J::Subm,
 ) -> anyhow::Result<judger::JudgeReport>
 where
-    T: FsStore + Send + Sync + 'static,
-    M: FsStore + Clone + Send + Sync + 'static,
-    S: FsStore + Send + Sync + 'static,
-    for<'a> &'a S: Override<M>,
-    J: JudgeTask<T = T, M = M, S = S>,
+    T: FsStore,
+    M: FsStore,
+    J: JudgeTask<T = T, M = M>,
 {
     Ok(match &mut data.tasks {
         crate::data::Taskset::Subtasks { subtasks, deps } => {
@@ -176,9 +166,7 @@ where
                     } else {
                         judger.runtime_log(LogMessage::SubtaskTask(id, tid));
 
-                        let mut meta = data.meta.clone();
-                        sbt.meta.over(&mut meta);
-                        let r = J::judge_task(judger, &mut meta, task, subm)?;
+                        let r = J::judge_task(judger, data.meta, task, subm)?;
 
                         sub_summary.update(&r.meta, 1.0);
                         subreports.push(Some(r));
@@ -210,7 +198,7 @@ where
                 } else {
                     judger.runtime_log(LogMessage::TestTask(id));
                     judger.working_dir().remove_all()?;
-                    let r = J::judge_task(judger, &mut data.meta, task, subm)?;
+                    let r = J::judge_task(judger, data.meta, task, subm)?;
                     summary.update(&r.meta, default_score);
                     reports.push(Some(r));
                 }

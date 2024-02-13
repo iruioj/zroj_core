@@ -1,5 +1,3 @@
-use std::{ffi::CString, os::unix::ffi::OsStrExt};
-
 use crate::{
     data::StoreFile,
     judger_framework::{JudgeTask, LogMessage},
@@ -16,7 +14,7 @@ use judger::{
 };
 use store::FsStore;
 
-#[derive(FsStore, Debug, Clone)]
+#[derive(FsStore, Debug)]
 pub struct Meta {
     pub checker: Checker,
     // pub validator: String,
@@ -54,7 +52,6 @@ pub struct Traditional;
 impl JudgeTask for Traditional {
     type T = Task;
     type M = Meta;
-    type S = ();
     type Subm = Subm;
 
     // 先写了一个粗糙的，后面再来错误处理
@@ -74,34 +71,32 @@ impl JudgeTask for Traditional {
         let judger::Compilation {
             termination: term,
             log_payload,
-            mut execfile,
+            execfile,
         }: judger::Compilation = judger.cachable_block(
-            |judger, (source, name)| {
+            |judger, source| {
                 eprintln!("编译源文件");
-                judger.compile(source, name)
+                judger.compile(source, "main-pre")
             },
-            (source, "main-pre"),
+            source,
         )?;
-        dbg!(execfile.metadata().unwrap().permissions());
-        let exec = judger.copy_file(&mut execfile, "main")?;
 
         // Compile Error
         if !term.status.ok() {
-            return Ok({
-                let mut r = judger::TaskReport {
-                    meta: judger::TaskMeta {
-                        score_rate: 0.0,
-                        status: judger::Status::CompileError(Some(term.status)),
-                        time: term.cpu_time,
-                        memory: term.memory,
-                    },
-                    // todo: add log
-                    payload: Vec::new(),
-                };
-                r.payload.push(("compile log".into(), log_payload));
-                r
+            return Ok(judger::TaskReport {
+                meta: judger::TaskMeta {
+                    score_rate: 0.0,
+                    status: judger::Status::CompileError(Some(term.status)),
+                    time: term.cpu_time,
+                    memory: term.memory,
+                },
+                // todo: add log
+                payload: vec![("compile log".into(), log_payload)],
             });
         }
+
+        let mut execfile = execfile.context("compile succeed but execfile not found")?;
+        dbg!(execfile.metadata().unwrap().permissions());
+        let exec = judger.copy_file(&mut execfile, "main")?;
 
         let input = judger.copy_store_file(&mut task.input, "input")?;
         let answer = judger.copy_store_file(&mut task.output, "answer")?;
@@ -109,12 +104,12 @@ impl JudgeTask for Traditional {
         let output = judger.clear_dest("output")?;
         let log = judger.clear_dest("log")?;
 
-        let s = Singleton::new(CString::new(exec.as_ref().as_os_str().as_bytes()).unwrap())
-            .stdin(CString::new(input.as_ref().as_os_str().as_bytes()).unwrap())
-            .stdout(CString::new(output.as_ref().as_os_str().as_bytes()).unwrap())
-            .stderr(CString::new(log.as_ref().as_os_str().as_bytes()).unwrap())
+        let s = Singleton::new(exec.to_cstring())
+            .stdin(input.to_cstring())
+            .stdout(output.to_cstring())
+            .stderr(log.to_cstring())
             .set_limits(|_| judger::sandbox::unix::Limitation {
-                real_time: Lim::Double(meta.time_limit, Elapse::from(meta.time_limit.ms() * 2)),
+                real_time: Lim::Double(meta.time_limit, meta.time_limit * 1.1),
                 cpu_time: meta.time_limit.into(),
                 virtual_memory: meta.memory_limit.into(),
                 real_memory: meta.memory_limit.into(),
@@ -147,7 +142,7 @@ impl JudgeTask for Traditional {
         }
 
         // check answer
-        let r = meta.checker.check(&input, &output, &answer);
+        let r = meta.checker.check(judger, &input, &output, &answer);
 
         if r.is_err() {
             report.meta.status = judger::Status::WrongAnswer;

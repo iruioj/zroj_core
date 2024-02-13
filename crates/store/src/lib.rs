@@ -8,10 +8,14 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use std::{
     collections::{BTreeMap, BTreeSet},
+    ffi::CString,
     fmt::Debug,
     fs,
     io::{Seek, Write},
-    os::unix::fs::{OpenOptionsExt, PermissionsExt},
+    os::unix::{
+        ffi::OsStrExt,
+        fs::{OpenOptionsExt, PermissionsExt},
+    },
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -90,6 +94,9 @@ impl Handle {
         Self {
             dir: self.dir.with_extension(ext),
         }
+    }
+    pub fn to_cstring(&self) -> CString {
+        CString::new(self.path().as_os_str().as_bytes()).unwrap()
     }
 }
 
@@ -346,6 +353,23 @@ impl FsStore for fs::File {
             .with_context(|| format!("save fs::File to {:?}", ctx.path()))?;
         self.seek(std::io::SeekFrom::Start(0)).unwrap();
         std::io::copy(self, &mut dest).context("copying data")?;
+        Ok(())
+    }
+}
+
+impl FsStore for Option<fs::File> {
+    fn open(ctx: &Handle) -> Result<Self, Error> {
+        if ctx.path().exists() {
+            Ok(Some(ctx.open_file()?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
+        if let Some(f) = self {
+            f.save(ctx)?;
+        }
         Ok(())
     }
 }

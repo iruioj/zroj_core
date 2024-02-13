@@ -35,7 +35,8 @@ impl HashMut for StoreFile {
 
 impl<T: Hash> HashMut for T {
     fn hash_mut<H: std::hash::Hasher>(&mut self, state: &mut H) -> anyhow::Result<()> {
-        Ok(Hash::hash(&self, state))
+        Hash::hash(&self, state);
+        Ok(())
     }
 }
 
@@ -45,7 +46,7 @@ pub struct Compilation {
     pub termination: sandbox::Termination,
     #[meta]
     pub log_payload: TruncStr,
-    pub execfile: std::fs::File,
+    pub execfile: Option<std::fs::File>,
 }
 
 /// Judger 是一个评测服务的上下文，可以提供评测环境的信息，访问相关缓存等等
@@ -70,6 +71,8 @@ pub trait Judger<
     /// Compile `file` and generate executable at `working_dir/name`
     ///
     /// You need to ensure the source file `working_dir/name.ext` does not exist.
+    /// If you're applying [`Judger::cachable_block`], you should use [`Compilation::execfile`] for
+    /// further processing.
     fn compile(&self, file: &mut SourceFile, name: &str) -> anyhow::Result<Compilation> {
         let wd = self.working_dir();
         let src = wd.join(name).with_extension(file.file_type.ext());
@@ -86,7 +89,7 @@ pub trait Judger<
         Ok(Compilation {
             termination: term,
             log_payload: std::fs::read_to_string(&clog)?.into(),
-            execfile: exec.open_file().context("open executable file")?,
+            execfile: exec.open_file().ok(),
         })
     }
 

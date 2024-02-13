@@ -94,6 +94,14 @@ impl std::ops::Add<Elapse> for Elapse {
     }
 }
 
+impl std::ops::Mul<f64> for Elapse {
+    type Output = Elapse;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Elapse((self.0 as f64 * rhs) as u64)
+    }
+}
+
 impl Elapse {
     /// 输出以秒为单位的时间
     pub fn sec(self) -> u64 {

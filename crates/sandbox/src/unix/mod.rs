@@ -37,16 +37,6 @@ impl<T: PartialOrd + Copy> Lim<T> {
             Lim::Double(s, _) => usage <= s,
         }
     }
-    /// 判断是否超过硬限制
-    ///
-    /// true 表示没有超过限制
-    pub fn check_hard(&self, usage: &T) -> bool {
-        match self {
-            Lim::None => true,
-            Lim::Single(l) => usage <= l,
-            Lim::Double(_, h) => usage <= h,
-        }
-    }
 }
 impl<T: PartialOrd + Display> Display for Lim<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -85,8 +75,10 @@ impl<T: PartialOrd + Copy> From<T> for Lim<T> {
 /// 对进程施加各种类型的资源限制
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Limitation {
-    /// 限制实际运行时间，一般是用来做一个大保底
-    /// 最好赋予 soft limit 和 hard limit 不同的值，详见 singleton 的实现
+    /// 限制实际运行时间，linux 上一般是用来做一个大保底
+    ///
+    /// soft limit 和 hard limit，一般以 soft 为衡量标准。
+    /// 可以考虑对 > soft limit <= hard limit 的程序进行自动重测
     pub real_time: Lim<Elapse>,
     /// 限制 CPU 的运行时间，一般用来衡量程序的运行时间
     ///

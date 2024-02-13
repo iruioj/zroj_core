@@ -1,9 +1,11 @@
 use std::{
+    ffi::CString,
     fs::File,
     io::{BufRead, BufReader},
 };
 
 use anyhow::Context;
+use judger::{sandbox::ExecSandBox, Judger, SourceFile, StoreFile};
 use store::{FsStore, Handle};
 
 fn compare_byline(
@@ -38,7 +40,8 @@ fn compare_byline(
 /// OJ 内置的 Checker
 ///
 /// 鉴于 testlib 年久失修并且非 rust 原生，输出格式不好控制，这里将常见的 checker 使用 rust 重写
-#[derive(FsStore, Debug, Clone)]
+#[derive(FsStore, Debug)]
+#[non_exhaustive]
 pub enum Checker {
     /// 全文比较，忽略文末回车
     FileCmp,
@@ -55,9 +58,13 @@ pub enum Checker {
         #[meta]
         float_absoulte_eps: f64,
     },
-    // Testlib {
-    //     source: StoreFile,
-    // },
+    /// We provide builtin support for [Codeforces Testlib](https://github.com/MikeMirzayanov/testlib)
+    /// checker
+    TestlibChecker {
+        // do not load the huge header file into memory
+        testlib_header: StoreFile,
+        checker: SourceFile,
+    },
 }
 
 fn file_cmp(fout: BufReader<File>, fans: BufReader<File>) -> Result<String, String> {
@@ -106,9 +113,10 @@ fn auto_cmp(
 
 impl Checker {
     /// 检查正确性，返回正确与否和详细信息
-    pub fn check(
+    pub fn check<M: std::fmt::Display>(
         &mut self,
-        _input: &Handle,
+        judger: &impl Judger<M>,
+        input: &Handle,
         output: &Handle,
         answer: &Handle,
     ) -> anyhow::Result<(f64, String)> {
@@ -123,7 +131,6 @@ impl Checker {
                 Ok(msg) => Ok((1., msg)),
                 Err(msg) => Ok((0., msg)),
             },
-            // Checker::Testlib { source: _ } => todo!(),
             Checker::AutoCmp {
                 float_relative_eps,
                 float_absoulte_eps,
@@ -131,17 +138,55 @@ impl Checker {
                 Ok(msg) => Ok((1., msg)),
                 Err(msg) => Ok((0., msg)),
             },
+            Checker::TestlibChecker {
+                testlib_header,
+                checker,
+            } => {
+                judger.copy_store_file(testlib_header, "testlib.h")?;
+                let judger::Compilation {
+                    termination,
+                    execfile,
+                    ..
+                } = judger.cachable_block(
+                    |judger, checker| judger.compile(checker, "checker-pre"),
+                    checker,
+                )?;
+
+                let mut execfile =
+                    execfile.with_context(|| format!("compile checker error: {termination:?}"))?;
+                let checker = judger.copy_file(&mut execfile, "checker")?;
+                let checker_log = judger.clear_dest("checker.log")?;
+
+                let term = judger::sandbox::unix::Singleton::new(checker.to_cstring())
+                    .push_arg([
+                        CString::new("checker").unwrap(),
+                        input.to_cstring(),
+                        output.to_cstring(),
+                        answer.to_cstring(),
+                    ])
+                    .stderr(checker_log.to_cstring())
+                    .exec_sandbox()?;
+
+                let checker_log =
+                    std::fs::read_to_string(&checker_log).context("read checker log")?;
+
+                match term.status {
+                    judger::sandbox::Status::Ok => Ok((1., checker_log)),
+                    judger::sandbox::Status::RuntimeError(s) => {
+                        Ok((0., format!("(checker exit code = {s}) {checker_log}")))
+                    }
+                    t => Err(anyhow::anyhow!("checker error: {t:?}, {checker_log}")),
+                }
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::io::BufReader;
-
-    use judger::StoreFile;
-
     use super::*;
+    use judger::StoreFile;
+    use std::io::BufReader;
 
     #[test]
     fn test_compare_byline() {
