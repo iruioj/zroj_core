@@ -68,6 +68,12 @@ impl Handle {
             Ok(fs::remove_file(self.path()).context("remove file")?)
         }
     }
+    /// remove original item (recursively) and create an empty directory
+    pub fn prepare_empty_dir(&self) -> Result<(), Error> {
+        self.remove_all()?;
+        std::fs::create_dir_all(self.path()).context("create dir")?;
+        Ok(())
+    }
     /// 从该路径下的文件中解析数据（要求文件存在）
     pub fn deserialize<T: DeserializeOwned>(&self) -> Result<T, Error> {
         Ok(serde_json::from_reader(self.open_file()?)?)

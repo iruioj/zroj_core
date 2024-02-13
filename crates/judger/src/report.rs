@@ -73,12 +73,27 @@ impl TaskMeta {
 }
 
 /// 一个测试点的测试结果
-#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
+#[derive(Clone, Serialize, Deserialize, TsType)]
 pub struct TaskReport {
     /// 指标
     pub meta: TaskMeta,
     /// 相关载荷（stdin, stdout, answer ...)
     pub payload: Vec<(String, TruncStr)>,
+}
+
+impl std::fmt::Debug for TaskReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut builder = f.debug_struct("Task");
+        builder
+            .field("score_rate", &self.meta.score_rate)
+            .field("status", &self.meta.status)
+            .field("time", &self.meta.time)
+            .field("memory", &self.meta.memory);
+        for (name, content) in &self.payload {
+            builder.field(&name, &content.to_string());
+        }
+        builder.finish()
+    }
 }
 
 impl TaskReport {
@@ -138,7 +153,7 @@ impl From<sandbox::Status> for Status {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
+#[derive(Clone, Serialize, Deserialize, TsType)]
 pub struct SubtaskReport {
     /// 所有子任务的分数总和为 1
     pub total_score: f64,
@@ -146,11 +161,54 @@ pub struct SubtaskReport {
     pub tasks: Vec<Option<TaskReport>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TsType)]
+impl std::fmt::Debug for SubtaskReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut builder = f.debug_struct("SubtaskReport");
+        builder
+            .field("total_score", &self.total_score)
+            .field("meta", &self.meta);
+        for (tid, task) in self.tasks.iter().enumerate() {
+            if let Some(task) = task {
+                builder.field(&format!("#{tid}"), &task);
+            } else {
+                builder.field(&format!("#{tid}"), &"skipped");
+            }
+        }
+
+        builder.finish()
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, TsType)]
 #[serde(tag = "type", content = "tasks")]
 pub enum JudgeDetail {
     Subtask(Vec<SubtaskReport>),
     Tests(Vec<Option<TaskReport>>),
+}
+
+impl std::fmt::Debug for JudgeDetail {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Subtask(subtasks) => {
+                let mut builder = f.debug_struct("Subtasks");
+                for (tid, task) in subtasks.iter().enumerate() {
+                    builder.field(&format!("#{tid}"), &task);
+                }
+                builder.finish()
+            }
+            Self::Tests(tasks) => {
+                let mut builder = f.debug_struct("Tasks");
+                for (tid, task) in tasks.iter().enumerate() {
+                    if let Some(task) = task {
+                        builder.field(&format!("#{tid}"), &task);
+                    } else {
+                        builder.field(&format!("#{tid}"), &"skipped");
+                    }
+                }
+                builder.finish()
+            }
+        }
+    }
 }
 
 pub const SCOER_EPS: f64 = 1e-5;

@@ -63,7 +63,7 @@ pub trait Judger<
 >
 {
     /// 返回当前的工作目录
-    fn working_dir(&self) -> store::Handle;
+    fn working_dir(&self) -> &store::Handle;
     /// 输出评测日志
     fn runtime_log(&mut self, msg: M);
 
@@ -93,13 +93,9 @@ pub trait Judger<
     /// Copy the content of `file` to `working_dir/name`, return the handle of the destination.
     ///
     /// You need to ensure the source file `working_dir/name` does not exist.
-    fn copy_store_file(
-        &self,
-        src: &mut StoreFile,
-        name: impl AsRef<str>,
-    ) -> anyhow::Result<Handle> {
+    fn copy_store_file(&self, src: &mut StoreFile, name: &str) -> anyhow::Result<Handle> {
         let wd = self.working_dir();
-        let dest = wd.join(name.as_ref());
+        let dest = wd.join(name);
         src.file.safe_save(&dest)?;
         Ok(dest)
     }
@@ -107,11 +103,19 @@ pub trait Judger<
     /// Copy the content of `file` to `working_dir/name`, return the handle of the destination.
     ///
     /// You need to ensure the source file `working_dir/name` does not exist.
-    fn copy_file(&self, src: &mut std::fs::File, name: impl AsRef<str>) -> anyhow::Result<Handle> {
+    fn copy_file(&self, src: &mut std::fs::File, name: &str) -> anyhow::Result<Handle> {
         let wd = self.working_dir();
-        let dest = wd.join(name.as_ref());
+        let dest = wd.join(name);
         src.safe_save(&dest)?;
         Ok(dest)
+    }
+
+    /// remove `working_dir/name` and return its path
+    fn clear_dest(&self, name: &str) -> anyhow::Result<Handle> {
+        let wd = self.working_dir();
+        let path = wd.join(name);
+        path.remove_all()?;
+        Ok(path)
     }
 
     /// You may reimplement this funciton to enable caching
@@ -135,8 +139,8 @@ impl DefaultJudger {
     }
 }
 impl<M: std::fmt::Display> Judger<M> for DefaultJudger {
-    fn working_dir(&self) -> store::Handle {
-        self.wd.clone()
+    fn working_dir(&self) -> &store::Handle {
+        &self.wd
     }
     fn runtime_log(&mut self, msg: M) {
         eprintln!("[judger] {}", msg)

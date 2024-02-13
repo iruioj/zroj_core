@@ -71,10 +71,14 @@ pub trait ExecSandBox {
 }
 
 /// 时间表示，数值单位为 ms
-#[derive(
-    Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord, TsType,
-)]
+#[derive(Clone, Copy, Serialize, Deserialize, Default, PartialEq, PartialOrd, Eq, Ord, TsType)]
 pub struct Elapse(u64);
+
+impl std::fmt::Debug for Elapse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}ms", self.0)
+    }
+}
 
 impl From<Elapse> for u64 {
     fn from(value: Elapse) -> Self {
@@ -136,10 +140,14 @@ impl From<Duration> for Elapse {
 }
 
 /// 内存空间表示，数值单位为 byte
-#[derive(
-    Clone, Copy, Serialize, Deserialize, Debug, Default, PartialEq, PartialOrd, Eq, Ord, TsType,
-)]
+#[derive(Clone, Copy, Serialize, Deserialize, Default, PartialEq, PartialOrd, Eq, Ord, TsType)]
 pub struct Memory(u64);
+
+impl std::fmt::Debug for Memory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}bytes", self.0)
+    }
+}
 
 impl From<Memory> for u64 {
     fn from(value: Memory) -> Self {

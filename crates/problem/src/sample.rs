@@ -46,14 +46,14 @@ int main() {
     }
 }
 
-fn gen_a_plus_b_task(a: i32, b: i32) -> crate::prelude::traditional::Task {
-    crate::prelude::traditional::Task {
-        input: StoreFile::from_str(format!("{a} {b}"), judger::FileType::Plain),
-        output: StoreFile::from_str((a + b).to_string(), judger::FileType::Plain),
-    }
-}
-
 pub fn a_plus_b_data() -> StandardProblem {
+    fn gen_a_plus_b_task(a: i32, b: i32) -> crate::prelude::traditional::Task {
+        crate::prelude::traditional::Task {
+            input: StoreFile::from_str(format!("{a} {b}"), judger::FileType::Plain),
+            output: StoreFile::from_str((a + b).to_string(), judger::FileType::Plain),
+        }
+    }
+
     StandardProblem::Traditional(
         OJData::new(crate::prelude::traditional::Meta {
             checker: crate::Checker::AutoCmp {
@@ -138,6 +138,24 @@ int main() {
     }
 }
 
+pub fn a_plus_b_wa() -> crate::prelude::traditional::Subm {
+    crate::prelude::traditional::Subm {
+        source: SourceFile::from_str(
+            r#"
+#include<iostream>
+using namespace std;
+int main() {
+    int a, b;
+    cin >> a >> b;
+    cout << a - b;
+    return 0;
+}
+"#,
+            judger::FileType::GnuCpp14O2,
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use judger::DefaultJudger;
@@ -167,7 +185,17 @@ mod tests {
         .unwrap();
         // dbg!(&report);
         assert!((report.meta.score_rate - 1.).abs() < 1e-5);
-        dbg!(report.meta);
+        dbg!(report);
+
+        let mut subm = a_plus_b_wa();
+        let report = judger_framework::judge::<_, _, _, Traditional>(
+            &mut data,
+            &mut default_judger,
+            &mut subm,
+        )
+        .unwrap();
+        dbg!(report);
+
         drop(cache_dir);
         drop(dir);
     }

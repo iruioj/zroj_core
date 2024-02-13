@@ -94,9 +94,9 @@ impl Checker {
     /// 检查正确性，返回正确与否和详细信息
     pub fn check(
         &mut self,
-        _input: Handle,
-        output: Handle,
-        answer: Handle,
+        _input: &Handle,
+        output: &Handle,
+        answer: &Handle,
     ) -> Result<String, String> {
         let Ok(fout) = output.open_file() else {
             return Err("can not open output file".into());

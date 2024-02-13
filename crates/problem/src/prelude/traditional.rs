@@ -5,6 +5,7 @@ use crate::{
     judger_framework::{JudgeTask, LogMessage},
     Checker, Override,
 };
+use anyhow::Context;
 use judger::{
     sandbox::{
         unix::{Lim, Singleton},
@@ -63,7 +64,11 @@ impl JudgeTask for Traditional {
         task: &mut Self::T,
         subm: &mut Self::Subm,
     ) -> anyhow::Result<judger::TaskReport> {
-        let wd = judger.working_dir();
+        judger
+            .working_dir()
+            .prepare_empty_dir()
+            .context("init working dir")?;
+
         let Subm { source } = subm;
 
         let judger::Compilation {
@@ -99,12 +104,15 @@ impl JudgeTask for Traditional {
         }
 
         let input = judger.copy_store_file(&mut task.input, "input")?;
-        let output = judger.copy_store_file(&mut task.output, "answer")?;
+        let answer = judger.copy_store_file(&mut task.output, "answer")?;
+
+        let output = judger.clear_dest("output")?;
+        let log = judger.clear_dest("log")?;
 
         let s = Singleton::new(CString::new(exec.as_ref().as_os_str().as_bytes()).unwrap())
             .stdin(CString::new(input.as_ref().as_os_str().as_bytes()).unwrap())
             .stdout(CString::new(output.as_ref().as_os_str().as_bytes()).unwrap())
-            .stderr(CString::new(wd.join("log").as_ref().as_os_str().as_bytes()).unwrap())
+            .stderr(CString::new(log.as_ref().as_os_str().as_bytes()).unwrap())
             .set_limits(|_| judger::sandbox::unix::Limitation {
                 real_time: Lim::Double(meta.time_limit, Elapse::from(meta.time_limit.ms() * 2)),
                 cpu_time: meta.time_limit.into(),
@@ -128,23 +136,22 @@ impl JudgeTask for Traditional {
             payload: Vec::new(),
         };
         report.meta.score_rate = report.meta.status.direct_score_rate();
-        let _ = report.add_payload("compile log", wd.join("main.c.log"));
-        let _ = report.add_payload("stdin", wd.join("input"));
-        let _ = report.add_payload("stdout", wd.join("output"));
-        let _ = report.add_payload("answer", wd.join("answer"));
-        let _ = report.add_payload("stderr", wd.join("log"));
+        report.payload.push(("compile log".into(), log_payload));
+        let _ = report.add_payload("stdin", &input);
+        let _ = report.add_payload("stdout", &output);
+        let _ = report.add_payload("answer", &answer);
+        let _ = report.add_payload("stderr", &log);
 
         if !term_status.ok() {
             return Ok(report);
         }
 
         // check answer
-        let r = meta
-            .checker
-            .check(wd.join("input"), wd.join("output"), wd.join("answer"));
+        let r = meta.checker.check(&input, &output, &answer);
 
         if r.is_err() {
             report.meta.status = judger::Status::WrongAnswer;
+            report.meta.score_rate = 0.;
         }
         report.payload.push((
             "checker log".into(),

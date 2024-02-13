@@ -70,31 +70,28 @@ impl OneOff {
         //     assert!(r.success());
         // }
 
-        // #[cfg(not(target_os = "macos"))]
-        {
-            // compilation
-            eprintln!("编译...");
-            if !self.file.file_type.compileable() {
-                let r = TaskReport::new(TaskMeta::error_status(Status::CompileError(None)));
-                return Ok(r);
-            }
-            let term = self
-                .file
-                .file_type
-                .compile_sandbox(&src, &dest, &clog)
-                .exec_sandbox()
-                .unwrap();
-            let st = term.status.clone();
-            if st != sandbox::Status::Ok {
-                let r = TaskReport::new(TaskMeta {
-                    score_rate: 0.0,
-                    status: Status::CompileError(Some(st)),
-                    time: term.cpu_time,
-                    memory: term.memory,
-                })
-                .try_add_payload("compile log", clog);
-                return Ok(r);
-            }
+        // compilation
+        eprintln!("编译...");
+        if !self.file.file_type.compileable() {
+            let r = TaskReport::new(TaskMeta::error_status(Status::CompileError(None)));
+            return Ok(r);
+        }
+        let term = self
+            .file
+            .file_type
+            .compile_sandbox(&src, &dest, &clog)
+            .exec_sandbox()
+            .unwrap();
+        let st = term.status.clone();
+        if st != sandbox::Status::Ok {
+            let r = TaskReport::new(TaskMeta {
+                score_rate: 0.0,
+                status: Status::CompileError(Some(st)),
+                time: term.cpu_time,
+                memory: term.memory,
+            })
+            .try_add_payload("compile log", clog);
+            return Ok(r);
         }
         eprintln!("编译成功 {:?}", dest);
 

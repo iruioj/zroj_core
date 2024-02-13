@@ -19,6 +19,7 @@ pub struct Summarizer {
     status: Status,
     time: Elapse,
     memory: Memory,
+    // 0 <= score <= 1
     score: f64,
     rule: Rule,
 }
@@ -46,6 +47,12 @@ impl Summarizer {
             Rule::Minimum => self.score.min(score),
         }
     }
+    pub fn update_skip(&mut self) {
+        self.score = match self.rule {
+            Rule::Sum => self.score,
+            Rule::Minimum => 0.
+        }
+    }
     pub fn skippable(&self) -> bool {
         if matches!(self.rule, Rule::Minimum) && self.score < SCOER_EPS {
             return true;
@@ -66,8 +73,11 @@ pub trait JudgeTask
 where
     for<'a> &'a Self::S: Override<Self::M>,
 {
+    /// task type
     type T: FsStore;
+    /// task meta type
     type M: FsStore;
+    /// subtask meta type (during judging, it overrides the task meta)
     type S: FsStore;
     // any owned data always passes a 'static lifetime bound
     type Subm: FsStore + Send + Sync + 'static;
@@ -99,8 +109,8 @@ impl MpscJudger {
 }
 
 impl judger::Judger<LogMessage> for MpscJudger {
-    fn working_dir(&self) -> store::Handle {
-        self.wd.clone()
+    fn working_dir(&self) -> &store::Handle {
+        &self.wd
     }
 
     fn runtime_log(&mut self, msg: LogMessage) {
@@ -161,10 +171,10 @@ where
                 for (tid, task) in sbt.tasks.iter_mut().enumerate() {
                     if !dependency_ok || sub_summary.skippable() || summary.skippable() {
                         // skip
+                        sub_summary.update_skip();
                         subreports.push(None);
                     } else {
                         judger.runtime_log(LogMessage::SubtaskTask(id, tid));
-                        judger.working_dir().remove_all()?;
 
                         let mut meta = data.meta.clone();
                         sbt.meta.over(&mut meta);
