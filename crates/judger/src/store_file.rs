@@ -75,11 +75,13 @@ impl StoreFile {
         let mut file = std::fs::File::create(path.as_ref())?;
         self.copy_all(&mut file)
     }
-    /// create a temporary file with corresponding file_type
+    /// create a temporary file with corresponding file_type and set file position
+    /// to the starting point
     pub fn from_str(content: impl AsRef<str>, file_type: FileType) -> Self {
         let mut file = tempfile::tempfile().expect("create tmp file");
         std::io::Write::write(&mut file, content.as_ref().as_bytes())
             .expect("cannot write content to file");
+        file.seek(io::SeekFrom::Start(0)).expect("move to the start of file");
         Self { file, file_type }
     }
     /// read (from start) the whole content to byte array

@@ -50,7 +50,7 @@ impl Summarizer {
     pub fn update_skip(&mut self) {
         self.score = match self.rule {
             Rule::Sum => self.score,
-            Rule::Minimum => 0.
+            Rule::Minimum => 0.,
         }
     }
     pub fn skippable(&self) -> bool {
@@ -75,9 +75,9 @@ where
 {
     /// task type
     type T: FsStore;
-    /// task meta type
+    /// global default task meta
     type M: FsStore;
-    /// subtask meta type (during judging, it overrides the task meta)
+    /// subtask meta type (during judging, it overrides the global default task meta)
     type S: FsStore;
     // any owned data always passes a 'static lifetime bound
     type Subm: FsStore + Send + Sync + 'static;
@@ -205,6 +205,7 @@ where
             let mut summary = Summarizer::new(Rule::Sum);
             for (id, task) in tasks.iter_mut().enumerate() {
                 if summary.skippable() {
+                    summary.update_skip();
                     reports.push(None)
                 } else {
                     judger.runtime_log(LogMessage::TestTask(id));

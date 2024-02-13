@@ -151,14 +151,14 @@ impl JudgeTask for Traditional {
 
         if r.is_err() {
             report.meta.status = judger::Status::WrongAnswer;
-            report.meta.score_rate = 0.;
+            report.meta.score_rate = r.as_ref().map(|o| o.0).unwrap_or(0.);
         }
         report.payload.push((
             "checker log".into(),
             TruncStr::new(
                 match r {
-                    Ok(s) => s,
-                    Err(s) => s,
+                    Ok(s) => s.1,
+                    Err(s) => format!("{s:#?}"),
                 },
                 TRUNCATE_LEN,
             ),
