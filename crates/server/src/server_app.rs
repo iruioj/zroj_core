@@ -127,7 +127,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let filesysdb = FileSysDb::new(&self.config.fs_data_root)?;
 
         let user_db = data::user::UserDB::new(&mysqldb);
-        let stmt_db = data::problem_statement::Mysql::new(&mysqldb, &filesysdb);
+        let stmt_db = data::problem_statement::StmtDB::new(&mysqldb, &filesysdb);
         let ojdata_db = data::problem_ojdata::OJDataDB::new(&filesysdb);
         let subm_db = data::submission::SubmDB::new(&mysqldb);
 

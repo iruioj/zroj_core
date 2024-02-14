@@ -47,19 +47,12 @@ pub struct ProblemMeta {
     pub tags: String,
 }
 
-pub type StmtDB = Mysql;
+pub struct StmtDB(MysqlDb, FileSysDb);
 
-pub struct Mysql(MysqlDb, FileSysDb);
-
-impl Mysql {
-    /// note that assert directory should be only accessible by
-    /// this database, so you pass its ownership to it
+impl StmtDB {
     pub fn new(mysqldb: &MysqlDb, filesysdb: &FileSysDb) -> Self {
         Self(mysqldb.clone(), filesysdb.clone())
     }
-}
-
-impl Mysql {
     pub fn get(&self, id: ProblemID) -> Result<Statement, DataError> {
         self.0.transaction(|conn| {
             let problem: Problem = problems::table.filter(problems::id.eq(id)).first(conn)?;

@@ -31,7 +31,7 @@ fn tempdir_unzip(
     Ok(dir)
 }
 
-type StmtDB = problem_statement::Mysql;
+type StmtDB = problem_statement::StmtDB;
 
 #[derive(Deserialize, TsType)]
 struct StmtQuery {

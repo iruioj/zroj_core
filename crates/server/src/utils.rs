@@ -164,8 +164,8 @@ pub fn test_userdb(mysqldb: &MysqlDb) -> Data<data::user::UserDB> {
 pub fn test_stmtdb(
     mysqldb: &MysqlDb,
     filesysdb: &FileSysDb,
-) -> web::Data<problem_statement::Mysql> {
-    let stmt_db = problem_statement::Mysql::new(mysqldb, filesysdb);
+) -> web::Data<problem_statement::StmtDB> {
+    let stmt_db = problem_statement::StmtDB::new(mysqldb, filesysdb);
     if stmt_db.get(1).is_err() {
         let id = stmt_db
             .insert_new(a_plus_b_statment())

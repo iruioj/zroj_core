@@ -1,11 +1,10 @@
 //! 用户数据库
 
-use super::error::DataError;
-use super::mysql::last_insert_id;
-use super::mysql::schema::users;
-use super::mysql::schema_model::User;
-use super::types::*;
-use crate::data::mysql::MysqlDb;
+use super::{
+    error::DataError,
+    mysql::{last_insert_id, schema::users, schema_model::User, MysqlDb},
+    types::*,
+};
 use crate::UserID;
 use diesel::{self, prelude::*, Insertable};
 
@@ -21,17 +20,12 @@ pub struct NewUser<'a> {
     motto: &'a str,
 }
 
-pub type UserDB = Mysql;
+pub struct UserDB(MysqlDb);
 
-pub struct Mysql(MysqlDb);
-
-/// 数据库存储
-impl Mysql {
+impl UserDB {
     pub fn new(db: &MysqlDb) -> Self {
         Self(db.clone())
     }
-}
-impl Mysql {
     pub fn query_by_username(&self, username: &Username) -> Result<User, DataError> {
         self.0.transaction(|conn| {
             Ok(users::table

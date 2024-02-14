@@ -1,9 +1,14 @@
 use super::{
     error::DataError,
-    mysql::{last_insert_id, schema::*, schema_model::SubmissionMeta, MysqlDb},
+    mysql::{
+        last_insert_id,
+        schema::*,
+        schema_model::{SubmissionDetail, SubmissionMeta},
+        MysqlDb,
+    },
     types::*,
 };
-use crate::{data::mysql::schema_model::SubmissionDetail, ProblemID, SubmID, UserID};
+use crate::{ProblemID, SubmID, UserID};
 use diesel::*;
 use serde::Serialize;
 use serde_ts_typing::TsType;
@@ -63,17 +68,12 @@ struct NewSubmissionDetail {
     raw: SubmRaw,
 }
 
-pub type SubmDB = Mysql;
+pub struct SubmDB(MysqlDb);
 
-pub struct Mysql(MysqlDb);
-
-impl Mysql {
+impl SubmDB {
     pub fn new(mysqldb: &MysqlDb) -> Self {
         Self(mysqldb.clone())
     }
-}
-
-impl Mysql {
     pub fn insert_new(
         &self,
         uid: UserID,
