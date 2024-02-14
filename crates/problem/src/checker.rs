@@ -181,7 +181,7 @@ impl Checker {
                 let checker_log = judger.clear_dest("checker.log")?;
 
                 let term = judger::sandbox::unix::Singleton::new(checker.path())
-                    .push_arg([
+                    .push_args([
                         CString::new("checker").unwrap(),
                         input.to_cstring(),
                         output.to_cstring(),
@@ -219,7 +219,7 @@ impl Checker {
 
                 // use default limitation
                 Singleton::new(exec.path())
-                    .push_arg([
+                    .push_args([
                         CString::new("checker").unwrap(),
                         judger.working_dir().to_cstring(),
                     ])
@@ -255,7 +255,7 @@ fn compile_cabi_checker_cpp<M: std::fmt::Display>(
     let exec = judger.clear_dest("checker")?;
 
     Singleton::new(&judger::which("cc").unwrap())
-        .push_arg([
+        .push_args([
             CString::new("cc").unwrap(),
             c_abi_main.to_cstring(),
             CString::new("-o").unwrap(),
@@ -268,7 +268,7 @@ fn compile_cabi_checker_cpp<M: std::fmt::Display>(
         .exec_sandbox()?;
 
     Singleton::new(&judger::which("g++")?)
-        .push_arg([
+        .push_args([
             CString::new("g++").unwrap(),
             cpp_impl_src.to_cstring(),
             CString::new("-o").unwrap(),
@@ -282,7 +282,7 @@ fn compile_cabi_checker_cpp<M: std::fmt::Display>(
         .exec_sandbox()?;
 
     Singleton::new(&judger::which("cc")?)
-        .push_arg([
+        .push_args([
             CString::new("cc").unwrap(),
             CString::new("-o").unwrap(),
             exec.to_cstring(),
@@ -313,7 +313,7 @@ fn compile_cabi_checker_rust<M: std::fmt::Display>(
     let exec = judger.clear_dest("checker")?;
 
     Singleton::new(&judger::which("cc").unwrap())
-        .push_arg([
+        .push_args([
             CString::new("cc").unwrap(),
             c_abi_main.to_cstring(),
             CString::new("-o").unwrap(),
@@ -326,7 +326,7 @@ fn compile_cabi_checker_rust<M: std::fmt::Display>(
         .exec_sandbox()?;
 
     Singleton::new(&judger::which("rustc")?)
-        .push_arg([
+        .push_args([
             CString::new("rustc").unwrap(),
             CString::new("--crate-type=staticlib").unwrap(),
             rust_impl_src.to_cstring(),
@@ -338,7 +338,7 @@ fn compile_cabi_checker_rust<M: std::fmt::Display>(
         .exec_sandbox()?;
 
     Singleton::new(&judger::which("cc")?)
-        .push_arg([
+        .push_args([
             CString::new("cc").unwrap(),
             CString::new("-o").unwrap(),
             exec.to_cstring(),

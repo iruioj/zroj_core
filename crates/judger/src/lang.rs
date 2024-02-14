@@ -43,15 +43,15 @@ impl GnuCpp {
         log: &Handle,
     ) -> Box<dyn ExecSandBox> {
         let r = Singleton::new(&self.gpp_path)
-            .push_arg([CString::new("g++").unwrap()])
-            .push_arg(
+            .push_args([CString::new("g++").unwrap()])
+            .push_args(
                 self.extra_args
                     .iter()
                     .map(|s| CString::new(s.as_bytes()))
                     .collect::<Result<Vec<CString>, _>>()
                     .unwrap(),
             )
-            .push_arg([
+            .push_args([
                 source.to_cstring(),
                 CString::new("-o").unwrap(),
                 dest.to_cstring(),
@@ -127,7 +127,7 @@ impl FileType {
             FileType::Plain => panic!("a plain file should never be compiled"),
             FileType::Rust => {
                 let r = Singleton::new(&crate::which("rustc").unwrap())
-                    .push_arg([
+                    .push_args([
                         CString::new("rustc").unwrap(),
                         source.to_cstring(),
                         CString::new("-o").unwrap(),

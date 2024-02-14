@@ -99,13 +99,13 @@ fn main() -> anyhow::Result<()> {
     });
 
     let mut s = sandbox::unix::Singleton::new(&cli.exec.unwrap())
-        .push_arg(
+        .push_args(
             args.iter()
                 .map(|s| CString::new(s.as_bytes()))
                 .collect::<Result<Vec<CString>, _>>()
                 .unwrap(),
         )
-        .push_env(
+        .push_envs(
             envs.iter()
                 .map(|s| CString::new(s.as_bytes()))
                 .collect::<Result<Vec<CString>, _>>()

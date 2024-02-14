@@ -31,7 +31,7 @@ fn test_ls() -> anyhow::Result<()> {
     let ls_path = get_exec_path("ls");
 
     let singleton =
-        Singleton::new(&ls_path).push_arg([cstring!("ls"), cstring!("-l"), cstring!(".")]);
+        Singleton::new(&ls_path).push_args([cstring!("ls"), cstring!("-l"), cstring!(".")]);
 
     let term = singleton.exec_sandbox()?;
     assert_eq!(term.status, Status::Ok);
@@ -44,7 +44,7 @@ fn test_sleep_tle() -> anyhow::Result<()> {
     let sleep_path = get_exec_path("sleep");
     // sleep 5 秒，触发 TLE
     let singleton = Singleton::new(&sleep_path)
-        .push_arg([cstring!("sleep"), cstring!("2")])
+        .push_args([cstring!("sleep"), cstring!("2")])
         .set_limits(|mut l| {
             l.cpu_time = Lim::Double(1000.into(), 3000.into());
             l.real_time = Lim::Double(1000.into(), 2000.into());
@@ -61,7 +61,7 @@ fn test_sleep_tle() -> anyhow::Result<()> {
 fn test_env() -> anyhow::Result<()> {
     let env_path = get_exec_path("env");
 
-    let singleton = Singleton::new(&env_path).push_arg([
+    let singleton = Singleton::new(&env_path).push_args([
         cstring!("env"),
         cstring!("DIR=/usr"),
         cstring!("A=b"),
@@ -124,7 +124,7 @@ fn test_cat_stdio() -> anyhow::Result<()> {
     drop(fin);
 
     let s = Singleton::new(&get_exec_path("cat"))
-        .push_arg([cstring!("cat")])
+        .push_args([cstring!("cat")])
         .stdin(cstring!(filepath.as_os_str()))
         .stdout(cstring!(outputpath.as_os_str()))
         .set_limits(|_| Limitation {
@@ -158,14 +158,14 @@ fn test_gcc_linux() -> anyhow::Result<()> {
     let source = include_str!("asserts/stress.txt");
     file.write_all(source.as_bytes()).unwrap();
     let s = Singleton::new(&PathBuf::from_str("/usr/bin/g++").unwrap())
-        .push_arg([
+        .push_args([
             cstring!("g++"),
             cstring!(filepath.as_os_str()),
             cstring!("-o"),
             cstring!(execpath.as_os_str()),
             cstring!("-O2"),
         ])
-        .push_env([cstring!("PATH=/user/local/bin:/usr/bin")])
+        .push_envs([cstring!("PATH=/user/local/bin:/usr/bin")])
         .set_limits(|_| Limitation {
             real_time: Lim::Single(7000.into()),
             cpu_time: Lim::Single(7000.into()),

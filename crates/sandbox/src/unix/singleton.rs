@@ -330,13 +330,13 @@ impl crate::ExecSandBox for Singleton {
 // new API
 impl Singleton {
     /// Create a new builder with the path of executable
-    pub fn new(exec: &Path) -> Self {
+    pub fn new(exec: impl AsRef<Path>) -> Self {
         Singleton {
             limits: Limitation::default(),
             stdin: None,
             stdout: None,
             stderr: None,
-            exec_path: CString::new(exec.as_os_str().as_encoded_bytes()).unwrap(),
+            exec_path: CString::new(exec.as_ref().as_os_str().as_encoded_bytes()).unwrap(),
             arguments: Vec::new(),
             envs: Vec::new(),
         }
@@ -357,14 +357,14 @@ impl Singleton {
         self
     }
     /// add an argument to the end of argument list
-    pub fn push_arg(mut self, args: impl IntoIterator<Item = CString>) -> Self {
+    pub fn push_args(mut self, args: impl IntoIterator<Item = CString>) -> Self {
         for arg in args {
             self.arguments.push(arg);
         }
         self
     }
     /// add an argument to the end of environment list
-    pub fn push_env(mut self, args: impl IntoIterator<Item = CString>) -> Self {
+    pub fn push_envs(mut self, args: impl IntoIterator<Item = CString>) -> Self {
         for arg in args {
             self.envs.push(arg);
         }

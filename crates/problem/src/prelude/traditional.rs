@@ -107,7 +107,7 @@ impl JudgeTask for Traditional {
         let log = judger.clear_dest("log")?;
 
         let s = Singleton::new(exec.path())
-            .push_arg([CString::new("main").unwrap()])
+            .push_args([CString::new("main").unwrap()])
             .stdin(input.to_cstring())
             .stdout(output.to_cstring())
             .stderr(log.to_cstring())
