@@ -39,7 +39,7 @@ struct StmtQuery {
     id: ProblemID,
 }
 
-/// 题面数据
+/// 获取题面数据
 #[api(method = get, path = "/statement")]
 async fn statement(
     stmt_db: ServerData<StmtDB>,
@@ -75,7 +75,7 @@ struct StmtAssetQuery {
 
 pub const PDF_INLINE_SIZE: u64 = 5 * 1024 * 1024;
 
-/// 获取题面附加文件
+/// 获取某个题目的附加文件，如果不存在就去获取全局的附加文件
 #[api(method = get, path = "/statement_assets")]
 async fn statement_assets(
     stmt_db: ServerData<StmtDB>,

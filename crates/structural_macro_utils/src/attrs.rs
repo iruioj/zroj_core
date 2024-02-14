@@ -1,4 +1,9 @@
-struct MetaList(Vec<syn::Meta>);
+use quote::quote;
+
+use crate::concat_token_stream;
+
+pub struct MetaList(pub Vec<syn::Meta>);
+
 impl syn::parse::Parse for MetaList {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let metas = input.parse_terminated(syn::Meta::parse, syn::Token![,])?;
@@ -120,5 +125,56 @@ impl<'v> AttrListVisitor<'v> {
                 })
                 .unwrap_or_default(),
         )
+    }
+
+    /// generate an expression that outputs a [`String`] containing document.
+    pub fn get_docs(&self) -> proc_macro2::TokenStream {
+        let inner = concat_token_stream(
+            self.iter_name_values()
+                .filter_map(|o| {
+                    if o.path.is_ident("doc") {
+                        let val = &o.value;
+                        Some(quote::quote!(r += #val; r += "\n";))
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+        );
+        quote!({
+            let mut r = String::new();
+            #inner
+            r
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use syn::ItemStruct;
+
+    use crate::StructVisitor;
+
+    #[test]
+    fn test_docs() {
+        let item: ItemStruct = syn::parse_quote!(
+            /// hello
+            /// world
+            ///
+            /// ok
+            #[doc = "good"]
+            #[derive(Serialize, TsType, Default)]
+            #[ts(inline)]
+            struct SimpleStruct {
+                hello: bool,
+                world: String,
+                tuple: TupleStruct,
+            }
+        );
+
+        let visitor = StructVisitor(&item);
+        let docs = visitor.attrs().get_docs();
+
+        eprintln!("{docs}");
     }
 }

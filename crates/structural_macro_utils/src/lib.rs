@@ -2,7 +2,7 @@ mod attrs;
 mod fields;
 mod generics;
 
-pub use attrs::AttrListVisitor;
+pub use attrs::{AttrListVisitor, MetaList};
 pub use fields::{FieldVisitor, FieldsVisitor};
 pub use generics::GenericsVisitor;
 
@@ -62,6 +62,18 @@ impl<'v> EnumVisitor<'v> {
     pub fn ident(&self) -> &syn::Ident {
         &self.0.ident
     }
+}
+
+pub fn concat_token_stream(
+    token_streams: Vec<proc_macro2::TokenStream>,
+) -> proc_macro2::TokenStream {
+    token_streams
+        .into_iter()
+        .reduce(|mut a, b| {
+            a.extend(b);
+            a
+        })
+        .unwrap_or_default()
 }
 
 #[cfg(test)]

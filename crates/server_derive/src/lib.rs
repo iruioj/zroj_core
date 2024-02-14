@@ -270,7 +270,7 @@ pub fn api(
                 None
             }
         })
-        .for_each(|e| descrip_stmt.extend(quote!( description += #e; )));
+        .for_each(|e| descrip_stmt.extend(quote!( description += #e; description += "\n"; )));
 
     let ret = quote! {
         fn #doc_name() -> (crate::ApiDocMeta, serde_ts_typing::Context) {

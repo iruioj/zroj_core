@@ -134,7 +134,8 @@ impl EntryNode {
                     ty.insert(path_ty.clone(), payload.clone());
                     (
                         format!(
-                            r#"/** {docs} */
+                            r#"/**
+{docs} */
 {method}: {{ 
     use: (payload: {path_ty} | Ref<{path_ty}>) => callAPI({method:?}, {path:?}, payload) as Promise<ExtAsyncData<{ret_ty}>>,
     fetch: (payload: {path_ty} | Ref<{path_ty}>) => fetchAPI({method:?}, {path:?}, payload) as Promise<{}>,

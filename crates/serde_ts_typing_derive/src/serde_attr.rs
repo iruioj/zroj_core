@@ -1,5 +1,5 @@
 //! 由于 serde 的行为会影响最终输出的数据格式，因此 TsType 必须对于所有的 serde attribute 都进行有效的处理
-use structural_macro_utils::AttrListVisitor;
+use structural_macro_utils::{AttrListVisitor, MetaList as AttrList};
 
 use super::*;
 

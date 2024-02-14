@@ -26,6 +26,7 @@ pub mod windows;
 /// 执行的结果状态，只是一个初步的分析，适用于绝大多数情况
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, TsType)]
 #[ts(name = "SandboxStatus")]
+#[non_exhaustive]
 pub enum Status {
     /// All Correct
     Ok,
@@ -35,10 +36,10 @@ pub enum Status {
     MemoryLimitExceeded,
     /// 超出时间限制
     TimeLimitExceeded,
-    /// 输出文件大小超出限制
-    OutputLimitExceeded,
-    /// 调用了被禁止的系统调用
-    DangerousSyscall,
+    // 输出文件大小超出限制
+    // OutputLimitExceeded,
+    // 调用了被禁止的系统调用
+    // DangerousSyscall,
 }
 
 impl Status {
@@ -64,9 +65,6 @@ pub struct Termination {
 /// 在沙箱中执行一系列的任务，返回相应的结果
 pub trait ExecSandBox {
     /// 在实现时需要考虑 async-signal-safe，详见
-    ///
-    /// <https://docs.rs/nix/latest/nix/unistd/fn.fork.html#safety>
-    ///
     fn exec_sandbox(&self) -> anyhow::Result<Termination>;
 }
 

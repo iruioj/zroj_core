@@ -11,20 +11,22 @@ use serde_ts_typing::TsType;
 #[derive(Debug, Clone, Serialize, Deserialize, TsType, PartialEq, Eq)]
 #[serde(tag = "name", content = "payload", rename_all = "snake_case")]
 #[ts(name = "JudgerStatus")]
+#[non_exhaustive]
 pub enum Status {
     /// 目前没有问题。不等价于通过（得看得分是否等于总分）
     Good,
+
     /// 编译错误
     CompileError(Option<sandbox::Status>),
-    // 自定义的评测状态
-    // Custom(String),
-    DangerousSyscall,
+
+    // DangerousSyscall,
+    /// 超出内存限制
     MemoryLimitExceeded,
-    OutputLimitExceeded,
+    // OutputLimitExceeded,
     // (获得的部分分，总分）
     // Partial(f64, f64),
-    /// 非空字符构成的字符串与答案匹配
-    PresentationError,
+    // 非空字符构成的字符串与答案匹配
+    // PresentationError,
     RuntimeError,
     TimeLimitExceeded,
     WrongAnswer,
@@ -147,8 +149,7 @@ impl From<sandbox::Status> for Status {
             sandbox::Status::RuntimeError(_) => Status::RuntimeError,
             sandbox::Status::MemoryLimitExceeded => Status::MemoryLimitExceeded,
             sandbox::Status::TimeLimitExceeded => Status::TimeLimitExceeded,
-            sandbox::Status::OutputLimitExceeded => Status::OutputLimitExceeded,
-            sandbox::Status::DangerousSyscall => Status::DangerousSyscall,
+            _ => unimplemented!(),
         }
     }
 }

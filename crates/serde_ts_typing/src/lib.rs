@@ -287,10 +287,23 @@ pub type TypeId = std::any::TypeId;
 
 /// 类型标志符的上下文（类型集合）
 #[derive(Debug, Default)]
-pub struct Context(BTreeMap<String, TypeExpr>, BTreeMap<TypeId, String>);
+pub struct Context(
+    BTreeMap<String, (TypeExpr, String)>,
+    BTreeMap<TypeId, String>,
+);
 
-impl From<(BTreeMap<String, TypeExpr>, BTreeMap<TypeId, String>)> for Context {
-    fn from(value: (BTreeMap<String, TypeExpr>, BTreeMap<TypeId, String>)) -> Self {
+impl
+    From<(
+        BTreeMap<String, (TypeExpr, String)>,
+        BTreeMap<TypeId, String>,
+    )> for Context
+{
+    fn from(
+        value: (
+            BTreeMap<String, (TypeExpr, String)>,
+            BTreeMap<TypeId, String>,
+        ),
+    ) -> Self {
         Self(value.0, value.1)
     }
 }
@@ -306,12 +319,12 @@ impl std::ops::Add for Context {
 }
 
 impl Context {
-    pub fn register(&mut self, ty: TypeId, name: String, tydef: TypeExpr) {
-        self.0.insert(name.clone(), tydef);
+    pub fn register(&mut self, ty: TypeId, name: String, tydef: TypeExpr, docs: String) {
+        self.0.insert(name.clone(), (tydef, docs));
         self.1.insert(ty, name);
     }
-    pub fn register_variant(&mut self, name: String, tydef: TypeExpr) {
-        self.0.insert(name, tydef);
+    pub fn register_variant(&mut self, name: String, tydef: TypeExpr, docs: String) {
+        self.0.insert(name, (tydef, docs));
     }
     pub fn contains(&self, id: TypeId) -> bool {
         self.1.contains_key(&id)
@@ -319,13 +332,16 @@ impl Context {
     /// rendering all types as exported type
     pub fn render_code(&self, indent: usize) -> String {
         let mut r = String::new();
-        for (name, tydef) in &self.0 {
-            r += &format!("export type {name} = {:80.indent$};\n", tydef);
+        for (name, (tydef, docs)) in &self.0 {
+            r += &format!(
+                "/**\n{docs}*/\nexport type {name} = {:80.indent$};\n",
+                tydef
+            );
         }
         r
     }
     pub fn get_ty_by_id(&self, id: &TypeId) -> Option<&TypeExpr> {
-        self.0.get(self.1.get(id)?)
+        self.0.get(self.1.get(id)?).map(|o| &o.0)
     }
 }
 

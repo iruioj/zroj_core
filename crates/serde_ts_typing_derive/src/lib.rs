@@ -5,18 +5,9 @@ mod ts_attr;
 use context::{ContainerContext, FieldContext, ProvideDefault, VariantContext};
 use quote::{format_ident, quote, ToTokens};
 use structural_macro_utils::{
-    EnumVisitor, FieldVisitor, FieldsVisitor, GenericsVisitor, StructVisitor,
+    concat_token_stream, EnumVisitor, FieldVisitor, FieldsVisitor, GenericsVisitor, StructVisitor,
 };
 use syn::{Expr, Fields, Item, ItemEnum, ItemStruct, Lit, Meta, MetaNameValue};
-
-struct AttrList(Vec<Meta>);
-
-impl syn::parse::Parse for AttrList {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let metas = input.parse_terminated(Meta::parse, syn::Token![,])?;
-        Ok(AttrList(metas.into_iter().collect()))
-    }
-}
 
 /// 对于带有泛型的类型，我们要求所有类型参数都实现 TsType
 fn gen_where_clause(generics: GenericsVisitor) -> Option<proc_macro2::TokenStream> {
@@ -63,7 +54,6 @@ fn gen_field(
         return None;
     }
     if ctxt.getter {
-        //  || ctxt.serialize_with || ctxt.with {
         unimplemented!()
     }
     let field_kind = if ctxt.flatten {
@@ -112,13 +102,7 @@ fn gen_fields(
             }
         }
         let tydef = quote!({ #tydef r });
-        let tyctxt = tyctxts
-            .into_iter()
-            .reduce(|mut a, b| {
-                a.extend(b);
-                a
-            })
-            .unwrap_or(quote!());
+        let tyctxt = concat_token_stream(tyctxts);
 
         (tyctxt, tydef)
     } else if fields.is_unnamed() {
@@ -152,13 +136,7 @@ fn gen_fields(
                 })
                 .expect("nothing to serialize");
             let tydef = quote!(serde_ts_typing::TypeExpr::Tuple(vec![#tydef]));
-            let tyctxt = tyctxts
-                .into_iter()
-                .reduce(|mut a, b| {
-                    a.extend(b);
-                    a
-                })
-                .unwrap_or(quote!());
+            let tyctxt = concat_token_stream(tyctxts);
 
             (tyctxt, tydef)
         }
@@ -184,6 +162,7 @@ fn derive_struct(input: ItemStruct) -> proc_macro2::TokenStream {
     let ctxt = ContainerContext::from_attr(visitor.attrs());
     let ts_ctxt = ts_attr::ContainerContext::from_attr(visitor.attrs());
 
+    let container_docs = visitor.attrs().get_docs();
     let (mut tyctxt, mut tydef) = gen_fields(&ctxt, visitor.fields());
 
     // 目前看来只有在结合了 tag 的时候有用
@@ -206,7 +185,7 @@ fn derive_struct(input: ItemStruct) -> proc_macro2::TokenStream {
             let mut head = quote!({
                 let id = std::any::TypeId::of::<#struct_name>();
                 if !c.contains(id) {
-                    c.register(id, #ty_name.into(), #tydef);
+                    c.register(id, #ty_name.into(), #tydef, #container_docs);
                 } else {
                     panic!("duplicate type")
                 }
@@ -304,8 +283,9 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
 
         if !ts_ctxt.variant_inline {
             let var_ty_name = enum_ty_name.clone() + &var.ident().to_string();
+            let var_docs = var.attrs().get_docs();
             tyctxts.push(quote!({
-                c.register_variant(#var_ty_name.into(), #tydef);
+                c.register_variant(#var_ty_name.into(), #tydef, #var_docs);
             }));
             tydef = quote!(
                 serde_ts_typing::TypeExpr::Ident(std::any::TypeId::of::<#enum_name>(), #var_ty_name.into())
@@ -338,12 +318,13 @@ fn derive_enum(input: ItemEnum) -> proc_macro2::TokenStream {
     if ts_ctxt.inline && ts_ctxt.name.is_some() {
         panic!("ts(inline) can't be used with ts(name = \"...\")")
     }
+    let container_docs = visitor.attrs().get_docs();
     if !ts_ctxt.inline {
         tyctxt = {
             let mut head = quote!({
                 let id = std::any::TypeId::of::<#enum_name>();
                 if !c.contains(id) {
-                    c.register(id, #enum_ty_name.into(), #tydef);
+                    c.register(id, #enum_ty_name.into(), #tydef, #container_docs);
                 } else {
                     panic!("duplicate type")
                 }
