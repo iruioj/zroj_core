@@ -2,7 +2,7 @@
 
 use super::super::types::*;
 use super::schema::*;
-use crate::{ProblemID, SubmID, UserID};
+use crate::{CtstID, ProblemID, SubmID, UserID};
 use diesel::*;
 use problem::render_data::{statement::StmtMeta, Mdast};
 
@@ -66,8 +66,6 @@ pub struct SubmissionMeta {
     pub time: Option<CastElapse>,
     /// 所有测试点中占用内存的最大值
     pub memory: Option<CastMemory>,
-    // 评测结果
-    // report: Option<FullJudgeReport>,
 }
 
 #[derive(Debug, Associations, Identifiable, Clone, Queryable, AsChangeset, Selectable)]
@@ -78,4 +76,34 @@ pub struct SubmissionDetail {
     pub sid: SubmID,
     pub raw: SubmRaw,
     pub report: Option<FullJudgeReport>,
+}
+
+#[derive(Debug, Identifiable, Clone, Queryable, AsChangeset, Selectable, Insertable)]
+#[diesel(table_name = contests)]
+pub struct Contest {
+    pub id: CtstID,
+    pub title: String,
+    pub start_time: DateTime,
+    pub end_time: DateTime,
+    pub duration: CastElapse,
+}
+
+#[derive(Debug, Associations, Identifiable, Clone, Queryable, Selectable)]
+#[diesel(belongs_to(Contest, foreign_key = cid))]
+#[diesel(belongs_to(Problem, foreign_key = pid))]
+#[diesel(table_name = contest_problems)]
+#[diesel(primary_key(cid, pid))]
+pub struct ContestProblem {
+    cid: CtstID,
+    pid: ProblemID,
+}
+
+#[derive(Debug, Associations, Identifiable, Clone, Queryable, Selectable)]
+#[diesel(belongs_to(Contest, foreign_key = cid))]
+#[diesel(belongs_to(User, foreign_key = uid))]
+#[diesel(table_name = contest_registrants)]
+#[diesel(primary_key(cid, uid))]
+pub struct ContestRegistrant {
+    cid: CtstID,
+    uid: UserID,
 }

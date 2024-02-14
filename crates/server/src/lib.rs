@@ -11,6 +11,7 @@ pub use server_app::{test_server_app_cfg, ServerApp, ServerAppConfig};
 pub type GroupID = u32;
 pub type ClientID = uuid::Uuid;
 pub type UserID = u32;
+pub type CtstID = u32;
 pub type ProblemID = u32;
 pub type SubmID = u32;
 

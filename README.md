@@ -4,14 +4,12 @@
 
 This project is currently under active development.
 
-recommand VSCode extensions: `mtxr.sqltools`, `rust-lang.rust-analyzer`, `mhutchie.git-graph`, `Vue.volar`
-
-Diesel:
-
-```bash
-diesel migration run/redo
-diesel print-schema > server/src/data/mysql/schema.rs
-```
+Recommend VSCode extensions:
+- SQLTools: `mtxr.sqltools`
+- SQLTools MySQL/MariaDB/TiDB: `mtxr.sqltools-driver-mysql`
+- rust.analyzer: `rust-lang.rust-analyzer`
+- Git Graph: `mhutchie.git-graph`
+- Vue Language Features (Volar): `Vue.volar`
 
 ## Testing
 
@@ -158,3 +156,24 @@ pnpm config set store-dir /root/.local/share/pnpm/store
 ```
 
 Don't forget to install rust-analyzer extension into the container.
+
+## Database Schema Generation
+
+First install diesel cli tool:
+
+```bash
+cargo install diesel_cli --no-default-features --features mysql
+```
+
+Then modify `.env` as
+
+```
+DATABASE_URL=mysql://test:test@localhost/test
+MIGRATION_DIRECTORY=server/src/data/mysql/db_setup
+```
+
+Before generating schema you should initialize the database using `cargo run --bin gen_testdata`. Then run
+
+```bash
+diesel print-schema > crates/server/src/data/mysql/schema.rs
+```
