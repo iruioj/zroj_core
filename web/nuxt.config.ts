@@ -5,7 +5,8 @@ import topLevelAwait from "vite-plugin-top-level-await";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  modules: ["nuxt-icons", "@pinia/nuxt"],
+  devtools: { enabled: true, },
+  modules: ["@nuxt/ui", "nuxt-icons", "@pinia/nuxt"],
 
   css: ['~/assets/main.css'],
 
@@ -41,10 +42,10 @@ export default defineNuxtConfig({
         protocol: 'ws',
         host: 'localhost',
       },
-    }
+    },
   },
   hooks: {
-    'vite:extendConfig' (viteInlineConfig, env) {
+    'vite:extendConfig'(viteInlineConfig, env) {
       viteInlineConfig.server = {
         ...viteInlineConfig.server,
         hmr: {
@@ -55,9 +56,6 @@ export default defineNuxtConfig({
     },
   },
 
-  devtools: {
-    enabled: true,
-  },
 
   typescript: {
     tsConfig: {
@@ -65,5 +63,6 @@ export default defineNuxtConfig({
         moduleResolution: "bundler",
       },
     },
+
   },
 });

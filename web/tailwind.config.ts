@@ -78,25 +78,22 @@ const config: Partial<Config> = {
   },
   plugins: [
     plugin(function ({ addBase, theme }) {
-      const back = theme("colors.back") as string;
-      const front = theme("colors.primary") as string;
+      const back = "rgb(var(--theme-bg))"
+      const front = "rgb(var(--theme-pri))"
       addBase({
         input: {
-          "background-color": back.replace("<alpha-value>", "1"),
+          "background-color": back,
         },
         "input:autofill": {
           "-webkit-box-shadow":
             "0 0 0 30px " +
-            back.replace("<alpha-value>", "1") +
+            back +
             " inset !important",
-          "-webkit-text-fill-color": `${front.replace(
-            "<alpha-value>",
-            "1",
-          )} !important`,
+          "-webkit-text-fill-color": `${front} !important`,
         },
         html: {
           color: "rgb(var(--theme-pri))",
-          "background-color": back.replace("<alpha-value>", "1"),
+          "background-color": back,
         },
         // '@media (prefers-color-scheme: dark)': {
         //   'html': {
