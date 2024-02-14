@@ -69,7 +69,10 @@ pub trait Judger<
     /// 输出评测日志
     fn runtime_log(&mut self, msg: M);
 
-    /// Compile `file` and generate executable at `working_dir/name`
+    /// This method will do the following things:
+    ///
+    /// 1. create a source file at `working_dir/name.{ext}`;
+    /// 2. compile it and generate executable at `working_dir/name`.
     ///
     /// You need to ensure the source file `working_dir/name.ext` does not exist.
     /// If you're applying [`Judger::cachable_block`], you should use [`Compilation::execfile`] for

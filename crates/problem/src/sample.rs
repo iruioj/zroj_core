@@ -154,6 +154,88 @@ int main() {
     }
 }
 
+pub fn quine_statment() -> crate::render_data::Statement {
+    crate::render_data::Statement {
+        title: "Quine".into(),
+        statement: crate::render_data::statement::Inner::Standard {
+            legend: r#"写一个程序，使其能输出自己的源代码。
+
+代码中必须至少包含 $10$ 个可见字符。
+
+"#
+            .into(),
+            input_format: "没有输入文件。".into(),
+            output_format: "你的源代码。".into(),
+            notes: r##"```cpp
+#include<cstdio>
+char*s="#include<cstdio>%cchar*s=%c%s%c;main(){printf(s,10,34,s,34);}";main(){printf(s,10,34,s,34);}
+```"##
+                .into(),
+            samples: vec![],
+        },
+        meta: crate::render_data::statement::StmtMeta {
+            time: None,
+            memory: None,
+            kind: Some(crate::render_data::ProblemKind::Traditional(
+                crate::render_data::IOKind::StdIO,
+            )),
+        },
+    }
+}
+
+pub fn quine_data() -> StandardProblem {
+    StandardProblem::Traditional(
+        OJData::new(crate::prelude::traditional::Meta {
+            checker: crate::Checker::CABI {
+                source: SourceFile::from_str(
+                    include_str!("../tests/quine_checker.rs"),
+                    judger::FileType::Rust,
+                ),
+            },
+            time_limit: crate::Elapse::from(1000u64),
+            memory_limit: crate::Memory::from(256u64 << 20),
+            output_limit: crate::Memory::from(64u64 << 20),
+        })
+        .set_data(crate::data::Taskset::Tests {
+            tasks: vec![crate::prelude::traditional::Task {
+                input: StoreFile::from_str("", judger::FileType::Plain),
+                output: StoreFile::from_str("", judger::FileType::Plain),
+            }],
+        }),
+    )
+}
+
+pub fn quine_full() -> ProblemFullData {
+    ProblemFullData {
+        data: quine_data(),
+        statement: quine_statment(),
+        tutorial: crate::render_data::Tutorial {
+            tutorial: crate::render_data::tutorial::Inner::Source(
+                r##"```cpp
+#include<cstdio>
+char*s="#include<cstdio>%cchar*s=%c%s%c;main(){printf(s,10,34,s,34);}";main(){printf(s,10,34,s,34);}
+```"##
+                    .into(),
+            ),
+            meta: crate::render_data::tutorial::TutrMeta {
+                origin: None,
+                difficulty: Some("简单".into()),
+                tags: vec!["SPJ".into()],
+            },
+        },
+    }
+}
+
+pub fn quine_std() -> crate::prelude::traditional::Subm {
+    crate::prelude::traditional::Subm {
+        source: SourceFile::from_str(
+            r##"#include<cstdio>
+char*s="#include<cstdio>%cchar*s=%c%s%c;main(){printf(s,10,34,s,34);}";main(){printf(s,10,34,s,34);}"##,
+            judger::FileType::GnuCpp14O2,
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use judger::DefaultJudger;
@@ -164,15 +246,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_a_plus_b() {
+    fn test_sample() {
         let dir = tempfile::tempdir().unwrap();
         let cache_dir = tempfile::tempdir().unwrap();
-        let data = a_plus_b_data();
-        let StandardProblem::Traditional(mut data) = data;
-        let mut data = data.get_data_mut();
-
         let mut default_judger =
             DefaultJudger::new(Handle::new(dir.path()), Some(Handle::new(cache_dir.path())));
+
+        // test a + b problem
+        let StandardProblem::Traditional(mut data) = a_plus_b_data();
+        let mut data = data.get_data_mut();
 
         let mut subm = a_plus_b_std();
         let report =
@@ -187,6 +269,16 @@ mod tests {
                 .unwrap();
         dbg!(&report);
         assert!(report.meta.score_rate.abs() < 1e-5);
+
+        // test quine
+        let StandardProblem::Traditional(mut data) = quine_data();
+        let mut data = data.get_data_mut();
+        let mut subm = quine_std();
+        let report =
+            judger_framework::judge::<_, _, Traditional>(&mut data, &mut default_judger, &mut subm)
+                .unwrap();
+        dbg!(&report);
+        assert!((report.meta.score_rate - 1.).abs() < 1e-5);
 
         drop(cache_dir);
         drop(dir);

@@ -1,6 +1,6 @@
 //! Run this script to prepare database for testing according to `local.server_app_test.json`
 
-use problem::Elapse;
+use problem::{Elapse, ProblemFullData};
 use server::data::{
     file_system::{schema::*, FileSysTable},
     mysql::{schema::*, schema_model},
@@ -37,43 +37,50 @@ fn main() -> anyhow::Result<()> {
     eprintln!("insert a user {}", test_user.username);
     mysqldb.upsert(users::table, test_user)?;
 
-    let mut prob_full = problem::sample::a_plus_b_full();
-    eprintln!("insert problem {}", prob_full.statement.title);
+    let insert_prob_full = |pid: u32, mut prob_full: ProblemFullData| -> anyhow::Result<()> {
+        eprintln!("insert problem {}", prob_full.statement.title);
+        mysqldb.upsert(
+            problems::table,
+            schema_model::Problem {
+                id: pid,
+                title: prob_full.statement.title,
+                meta: JsonStr(prob_full.statement.meta),
+            },
+        )?;
+        mysqldb.upsert(
+            problem_statements::table,
+            schema_model::ProblemStatement {
+                id: pid,
+                pid,
+                content: JsonStr(prob_full.statement.statement.render_mdast()),
+            },
+        )?;
+        filesysdb.transaction(|ctx| {
+            ojdata::conn(ctx).replace(&pid, &mut prob_full.data)?;
 
-    mysqldb.upsert(
-        problems::table,
-        schema_model::Problem {
-            id: 1,
-            title: prob_full.statement.title,
-            meta: JsonStr(prob_full.statement.meta),
-        },
-    )?;
+            Ok(())
+        })?;
+        Ok(())
+    };
 
-    mysqldb.upsert(
-        problem_statements::table,
-        schema_model::ProblemStatement {
-            id: 1,
-            pid: 1,
-            content: JsonStr(prob_full.statement.statement.render_mdast()),
-        },
-    )?;
+    insert_prob_full(1, problem::sample::a_plus_b_full())?;
+    insert_prob_full(2, problem::sample::quine_full())?;
 
     eprintln!("insert a problem with pdf statement");
 
     mysqldb.upsert(
         problems::table,
         schema_model::Problem {
-            id: 2,
+            id: 3,
             title: "PDF statement test".into(),
             meta: JsonStr(Default::default()),
         },
     )?;
-
     mysqldb.upsert(
         problem_statements::table,
         schema_model::ProblemStatement {
-            id: 2,
-            pid: 2,
+            id: 3,
+            pid: 3,
             content: JsonStr(
                 problem::render_data::statement::Inner::Legacy(format!(
                     r#"You'll see a PDF frame below.
@@ -88,13 +95,6 @@ You can use `[pdf](path/to/pdf)` to display PDF (<= {} bytes) in page.
             ),
         },
     )?;
-
-    filesysdb.transaction(|ctx| {
-        ojdata::conn(ctx).replace(&1, &mut prob_full.data)?;
-
-        Ok(())
-    })?;
-
     eprintln!("insert path/to/test.pdf to global staticdata");
     filesysdb.transaction(|ctx| {
         let mut file = std::fs::File::open("crates/server/tests/test.pdf").unwrap();
