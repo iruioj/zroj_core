@@ -128,7 +128,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let stmt_db = data::problem_statement::StmtDB::new(&mysqldb, &filesysdb);
         let ojdata_db = data::problem_ojdata::OJDataDB::new(&filesysdb);
         let subm_db = data::submission::SubmDB::new(&mysqldb);
-        let ctst_db = data::contest::CtstDB::new(&&mysqldb);
+        let ctst_db = data::contest::CtstDB::new(&mysqldb);
 
         self.runtime = Some(ServerAppRuntime {
             mysqldb,

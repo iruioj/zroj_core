@@ -50,7 +50,7 @@ impl Handle {
             ))?
         }
     }
-    /// 在该路径下新建文件，会自动补齐父级目录，要求其不存在
+    /// 在该路径下新建文件用于写入，会自动补齐父级目录，要求其不存在
     pub fn create_new_file(&self) -> Result<fs::File, Error> {
         if let Some(par) = self.dir.parent() {
             fs::create_dir_all(par).context("create parent dir")?;

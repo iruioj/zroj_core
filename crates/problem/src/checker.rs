@@ -229,7 +229,7 @@ impl Checker {
 
                 let check_output = std::fs::read_to_string(&checker_out)?;
                 let score: f64 = check_output
-                    .split("\n")
+                    .split('\n')
                     .last()
                     .unwrap()
                     .parse()
