@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     ffi::{CStr, CString},
     io::Write,
+    path::Path,
     time::Instant,
 };
 
@@ -329,13 +330,13 @@ impl crate::ExecSandBox for Singleton {
 // new API
 impl Singleton {
     /// Create a new builder with the path of executable
-    pub fn new(exec: CString) -> Self {
+    pub fn new(exec: &Path) -> Self {
         Singleton {
             limits: Limitation::default(),
             stdin: None,
             stdout: None,
             stderr: None,
-            exec_path: exec,
+            exec_path: CString::new(exec.as_os_str().as_encoded_bytes()).unwrap(),
             arguments: Vec::new(),
             envs: Vec::new(),
         }
@@ -366,6 +367,14 @@ impl Singleton {
     pub fn push_env(mut self, args: impl IntoIterator<Item = CString>) -> Self {
         for arg in args {
             self.envs.push(arg);
+        }
+        self
+    }
+    /// add current process's env to the list
+    pub fn with_current_env(mut self) -> Self {
+        for (key, value) in std::env::vars() {
+            self.envs
+                .push(CString::new(format!("{}={}", key, value)).unwrap());
         }
         self
     }

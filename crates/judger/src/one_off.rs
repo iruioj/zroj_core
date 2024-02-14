@@ -3,7 +3,7 @@
 use sandbox::{unix::Limitation, Elapse, Memory};
 use store::Handle;
 
-use crate::{lang::Compile, SourceFile, Status, StoreFile, TaskReport};
+use crate::{SourceFile, Status, StoreFile, TaskReport};
 
 /// OneOff 用于执行自定义测试，流程包含：编译、运行可执行文件。
 ///
@@ -102,7 +102,7 @@ impl OneOff {
         self.stdin.copy_to(&input).expect("cannot copy input file");
         assert!(dest.as_ref().exists());
         let term: sandbox::Termination = {
-            let s = Singleton::new(CString::new(dest.as_ref().as_os_str().as_bytes()).unwrap())
+            let s = Singleton::new(dest.path())
                 .set_limits(|_| Limitation {
                     real_time: Lim::Double(self.time_limit, Elapse::from(self.time_limit.ms() * 2)),
                     cpu_time: self.time_limit.into(),

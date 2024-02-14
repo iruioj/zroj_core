@@ -3,8 +3,8 @@ use sandbox::{
     unix::{Lim, Limitation, Singleton},
     ExecSandBox, Status,
 };
-use std::os::unix::ffi::OsStrExt;
 use std::{io::Write, process::Command};
+use std::{os::unix::ffi::OsStrExt, path::PathBuf, str::FromStr};
 use tempfile::tempdir;
 
 macro_rules! cstring {
@@ -13,15 +13,17 @@ macro_rules! cstring {
     };
 }
 
-fn get_exec_path(name: &str) -> String {
+fn get_exec_path(name: &str) -> PathBuf {
     let r = Command::new("which")
         .arg(name)
         .output()
         .expect("execute which error");
-    String::from_utf8(r.stdout)
-        .expect("decode utf8 error")
-        .trim()
-        .to_owned()
+    PathBuf::from_str(
+        String::from_utf8(r.stdout)
+            .expect("decode utf8 error")
+            .trim(),
+    )
+    .unwrap()
 }
 
 #[test]
@@ -29,7 +31,7 @@ fn test_ls() -> anyhow::Result<()> {
     let ls_path = get_exec_path("ls");
 
     let singleton =
-        Singleton::new(cstring!(ls_path)).push_arg([cstring!("ls"), cstring!("-l"), cstring!(".")]);
+        Singleton::new(&ls_path).push_arg([cstring!("ls"), cstring!("-l"), cstring!(".")]);
 
     let term = singleton.exec_sandbox()?;
     assert_eq!(term.status, Status::Ok);
@@ -41,7 +43,7 @@ fn test_ls() -> anyhow::Result<()> {
 fn test_sleep_tle() -> anyhow::Result<()> {
     let sleep_path = get_exec_path("sleep");
     // sleep 5 秒，触发 TLE
-    let singleton = Singleton::new(cstring!(sleep_path))
+    let singleton = Singleton::new(&sleep_path)
         .push_arg([cstring!("sleep"), cstring!("2")])
         .set_limits(|mut l| {
             l.cpu_time = Lim::Double(1000.into(), 3000.into());
@@ -59,7 +61,7 @@ fn test_sleep_tle() -> anyhow::Result<()> {
 fn test_env() -> anyhow::Result<()> {
     let env_path = get_exec_path("env");
 
-    let singleton = Singleton::new(cstring!(env_path)).push_arg([
+    let singleton = Singleton::new(&env_path).push_arg([
         cstring!("env"),
         cstring!("DIR=/usr"),
         cstring!("A=b"),
@@ -86,7 +88,7 @@ fn test_loop() -> anyhow::Result<()> {
     let r = p.wait().unwrap();
     assert!(exec_path.is_file() && r.success());
 
-    let term = Singleton::new(cstring!(exec_path.as_os_str()))
+    let term = Singleton::new(&exec_path)
         .set_limits(|mut l| {
             l.cpu_time = Lim::Double(1000.into(), 3000.into());
             l.real_time = Lim::Double(1000.into(), 2000.into());
@@ -96,7 +98,7 @@ fn test_loop() -> anyhow::Result<()> {
         .context("the first time")?;
     assert_eq!(term.status, Status::TimeLimitExceeded);
 
-    let term = Singleton::new(cstring!(exec_path.as_os_str()))
+    let term = Singleton::new(&exec_path)
         .set_limits(|mut l| {
             l.cpu_time = Lim::Double(1000.into(), 3000.into());
             l.real_time = Lim::Double(1000.into(), 2000.into());
@@ -121,7 +123,7 @@ fn test_cat_stdio() -> anyhow::Result<()> {
     fin.write_all(content.as_bytes()).unwrap();
     drop(fin);
 
-    let s = Singleton::new(cstring!(get_exec_path("cat")))
+    let s = Singleton::new(&get_exec_path("cat"))
         .push_arg([cstring!("cat")])
         .stdin(cstring!(filepath.as_os_str()))
         .stdout(cstring!(outputpath.as_os_str()))
@@ -155,7 +157,7 @@ fn test_gcc_linux() -> anyhow::Result<()> {
     let mut file = std::fs::File::create(filepath).unwrap();
     let source = include_str!("asserts/stress.txt");
     file.write_all(source.as_bytes()).unwrap();
-    let s = Singleton::new(cstring!("/usr/bin/g++"))
+    let s = Singleton::new(&PathBuf::from_str("/usr/bin/g++").unwrap())
         .push_arg([
             cstring!("g++"),
             cstring!(filepath.as_os_str()),

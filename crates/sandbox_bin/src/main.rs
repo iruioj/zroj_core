@@ -98,21 +98,19 @@ fn main() -> anyhow::Result<()> {
             .unwrap()
     });
 
-    let mut s = sandbox::unix::Singleton::new(
-        CString::new(cli.exec.unwrap().as_os_str().as_bytes()).unwrap(),
-    )
-    .push_arg(
-        args.iter()
-            .map(|s| CString::new(s.as_bytes()))
-            .collect::<Result<Vec<CString>, _>>()
-            .unwrap(),
-    )
-    .push_env(
-        envs.iter()
-            .map(|s| CString::new(s.as_bytes()))
-            .collect::<Result<Vec<CString>, _>>()
-            .unwrap(),
-    );
+    let mut s = sandbox::unix::Singleton::new(&cli.exec.unwrap())
+        .push_arg(
+            args.iter()
+                .map(|s| CString::new(s.as_bytes()))
+                .collect::<Result<Vec<CString>, _>>()
+                .unwrap(),
+        )
+        .push_env(
+            envs.iter()
+                .map(|s| CString::new(s.as_bytes()))
+                .collect::<Result<Vec<CString>, _>>()
+                .unwrap(),
+        );
     if let Some(stdin) = cli.stdin {
         s = s.stdin(CString::new(stdin.as_os_str().as_bytes()).unwrap());
     }

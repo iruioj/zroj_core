@@ -5,7 +5,10 @@ use std::{
 };
 
 use anyhow::Context;
-use judger::{sandbox::ExecSandBox, Judger, SourceFile, StoreFile};
+use judger::{
+    sandbox::{unix::Singleton, ExecSandBox},
+    Judger, SourceFile, StoreFile, COMPILE_LIM,
+};
 use store::{FsStore, Handle};
 
 fn compare_byline(
@@ -66,6 +69,13 @@ pub enum Checker {
         testlib_header: StoreFile,
         checker: SourceFile,
     },
+    /// Testlib is rather heavy and sometimes unnecessary to build a checker. For a lightweight implementation,
+    /// you may provide arbitrary source with arbitrary language, which exposed the C ABI as
+    ///
+    /// ```c
+    #[doc = include_str!("./checker_c_abi.h")]
+    /// ```
+    CABI { source: SourceFile },
 }
 
 fn file_cmp(fout: BufReader<File>, fans: BufReader<File>) -> Result<String, String> {
@@ -170,7 +180,7 @@ impl Checker {
                 let checker = judger.copy_file(&mut execfile, "checker")?;
                 let checker_log = judger.clear_dest("checker.log")?;
 
-                let term = judger::sandbox::unix::Singleton::new(checker.to_cstring())
+                let term = judger::sandbox::unix::Singleton::new(checker.path())
                     .push_arg([
                         CString::new("checker").unwrap(),
                         input.to_cstring(),
@@ -191,8 +201,160 @@ impl Checker {
                     t => Err(anyhow::anyhow!("checker error: {t:?}, {checker_log}")),
                 }
             }
+            Checker::CABI { source } => {
+                let exec = match source.file_type {
+                    judger::FileType::GnuCpp20O2 => {
+                        compile_cabi_checker_cpp(judger, source, "--std=c++2a")
+                    }
+                    judger::FileType::GnuCpp17O2 => {
+                        compile_cabi_checker_cpp(judger, source, "--std=c++17")
+                    }
+                    judger::FileType::GnuCpp14O2 => {
+                        compile_cabi_checker_cpp(judger, source, "--std=c++14")
+                    }
+                    judger::FileType::Rust => compile_cabi_checker_rust(judger, source),
+                    _ => unimplemented!(),
+                }?;
+                let checker_out = judger.clear_dest("checker_stdout")?;
+
+                // use default limitation
+                Singleton::new(exec.path())
+                    .push_arg([
+                        CString::new("checker").unwrap(),
+                        judger.working_dir().to_cstring(),
+                    ])
+                    .with_current_env()
+                    .stdout(checker_out.to_cstring())
+                    .exec_sandbox()?;
+
+                let check_output = std::fs::read_to_string(&checker_out)?;
+                let score: f64 = check_output
+                    .split("\n")
+                    .last()
+                    .unwrap()
+                    .parse()
+                    .context("parse score from checker outputs")?;
+
+                Ok((score, check_output))
+            }
         }
     }
+}
+
+fn compile_cabi_checker_cpp<M: std::fmt::Display>(
+    judger: &impl Judger<M>,
+    source: &mut SourceFile,
+    stdflag: &str,
+) -> anyhow::Result<Handle> {
+    judger.create_source_file(include_str!("./checker_c_abi.h"), "checker_c_abi.h")?;
+    let c_abi_main =
+        judger.create_source_file(include_str!("./checker_c_abi.c"), "checker_c_abi.c")?;
+    let cpp_impl_src = judger.create_source_file(&source.source, "checker.cpp")?;
+    let main_obj = judger.clear_dest("main.o")?;
+    let checker_obj = judger.clear_dest("checker.o")?;
+    let exec = judger.clear_dest("checker")?;
+
+    Singleton::new(&judger::which("cc").unwrap())
+        .push_arg([
+            CString::new("cc").unwrap(),
+            c_abi_main.to_cstring(),
+            CString::new("-o").unwrap(),
+            main_obj.to_cstring(),
+            CString::new("-c").unwrap(),
+            CString::new("-O2").unwrap(),
+        ])
+        .with_current_env()
+        .set_limits(|_| COMPILE_LIM)
+        .exec_sandbox()?;
+
+    Singleton::new(&judger::which("g++")?)
+        .push_arg([
+            CString::new("g++").unwrap(),
+            cpp_impl_src.to_cstring(),
+            CString::new("-o").unwrap(),
+            checker_obj.to_cstring(),
+            CString::new("-c").unwrap(),
+            CString::new(stdflag).unwrap(),
+            CString::new("-O2").unwrap(),
+        ])
+        .with_current_env()
+        .set_limits(|_| COMPILE_LIM)
+        .exec_sandbox()?;
+
+    Singleton::new(&judger::which("cc")?)
+        .push_arg([
+            CString::new("cc").unwrap(),
+            CString::new("-o").unwrap(),
+            exec.to_cstring(),
+            main_obj.to_cstring(),
+            checker_obj.to_cstring(),
+            CString::new("-O2").unwrap(),
+            CString::new("-lstdc++").unwrap(),
+        ])
+        .with_current_env()
+        .set_limits(|_| COMPILE_LIM)
+        .exec_sandbox()?;
+
+    assert!(exec.path().exists());
+
+    Ok(exec)
+}
+
+fn compile_cabi_checker_rust<M: std::fmt::Display>(
+    judger: &impl Judger<M>,
+    source: &mut SourceFile,
+) -> anyhow::Result<Handle> {
+    judger.create_source_file(include_str!("./checker_c_abi.h"), "checker_c_abi.h")?;
+    let c_abi_main =
+        judger.create_source_file(include_str!("./checker_c_abi.c"), "checker_c_abi.c")?;
+    let rust_impl_src = judger.create_source_file(&source.source, "checker.rs")?;
+    let main_obj = judger.clear_dest("main.o")?;
+    let checker_lib = judger.clear_dest("libchecker.a")?;
+    let exec = judger.clear_dest("checker")?;
+
+    Singleton::new(&judger::which("cc").unwrap())
+        .push_arg([
+            CString::new("cc").unwrap(),
+            c_abi_main.to_cstring(),
+            CString::new("-o").unwrap(),
+            main_obj.to_cstring(),
+            CString::new("-c").unwrap(),
+            CString::new("-O2").unwrap(),
+        ])
+        .with_current_env()
+        .set_limits(|_| COMPILE_LIM)
+        .exec_sandbox()?;
+
+    Singleton::new(&judger::which("rustc")?)
+        .push_arg([
+            CString::new("rustc").unwrap(),
+            CString::new("--crate-type=staticlib").unwrap(),
+            rust_impl_src.to_cstring(),
+            CString::new("-o").unwrap(),
+            checker_lib.to_cstring(),
+        ])
+        .with_current_env()
+        .set_limits(|_| COMPILE_LIM)
+        .exec_sandbox()?;
+
+    Singleton::new(&judger::which("cc")?)
+        .push_arg([
+            CString::new("cc").unwrap(),
+            CString::new("-o").unwrap(),
+            exec.to_cstring(),
+            main_obj.to_cstring(),
+            checker_lib.to_cstring(),
+            CString::new("-O2").unwrap(),
+            CString::new("-lpthread").unwrap(),
+            CString::new("-ldl").unwrap(),
+        ])
+        .with_current_env()
+        .set_limits(|_| COMPILE_LIM)
+        .exec_sandbox()?;
+
+    assert!(exec.path().exists());
+
+    Ok(exec)
 }
 
 #[cfg(test)]

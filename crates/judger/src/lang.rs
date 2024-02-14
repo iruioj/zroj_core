@@ -3,24 +3,8 @@ use sandbox::{Elapse, ExecSandBox, Memory};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use std::ffi::CString;
-use std::os::unix::ffi::OsStrExt;
-use std::path::Path;
 use std::path::PathBuf;
-
-/// 一个 Compile 是指对 **单个源文件** 指定的语言，并提供对应的编译指令
-pub trait Compile {
-    /// 生成一个编译指令
-    ///
-    /// - source: 源文件路径
-    /// - dest: 编译产生的可执行文件的路径
-    /// - log: 编译日志文件
-    fn compile_sandbox(
-        &self,
-        source: impl AsRef<Path>,
-        dest: impl AsRef<Path>,
-        log: impl AsRef<Path>,
-    ) -> Box<dyn ExecSandBox>;
-}
+use store::Handle;
 
 /// 使用 g++ 编译 C++ 源文件
 pub struct GnuCpp {
@@ -41,54 +25,47 @@ impl GnuCpp {
     }
 }
 
-impl Compile for GnuCpp {
+pub const COMPILE_LIM: Limitation = Limitation {
+    real_time: Lim::Double(Elapse::from_sec(10), Elapse::from_sec(20)),
+    cpu_time: Lim::Single(Elapse::from_sec(10)),
+    virtual_memory: Lim::Single(Memory::from_mb(4096)),
+    real_memory: Lim::Single(Memory::from_mb(4096)),
+    stack_memory: Lim::Single(Memory::from_mb(4096)),
+    output_memory: Lim::Single(Memory::from_mb(1024)),
+    fileno: Lim::Single(200),
+};
+
+impl GnuCpp {
     fn compile_sandbox(
         &self,
-        source: impl AsRef<Path>,
-        dest: impl AsRef<Path>,
-        log: impl AsRef<Path>,
+        source: &Handle,
+        dest: &Handle,
+        log: &Handle,
     ) -> Box<dyn ExecSandBox> {
-        let mut envs = Vec::new();
-        for (key, value) in std::env::vars() {
-            envs.push(format!("{}={}", key, value));
-        }
-        Box::new(
-            Singleton::new(CString::new(self.gpp_path.as_os_str().as_bytes()).unwrap())
-                .push_arg([CString::new("g++").unwrap()])
-                .push_arg(
-                    self.extra_args
-                        .iter()
-                        .map(|s| CString::new(s.as_bytes()))
-                        .collect::<Result<Vec<CString>, _>>()
-                        .unwrap(),
-                )
-                .push_arg([
-                    CString::new(source.as_ref().as_os_str().as_bytes()).unwrap(),
-                    CString::new("-o").unwrap(),
-                    CString::new(dest.as_ref().as_os_str().as_bytes()).unwrap(),
-                ])
-                .push_env(
-                    envs.iter()
-                        .map(|s| CString::new(s.as_bytes()))
-                        .collect::<Result<Vec<CString>, _>>()
-                        .unwrap(),
-                )
-                .set_limits(|_| Limitation {
-                    real_time: Lim::Double(Elapse::from_sec(10), Elapse::from_sec(20)),
-                    cpu_time: Elapse::from_sec(10).into(),
-                    virtual_memory: Memory::from_mb(4096).into(),
-                    real_memory: Memory::from_mb(4096).into(),
-                    stack_memory: Memory::from_mb(4096).into(),
-                    output_memory: Memory::from_mb(1024).into(),
-                    fileno: 200.into(),
-                })
-                .stderr(CString::new(log.as_ref().as_os_str().as_bytes()).unwrap()),
-        )
+        let r = Singleton::new(&self.gpp_path)
+            .push_arg([CString::new("g++").unwrap()])
+            .push_arg(
+                self.extra_args
+                    .iter()
+                    .map(|s| CString::new(s.as_bytes()))
+                    .collect::<Result<Vec<CString>, _>>()
+                    .unwrap(),
+            )
+            .push_arg([
+                source.to_cstring(),
+                CString::new("-o").unwrap(),
+                dest.to_cstring(),
+            ])
+            .with_current_env()
+            .set_limits(|_| COMPILE_LIM)
+            .stderr(log.to_cstring());
+        Box::new(r)
     }
 }
 
 /// 内置的支持的文件类型
 #[derive(Serialize, Deserialize, Clone, Debug, TsType, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum FileType {
     #[serde(rename = "gnu_cpp20_o2")]
     GnuCpp20O2,
@@ -110,9 +87,7 @@ impl FileType {
     /// 获取文件类型对应的后缀名
     pub fn ext(&self) -> &'static str {
         match &self {
-            FileType::GnuCpp20O2 => "cpp",
-            FileType::GnuCpp17O2 => "cpp",
-            FileType::GnuCpp14O2 => "cpp",
+            FileType::GnuCpp20O2 | FileType::GnuCpp17O2 | FileType::GnuCpp14O2 => "cpp",
             FileType::Plain => "txt",
             FileType::Python => "py",
             FileType::Rust => "rs",
@@ -124,12 +99,17 @@ impl FileType {
     }
 }
 
-impl Compile for FileType {
-    fn compile_sandbox(
+impl FileType {
+    /// 生成一个编译指令，将源文件编译为可执行文件
+    ///
+    /// - source: 源文件路径
+    /// - dest: 编译产生的可执行文件的路径
+    /// - log: 编译日志文件
+    pub fn compile_sandbox(
         &self,
-        source: impl AsRef<Path>,
-        dest: impl AsRef<Path>,
-        log: impl AsRef<Path>,
+        source: &Handle,
+        dest: &Handle,
+        log: &Handle,
     ) -> Box<dyn ExecSandBox> {
         match self {
             FileType::GnuCpp20O2 => {
@@ -145,7 +125,19 @@ impl Compile for FileType {
                     .compile_sandbox(source, dest, log)
             }
             FileType::Plain => panic!("a plain file should never be compiled"),
-            _ => todo!(),
+            FileType::Rust => {
+                let r = Singleton::new(&crate::which("rustc").unwrap())
+                    .push_arg([
+                        CString::new("rustc").unwrap(),
+                        source.to_cstring(),
+                        CString::new("-o").unwrap(),
+                        dest.to_cstring(),
+                    ])
+                    .with_current_env()
+                    .set_limits(|_| COMPILE_LIM);
+                Box::new(r)
+            }
+            _ => unimplemented!(),
         }
     }
 }

@@ -114,8 +114,8 @@ impl Elapse {
         format!("{self}ms")
     }
     /// create Elapse from seconds value
-    pub fn from_sec(value: u64) -> Self {
-        Self::from(value * 1000)
+    pub const fn from_sec(value: u64) -> Self {
+        Self(value * 1000)
     }
 }
 
@@ -197,8 +197,8 @@ impl Memory {
         }
     }
     /// create Memory size from MB value
-    pub fn from_mb(value: u64) -> Self {
-        Self::from(value << 20)
+    pub const fn from_mb(value: u64) -> Self {
+        Self(value << 20)
     }
 }
 

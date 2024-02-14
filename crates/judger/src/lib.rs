@@ -12,7 +12,8 @@ use std::hash::Hash;
 
 use anyhow::Context;
 // pub use cache::Cache;
-pub use lang::{Compile, FileType};
+pub use env::which;
+pub use lang::{FileType, COMPILE_LIM};
 pub use one_off::OneOff;
 pub use report::*;
 use store::FsStore;
@@ -100,6 +101,15 @@ pub trait Judger<
         let wd = self.working_dir();
         let dest = wd.join(name);
         src.file.safe_save(&dest)?;
+        Ok(dest)
+    }
+
+    fn create_source_file(&self, content: &str, name: &str) -> anyhow::Result<Handle> {
+        let wd = self.working_dir();
+        let dest = wd.join(name);
+        let mut f = dest.create_new_file()?;
+        use std::io::Write;
+        f.write_all(content.as_bytes())?;
         Ok(dest)
     }
 
