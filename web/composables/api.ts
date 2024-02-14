@@ -104,6 +104,22 @@ export type Code = {
 };
 /**
 */
+export type ContestMeta = {
+    duration: Elapse;
+    end_time: number;
+    id: number;
+    start_time: number;
+    title: string;
+};
+/**
+*/
+export type CtstMetasQuery = {
+    max_count: number;
+    offset: number;
+    pattern: ( undefined | null | string );
+};
+/**
+*/
 export type CustomTestResult = {
     result: ( undefined | TaskReport | null );
 };
@@ -1026,36 +1042,18 @@ export function useAPI () {
                 },
             },
         },
-        user: {
+        custom_test: {
+            get: {
+                use: () => callAPI("get", "/custom_test") as Promise<ExtAsyncData<CustomTestGetReturn | null>>,
+                fetch: () => fetchAPI("get", "/custom_test") as Promise<CustomTestGetReturn>,
+                key: "/custom_test:get",
+            },
             /**
              */
-            get: { 
-                use: (payload: UserGetPayload | Ref<UserGetPayload>) => callAPI("get", "/user", payload) as Promise<ExtAsyncData<UserGetReturn | null>>,
-                fetch: (payload: UserGetPayload | Ref<UserGetPayload>) => fetchAPI("get", "/user", payload) as Promise<UserGetReturn>,
-                key: "/user:get",
-            },
-            edit: {
-                get: {
-                    use: () => callAPI("get", "/user/edit") as Promise<ExtAsyncData<UserEditGetReturn | null>>,
-                    fetch: () => fetchAPI("get", "/user/edit") as Promise<UserEditGetReturn>,
-                    key: "/user/edit:get",
-                },
-                /**
-                 */
-                post: { 
-                    use: (payload: UserEditPostPayload | Ref<UserEditPostPayload>) => callAPI("post", "/user/edit", payload) as Promise<ExtAsyncData<void>>,
-                    fetch: (payload: UserEditPostPayload | Ref<UserEditPostPayload>) => fetchAPI("post", "/user/edit", payload) as Promise<void>,
-                    key: "/user/edit:post",
-                },
-            },
-            gravatar: {
-                /**
-                 */
-                get: { 
-                    use: (payload: UserGravatarGetPayload | Ref<UserGravatarGetPayload>) => callAPI("get", "/user/gravatar", payload) as Promise<ExtAsyncData<void>>,
-                    fetch: (payload: UserGravatarGetPayload | Ref<UserGravatarGetPayload>) => fetchAPI("get", "/user/gravatar", payload) as Promise<void>,
-                    key: "/user/gravatar:get",
-                },
+            post: { 
+                use: (payload: CustomTestPostPayload | Ref<CustomTestPostPayload>) => callAPI("post", "/custom_test", payload) as Promise<ExtAsyncData<CustomTestPostReturn | null>>,
+                fetch: (payload: CustomTestPostPayload | Ref<CustomTestPostPayload>) => fetchAPI("post", "/custom_test", payload) as Promise<CustomTestPostReturn>,
+                key: "/custom_test:post",
             },
         },
         problem: {
@@ -1121,20 +1119,6 @@ export function useAPI () {
                 },
             },
         },
-        custom_test: {
-            get: {
-                use: () => callAPI("get", "/custom_test") as Promise<ExtAsyncData<CustomTestGetReturn | null>>,
-                fetch: () => fetchAPI("get", "/custom_test") as Promise<CustomTestGetReturn>,
-                key: "/custom_test:get",
-            },
-            /**
-             */
-            post: { 
-                use: (payload: CustomTestPostPayload | Ref<CustomTestPostPayload>) => callAPI("post", "/custom_test", payload) as Promise<ExtAsyncData<CustomTestPostReturn | null>>,
-                fetch: (payload: CustomTestPostPayload | Ref<CustomTestPostPayload>) => fetchAPI("post", "/custom_test", payload) as Promise<CustomTestPostReturn>,
-                key: "/custom_test:post",
-            },
-        },
         submission: {
             detail: {
                 /**
@@ -1157,11 +1141,57 @@ export function useAPI () {
                 },
             },
         },
+        user: {
+            /**
+             */
+            get: { 
+                use: (payload: UserGetPayload | Ref<UserGetPayload>) => callAPI("get", "/user", payload) as Promise<ExtAsyncData<UserGetReturn | null>>,
+                fetch: (payload: UserGetPayload | Ref<UserGetPayload>) => fetchAPI("get", "/user", payload) as Promise<UserGetReturn>,
+                key: "/user:get",
+            },
+            edit: {
+                get: {
+                    use: () => callAPI("get", "/user/edit") as Promise<ExtAsyncData<UserEditGetReturn | null>>,
+                    fetch: () => fetchAPI("get", "/user/edit") as Promise<UserEditGetReturn>,
+                    key: "/user/edit:get",
+                },
+                /**
+                 */
+                post: { 
+                    use: (payload: UserEditPostPayload | Ref<UserEditPostPayload>) => callAPI("post", "/user/edit", payload) as Promise<ExtAsyncData<void>>,
+                    fetch: (payload: UserEditPostPayload | Ref<UserEditPostPayload>) => fetchAPI("post", "/user/edit", payload) as Promise<void>,
+                    key: "/user/edit:post",
+                },
+            },
+            gravatar: {
+                /**
+                 */
+                get: { 
+                    use: (payload: UserGravatarGetPayload | Ref<UserGravatarGetPayload>) => callAPI("get", "/user/gravatar", payload) as Promise<ExtAsyncData<void>>,
+                    fetch: (payload: UserGravatarGetPayload | Ref<UserGravatarGetPayload>) => fetchAPI("get", "/user/gravatar", payload) as Promise<void>,
+                    key: "/user/gravatar:get",
+                },
+            },
+        },
+        contest: {
+            metas: {
+                /**
+                 获取比赛列表
+                 */
+                get: { 
+                    use: (payload: ContestMetasGetPayload | Ref<ContestMetasGetPayload>) => callAPI("get", "/contest/metas", payload) as Promise<ExtAsyncData<ContestMetasGetReturn | null>>,
+                    fetch: (payload: ContestMetasGetPayload | Ref<ContestMetasGetPayload>) => fetchAPI("get", "/contest/metas", payload) as Promise<ContestMetasGetReturn>,
+                    key: "/contest/metas:get",
+                },
+            },
+        },
     };
 }
 export type AuthInfoGetReturn = AuthInfoRes;
 export type AuthLoginPostPayload = LoginPayload;
 export type AuthRegisterPostPayload = RegisterPayload;
+export type ContestMetasGetPayload = CtstMetasQuery;
+export type ContestMetasGetReturn = ContestMeta[];
 export type CustomTestGetReturn = CustomTestResult;
 export type CustomTestPostPayload = FormData;
 export type CustomTestPostReturn = any;

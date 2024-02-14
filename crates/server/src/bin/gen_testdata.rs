@@ -1,5 +1,6 @@
 //! Run this script to prepare database for testing according to `local.server_app_test.json`
 
+use problem::Elapse;
 use server::data::{
     file_system::{schema::*, FileSysTable},
     mysql::{schema::*, schema_model},
@@ -96,12 +97,35 @@ You can use `[pdf](path/to/pdf)` to display PDF (<= {} bytes) in page.
 
     eprintln!("insert path/to/test.pdf to global staticdata");
     filesysdb.transaction(|ctx| {
-        eprintln!("ctx = {}", ctx.path().display());
         let mut file = std::fs::File::open("crates/server/tests/test.pdf").unwrap();
         global_staticdata::conn(ctx).replace("path/to/test.pdf", &mut file)?;
 
         Ok(())
     })?;
+
+    eprintln!("insert a contest, elapsing 1h, already started");
+    mysqldb.upsert(
+        contests::table,
+        schema_model::Contest {
+            id: 1,
+            title: "Contest 1".into(),
+            start_time: DateTime::now(),
+            end_time: DateTime::now_with_offset_seconds(24 * 3600),
+            duration: CastElapse(Elapse::from_sec(3600)),
+        },
+    )?;
+
+    eprintln!("insert a contest, elapsing 1h, not started");
+    mysqldb.upsert(
+        contests::table,
+        schema_model::Contest {
+            id: 2,
+            title: "Contest 2".into(),
+            start_time: DateTime::now_with_offset_seconds(2 * 3600),
+            end_time: DateTime::now_with_offset_seconds(24 * 3600),
+            duration: CastElapse(Elapse::from_sec(3600)),
+        },
+    )?;
 
     eprintln!("done");
     Ok(())

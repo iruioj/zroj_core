@@ -286,7 +286,7 @@ where
 pub type TypeId = std::any::TypeId;
 
 /// 类型标志符的上下文（类型集合）
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Context(
     BTreeMap<String, (TypeExpr, String)>,
     BTreeMap<TypeId, String>,

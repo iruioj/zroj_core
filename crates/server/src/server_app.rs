@@ -5,10 +5,7 @@ use crate::{
         mysql::{MysqlConfig, MysqlDb},
     },
     manager, utils,
-    web::{
-        auth::{injector::AuthInjector, AuthStorage},
-        services,
-    },
+    web::auth::{injector::AuthInjector, AuthStorage},
 };
 use actix_web::web::Data;
 use anyhow::Context;
@@ -22,6 +19,7 @@ struct ServerAppRuntime {
     subm_db: data::submission::SubmDB,
     stmt_db: data::problem_statement::StmtDB,
     ojdata_db: data::problem_ojdata::OJDataDB,
+    ctst_db: data::contest::CtstDB,
 }
 
 /// Create an online judge server application.
@@ -130,6 +128,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let stmt_db = data::problem_statement::StmtDB::new(&mysqldb, &filesysdb);
         let ojdata_db = data::problem_ojdata::OJDataDB::new(&filesysdb);
         let subm_db = data::submission::SubmDB::new(&mysqldb);
+        let ctst_db = data::contest::CtstDB::new(&&mysqldb);
 
         self.runtime = Some(ServerAppRuntime {
             mysqldb,
@@ -138,6 +137,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
             stmt_db,
             subm_db,
             ojdata_db,
+            ctst_db,
         });
         Ok(())
     }
@@ -150,6 +150,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
             stmt_db,
             subm_db,
             ojdata_db,
+            ctst_db,
             ..
         } = self.runtime.unwrap();
 
@@ -157,6 +158,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let stmt_db = Data::new(stmt_db);
         let subm_db = Data::new(subm_db);
         let ojdata_db = Data::new(ojdata_db);
+        let ctst_db = Data::new(ctst_db);
 
         let oneoff = Data::new(manager::OneOffManager::new(
             self.config.runner_working_root.join("oneoff"),
@@ -194,39 +196,34 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let auth_storage = AuthStorage::default();
         let tlscfg = std::sync::Arc::new(utils::rustls_config());
         let httpserver = actix_web::HttpServer::new(move || {
+            use crate::web::services::*;
+
             let gclient = Data::new(crate::web::gravatar::GravatarClient::new(
                 self.config.gravatar_cdn_base.as_ref(),
                 tlscfg.clone(),
             ));
+            let authinject = AuthInjector::require_auth(auth_storage.clone());
 
             crate::utils::dev_server(revproxy.clone()).service(
                 actix_web::web::scope("/api")
-                    .service(services::auth::service(
-                        auth_storage.clone(),
-                        user_db.clone(),
-                    ))
+                    .service(auth::service(auth_storage.clone(), user_db.clone()))
+                    .service(user::service(user_db.clone(), gclient).wrap(authinject.clone()))
                     .service(
-                        services::user::service(user_db.clone(), gclient)
-                            .wrap(AuthInjector::require_auth(auth_storage.clone())),
-                    )
-                    .service(
-                        services::problem::service(
+                        problem::service(
                             stmt_db.clone(),
                             ojdata_db.clone(),
                             subm_db.clone(),
                             judger.clone(),
                         )
-                        .wrap(AuthInjector::require_auth(auth_storage.clone())),
+                        .wrap(authinject.clone()),
                     )
+                    .service(one_off::service(oneoff.clone()).wrap(authinject.clone()))
                     .service(
-                        services::one_off::service(oneoff.clone())
-                            .wrap(AuthInjector::require_auth(auth_storage.clone())),
+                        submission::service(subm_db.clone(), judger.clone())
+                            .wrap(authinject.clone()),
                     )
-                    .service(
-                        services::submission::service(subm_db.clone(), judger.clone())
-                            .wrap(AuthInjector::require_auth(auth_storage.clone())),
-                    )
-                    .service(services::api_docs::service()),
+                    .service(contest::service(ctst_db.clone()).wrap(authinject.clone()))
+                    .service(api_docs::service()),
             )
         })
         .bind(self.config.listen_address)?;

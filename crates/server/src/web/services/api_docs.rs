@@ -1,9 +1,6 @@
 //! Backend-served page for API documents
 
-use crate::{
-    marker::{AnyResult, QueryParam},
-    ServiceDoc,
-};
+use crate::marker::{AnyResult, QueryParam};
 use actix_http::StatusCode;
 use actix_web::HttpResponse;
 use askama::Template;
@@ -91,26 +88,16 @@ struct ApiTemplate {
     pub description: String,
 }
 
-lazy_static::lazy_static!(
-    static ref DOCS: Vec<(ServiceDoc, serde_ts_typing::Context)> = vec![
-        super::auth::service_doc(),
-        super::one_off::service_doc(),
-        super::problem::service_doc(),
-        super::submission::service_doc(),
-        super::user::service_doc(),
-    ];
-);
-
 #[derive(Deserialize, TsType)]
 struct DocsQuery {
     module: Option<String>,
 }
 #[api(method = get, path = "")]
 async fn docs_get(query: QueryParam<DocsQuery>) -> AnyResult<HttpResponse> {
-    let paths: Vec<String> = DOCS.iter().map(|t| t.0.path.clone()).collect();
+    let paths: Vec<String> = super::DOCS.iter().map(|t| t.0.path.clone()).collect();
 
     let html = if let Some(path) = query.0.module {
-        let data = DOCS.iter().find(|t| t.0.path == path).unwrap();
+        let data = super::DOCS.iter().find(|t| t.0.path == path).unwrap();
 
         let apis: Vec<String> = data
             .0

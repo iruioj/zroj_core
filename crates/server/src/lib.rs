@@ -38,7 +38,7 @@ pub(crate) mod marker {
 }
 
 /// The returning value of api document metadata generator.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ApiDocMeta {
     pub path: String,
     pub method: String,
@@ -50,7 +50,7 @@ pub struct ApiDocMeta {
 }
 
 /// The returning value of service document metadata generator.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServiceDoc {
     pub path: String,
     pub apis: Vec<ApiDocMeta>,

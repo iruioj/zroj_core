@@ -9,6 +9,7 @@ pub mod mysql;
 pub mod types;
 
 // database
+pub mod contest;
 pub mod problem_ojdata;
 pub mod problem_statement;
 pub mod submission;

@@ -2,6 +2,7 @@
 pub mod auth;
 // pub mod group;
 pub mod api_docs;
+pub mod contest;
 pub mod one_off;
 pub mod problem;
 pub mod submission;
@@ -11,6 +12,8 @@ use judger::SourceFile;
 use serde::Deserialize;
 use serde_ts_typing::TsType;
 use serde_with::{serde_as, DisplayFromStr};
+
+use crate::ServiceDoc;
 
 /// 默认 404
 // pub async fn default_route(req: HttpRequest) -> HttpResponse {
@@ -57,3 +60,14 @@ struct ListQuery {
     /// 跳过前 offset 个结果
     offset: u32,
 }
+
+lazy_static::lazy_static!(
+    pub static ref DOCS: Vec<(ServiceDoc, serde_ts_typing::Context)> = vec![
+        auth::service_doc(),
+        one_off::service_doc(),
+        problem::service_doc(),
+        submission::service_doc(),
+        user::service_doc(),
+        contest::service_doc(),
+    ];
+);

@@ -15,6 +15,12 @@ impl DateTime {
         let t = chrono::Utc::now();
         Self(t)
     }
+    pub fn now_with_offset_seconds(sec: i64) -> Self {
+        Self::try_from(chrono::Utc::now().timestamp_millis() + sec * 1000).unwrap()
+    }
+    pub fn to_i64(&self) -> i64 {
+        self.0.timestamp_millis()
+    }
 }
 impl TryFrom<String> for DateTime {
     type Error = chrono::format::ParseError;
@@ -51,7 +57,7 @@ mod mysql {
             &'b self,
             out: &mut serialize::Output<'b, '_, diesel::mysql::Mysql>,
         ) -> serialize::Result {
-            let v = self.0.timestamp_millis();
+            let v = self.to_i64();
             <i64 as serialize::ToSql<BigInt, diesel::mysql::Mysql>>::to_sql(&v, &mut out.reborrow())
         }
     }
