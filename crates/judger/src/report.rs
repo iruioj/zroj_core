@@ -29,7 +29,7 @@ pub enum Status {
     // PresentationError,
     RuntimeError,
     TimeLimitExceeded,
-    WrongAnswer,
+    // WrongAnswer,
 }
 
 impl Status {

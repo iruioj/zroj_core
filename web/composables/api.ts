@@ -383,7 +383,6 @@ export type JudgerStatus = (
     | JudgerStatusMemoryLimitExceeded
     | JudgerStatusRuntimeError
     | JudgerStatusTimeLimitExceeded
-    | JudgerStatusWrongAnswer
 );
 /**
  编译错误
@@ -416,12 +415,6 @@ export type JudgerStatusRuntimeError = {
 */
 export type JudgerStatusTimeLimitExceeded = {
     name: "time_limit_exceeded";
-    payload: null;
-};
-/**
-*/
-export type JudgerStatusWrongAnswer = {
-    name: "wrong_answer";
     payload: null;
 };
 /**

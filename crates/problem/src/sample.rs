@@ -59,6 +59,7 @@ pub fn a_plus_b_data() -> StandardProblem {
             checker: crate::Checker::AutoCmp {
                 float_relative_eps: 0.0,
                 float_absoulte_eps: 0.0,
+                to_lower_case: false,
             },
             time_limit: crate::Elapse::from(1000u64),
             memory_limit: crate::Memory::from(256u64 << 20),
@@ -177,15 +178,15 @@ mod tests {
         let report =
             judger_framework::judge::<_, _, Traditional>(&mut data, &mut default_judger, &mut subm)
                 .unwrap();
-        // dbg!(&report);
+        dbg!(&report);
         assert!((report.meta.score_rate - 1.).abs() < 1e-5);
-        dbg!(report);
 
         let mut subm = a_plus_b_wa();
         let report =
             judger_framework::judge::<_, _, Traditional>(&mut data, &mut default_judger, &mut subm)
                 .unwrap();
-        dbg!(report);
+        dbg!(&report);
+        assert!(report.meta.score_rate.abs() < 1e-5);
 
         drop(cache_dir);
         drop(dir);

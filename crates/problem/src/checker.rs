@@ -45,11 +45,7 @@ fn compare_byline(
 pub enum Checker {
     /// 全文比较，忽略文末回车
     FileCmp,
-    /// 对每行进行忽略空白字符的依次比较
-    ///
-    /// - 如果是字符串，要求全文匹配
-    /// - 如果是整数，要求全文匹配
-    /// - 如果是浮点数，要求在精度范围内匹配
+    /// 对每行进行忽略空白字符的依次比较。对于不能精确匹配的情况，尝试进行浮点数比较.
     AutoCmp {
         /// 相对误差，要求 `|a - b| / max(|a|, |b|, eps) < eps`
         #[meta]
@@ -57,6 +53,11 @@ pub enum Checker {
         /// 绝对误差，要求 `|a - b| < eps`
         #[meta]
         float_absoulte_eps: f64,
+        /// 在进行比较之前转换为小写，等价于忽略大小写.
+        ///
+        /// 'Lowercase' is defined according to the terms of the Unicode Derived Core Property Lowercase.
+        #[meta]
+        to_lower_case: bool,
     },
     /// We provide builtin support for [Codeforces Testlib](https://github.com/MikeMirzayanov/testlib)
     /// checker
@@ -82,29 +83,34 @@ fn auto_cmp(
     fans: BufReader<File>,
     abs_eps: f64,
     rel_eps: f64,
+    to_lower_case: bool,
 ) -> Result<String, String> {
     compare_byline(fout, fans, |id, out, ans| {
         let out = out.split_whitespace();
         let mut ans = ans.split_whitespace();
         out.enumerate().try_fold((), |_, (tid, out)| {
+            let tid = tid + 1;
             let Some(ans) = ans.next() else {
                 return Err(format!("incorrect number of tokens at line {id}"));
             };
-            if ans == out {
+            if ans == out || to_lower_case && ans.to_lowercase() == out.to_lowercase() {
                 Ok(())
             } else if let Ok(ans) = ans.parse::<f64>() {
                 let Ok(out) = out.parse::<f64>() else {
-                    return Err(format!("fail to parse float, {tid}-th tokens at line {id}"));
+                    return Err(format!(
+                        "fail to parse float for the {tid}-th tokens at line {id}"
+                    ));
                 };
-                if (ans - out).abs() < abs_eps
-                    || (ans - out).abs() / rel_eps.max(f64::max(ans, out)) < rel_eps
-                {
+                let delta = (ans - out).abs();
+                if delta < abs_eps && delta / rel_eps.max(f64::max(ans, out)) < rel_eps {
                     Ok(())
                 } else {
-                    Err(format!("incorrect float, {tid}-th tokens at line {id}"))
+                    Err(format!(
+                        "incorrect float of the {tid}-th tokens at line {id}"
+                    ))
                 }
             } else {
-                Err(format!("fail to match {tid}-th tokens at line {id}"))
+                Err(format!("fail to match the {tid}-th tokens at line {id}"))
             }
         })
     })
@@ -134,7 +140,14 @@ impl Checker {
             Checker::AutoCmp {
                 float_relative_eps,
                 float_absoulte_eps,
-            } => match auto_cmp(fout, fans, *float_absoulte_eps, *float_relative_eps) {
+                to_lower_case,
+            } => match auto_cmp(
+                fout,
+                fans,
+                *float_absoulte_eps,
+                *float_relative_eps,
+                *to_lower_case,
+            ) {
                 Ok(msg) => Ok((1., msg)),
                 Err(msg) => Ok((0., msg)),
             },

@@ -144,10 +144,7 @@ impl JudgeTask for Traditional {
         // check answer
         let r = meta.checker.check(judger, &input, &output, &answer);
 
-        if r.is_err() {
-            report.meta.status = judger::Status::WrongAnswer;
-            report.meta.score_rate = r.as_ref().map(|o| o.0).unwrap_or(0.);
-        }
+        report.meta.score_rate = r.as_ref().map(|o| o.0).unwrap_or(0.);
         report.payload.push((
             "checker log".into(),
             TruncStr::new(
