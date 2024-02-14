@@ -67,7 +67,6 @@ impl Singleton {
             macro_rules! setlim {
                 ($i:ident, $r:ident, $f:ident) => {
                     match self.limits.$i {
-                        super::Lim::None => {}
                         super::Lim::Single(s) => {
                             signal_safe::setrlimit(signal_safe::$r as i32, s.$f(), s.$f())?;
                         }
@@ -99,7 +98,6 @@ impl Singleton {
 
         // at this time, all signals are blocked, so we can fork directly
         let pid_timer = match self.limits.real_time {
-            super::Lim::None => None,
             super::Lim::Single(s) | super::Lim::Double(s, _) => {
                 // fork a process to setup timer
                 let pid = signal_safe::fork()?;

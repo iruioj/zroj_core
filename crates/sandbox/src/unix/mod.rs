@@ -18,8 +18,6 @@ pub enum Lim<T>
 where
     T: PartialOrd,
 {
-    /// 无限制
-    None,
     /// 一个硬限制
     Single(T),
     /// soft and hard
@@ -32,7 +30,6 @@ impl<T: PartialOrd + Copy> Lim<T> {
     /// true 表示没有超过限制
     pub fn check(&self, usage: &T) -> bool {
         match self {
-            Lim::None => true,
             Lim::Single(l) => usage <= l,
             Lim::Double(s, _) => usage <= s,
         }
@@ -41,7 +38,6 @@ impl<T: PartialOrd + Copy> Lim<T> {
 impl<T: PartialOrd + Display> Display for Lim<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Lim::None => write!(f, "-,-"),
             Lim::Single(l) => write!(f, "{l},-"),
             Lim::Double(s, h) => write!(f, "{s},{h}"),
         }
@@ -55,7 +51,7 @@ impl<T: PartialOrd + FromStr> FromStr for Lim<T> {
         match a.as_slice() {
             [s, h] => {
                 let Ok(s) = s.parse() else {
-                    return Ok(Self::None);
+                    return Err("soft limit not parsed");
                 };
                 let Ok(h) = h.parse() else {
                     return Ok(Self::Single(s));
