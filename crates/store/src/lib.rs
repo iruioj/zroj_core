@@ -80,11 +80,11 @@ impl Handle {
     }
     /// 从该路径下的文件中解析数据（要求文件存在）
     pub fn deserialize<T: DeserializeOwned>(&self) -> Result<T, Error> {
-        Ok(serde_json::from_reader(self.open_file()?)?)
+        Ok(serde_json::from_reader(self.open_file()?).context("deserialize json")?)
     }
     /// 将数据序列化到该路径下（要求文件不存在）
     pub fn serialize_new_file<T: Serialize>(&self, data: &T) -> Result<(), Error> {
-        Ok(serde_json::to_writer(self.create_new_file()?, data)?)
+        Ok(serde_json::to_writer(self.create_new_file()?, data).context("serialize json")?)
     }
     pub fn path(&self) -> &Path {
         &self.dir

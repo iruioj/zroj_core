@@ -6,6 +6,7 @@ pub mod schema_model;
 // pub use schema::users;
 
 use crate::data::error::DataError;
+use anyhow::Context;
 use diesel::{
     self,
     mysql::MysqlConnection,
@@ -51,7 +52,7 @@ impl MysqlDb {
         setup_database(cfg, SetupDatabaseFlag::ForceNew)?;
         tracing::debug!(?cfg, "create database");
 
-        let r = Self::new(cfg)?;
+        let r = Self::new(cfg).context("create mysql database")?;
         // r.transaction(|conn| {
         //     todo!();
         //     // for cmd in include_str!("./drop_tables.sql").split(";").map(str::trim) {
@@ -81,7 +82,10 @@ impl MysqlDb {
     where
         F: FnOnce(&mut MysqlPooledConnection) -> Result<T, DataError>,
     {
-        self.0.get()?.transaction(f)
+        self.0
+            .get()
+            .context("get connection from pool")?
+            .transaction(f)
     }
     /// Insert or update a record into a database.
     /// Make sure `R` derives [`diesel::Insertable`].

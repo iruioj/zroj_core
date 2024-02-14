@@ -5,27 +5,17 @@ use std::sync::PoisonError;
 /// diesel 的 NotFound 会转换为 DataError::NotFound，进而转换为 404
 #[derive(Debug, thiserror::Error)]
 pub enum DataError {
-    #[error("connect to database: {0}")]
-    ConnError(#[from] r2d2::Error),
-    #[error("lock poisoned")]
-    PoisonError,
     #[error("data not found")]
     NotFound,
-    #[error("diesel: {0}")]
-    Diesel(diesel::result::Error),
-    #[error("database anyhow error: {0}")]
-    AnyError(#[from] anyhow::Error),
-    #[error("io error: {0}")]
-    IOError(#[from] std::io::Error),
-    #[error("store error: {0}")]
-    StoreError(#[from] store::Error),
+    #[error("data error: {0}")]
+    Error(#[from] anyhow::Error),
 }
 
 impl From<diesel::result::Error> for DataError {
     fn from(value: diesel::result::Error) -> Self {
         match value {
             diesel::result::Error::NotFound => Self::NotFound,
-            e => Self::Diesel(e),
+            e => Self::Error(anyhow::anyhow!("diesel error: {e}")),
         }
     }
 }
@@ -41,7 +31,7 @@ impl From<DataError> for actix_web::Error {
 }
 
 impl<T> From<PoisonError<T>> for DataError {
-    fn from(_: PoisonError<T>) -> Self {
-        Self::PoisonError
+    fn from(e: PoisonError<T>) -> Self {
+        Self::Error(anyhow::anyhow!("poison error: {e}"))
     }
 }

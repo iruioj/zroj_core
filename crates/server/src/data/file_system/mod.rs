@@ -97,12 +97,6 @@ impl TryFrom<&SanitizedString> for SanitizedString {
     }
 }
 
-impl From<SanitizeError> for DataError {
-    fn from(value: SanitizeError) -> Self {
-        DataError::AnyError(anyhow::Error::new(value))
-    }
-}
-
 /// Each table is a kv store
 pub trait FileSysTable<'t>
 where
@@ -113,20 +107,23 @@ where
 
     fn ctx(&self) -> &Handle;
 
-    fn ctx_with_key(&self, key: Self::Key) -> Result<Handle, SanitizeError> {
-        let key: SanitizedString = key.try_into()?;
+    fn ctx_with_key(&self, key: Self::Key) -> Result<Handle, DataError> {
+        let key: SanitizedString = key.try_into().context("convert key to sanitized string")?;
         Ok(self.ctx().join(key.0))
     }
 
     /// try to get the data
     fn query(&self, key: Self::Key) -> Result<Self::Item, DataError> {
         let ctx = self.ctx_with_key(key)?;
-        Ok(Self::Item::open(&ctx)?)
+        Ok(Self::Item::open(&ctx).context("query data")?)
     }
     /// try to get the data and its path
     fn query_with_ctx(&self, key: Self::Key) -> Result<(Self::Item, Handle), DataError> {
         let ctx = self.ctx_with_key(key)?;
-        Ok((Self::Item::open(&ctx)?, ctx))
+        Ok((
+            Self::Item::open(&ctx).context("query data with ctx handle")?,
+            ctx,
+        ))
     }
     /// insert or update
     fn replace(&self, key: Self::Key, item: &'t mut Self::Item) -> Result<(), DataError> {
@@ -139,7 +136,7 @@ where
     fn update(&self, key: Self::Key, item: &'t mut Self::Item) -> Result<(), DataError> {
         let ctx = self.ctx_with_key(key)?;
         if ctx.path().exists() {
-            item.safe_save(&ctx)?;
+            item.safe_save(&ctx).context("update data")?;
         }
         Ok(())
     }
@@ -147,7 +144,7 @@ where
     fn remove(&self, key: Self::Key) -> Result<(), DataError> {
         let ctx = self.ctx_with_key(key)?;
         if ctx.path().exists() {
-            ctx.remove_all()?;
+            ctx.remove_all().context("remove data")?;
         }
         Ok(())
     }
