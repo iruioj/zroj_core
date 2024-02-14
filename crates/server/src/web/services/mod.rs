@@ -43,6 +43,13 @@ fn parse_named_file(
     Some((name.to_string(), SourceFile { source, file_type }))
 }
 
+/// An abstraction of list query. For performance & security reasons, the number
+/// of returned items is limited by `max_count`, which is a `u8` value (< 256).
+/// The `offset` is used to skip the first `offset` items. 
+/// 
+/// Every API involving `ListQuery` should return exact `max_count` items unless
+/// there's not enough items starting from this offset. Under this condition, one 
+/// can implement paginated query conveniently.
 // ref: https://docs.rs/serde_qs/0.12.0/serde_qs/index.html#flatten-workaround
 #[serde_as]
 #[derive(Deserialize, TsType)]

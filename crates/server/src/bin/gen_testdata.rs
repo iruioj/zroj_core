@@ -103,7 +103,7 @@ You can use `[pdf](path/to/pdf)` to display PDF (<= {} bytes) in page.
         Ok(())
     })?;
 
-    eprintln!("insert a contest, elapsing 1h, already started");
+    eprintln!("insert a contest, elapsing 1h, with 3 problems, already started");
     mysqldb.upsert(
         contests::table,
         schema_model::Contest {
@@ -114,8 +114,29 @@ You can use `[pdf](path/to/pdf)` to display PDF (<= {} bytes) in page.
             duration: CastElapse(Elapse::from_sec(3600)),
         },
     )?;
+    mysqldb.upsert(
+        contest_problems::table,
+        schema_model::ContestProblem {
+            cid: 1,
+            pid: 1,
+        },
+    )?;
+    mysqldb.upsert(
+        contest_problems::table,
+        schema_model::ContestProblem {
+            cid: 1,
+            pid: 2,
+        },
+    )?;
+    mysqldb.upsert(
+        contest_problems::table,
+        schema_model::ContestProblem {
+            cid: 1,
+            pid: 3,
+        },
+    )?;
 
-    eprintln!("insert a contest, elapsing 1h, not started");
+    eprintln!("insert a contest, elapsing 1h, with 2 problems, not started");
     mysqldb.upsert(
         contests::table,
         schema_model::Contest {
@@ -124,6 +145,20 @@ You can use `[pdf](path/to/pdf)` to display PDF (<= {} bytes) in page.
             start_time: DateTime::now_with_offset_seconds(2 * 3600),
             end_time: DateTime::now_with_offset_seconds(24 * 3600),
             duration: CastElapse(Elapse::from_sec(3600)),
+        },
+    )?;
+    mysqldb.upsert(
+        contest_problems::table,
+        schema_model::ContestProblem {
+            cid: 2,
+            pid: 1,
+        },
+    )?;
+    mysqldb.upsert(
+        contest_problems::table,
+        schema_model::ContestProblem {
+            cid: 2,
+            pid: 2,
         },
     )?;
 

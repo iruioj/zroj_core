@@ -88,22 +88,22 @@ pub struct Contest {
     pub duration: CastElapse,
 }
 
-#[derive(Debug, Associations, Identifiable, Clone, Queryable, Selectable)]
+#[derive(Debug, Associations, Identifiable, Clone, Queryable, Selectable, Insertable)]
 #[diesel(belongs_to(Contest, foreign_key = cid))]
 #[diesel(belongs_to(Problem, foreign_key = pid))]
 #[diesel(table_name = contest_problems)]
 #[diesel(primary_key(cid, pid))]
 pub struct ContestProblem {
-    cid: CtstID,
-    pid: ProblemID,
+    pub cid: CtstID,
+    pub pid: ProblemID,
 }
 
-#[derive(Debug, Associations, Identifiable, Clone, Queryable, Selectable)]
+#[derive(Debug, Associations, Identifiable, Clone, Queryable, Selectable, Insertable)]
 #[diesel(belongs_to(Contest, foreign_key = cid))]
 #[diesel(belongs_to(User, foreign_key = uid))]
 #[diesel(table_name = contest_registrants)]
 #[diesel(primary_key(cid, uid))]
 pub struct ContestRegistrant {
-    cid: CtstID,
-    uid: UserID,
+    pub cid: CtstID,
+    pub uid: UserID,
 }

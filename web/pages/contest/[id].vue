@@ -1,8 +1,6 @@
 <script setup lang="ts">
-const data = {
-  id: 1,
-  title: "丽泽上林入门组训练赛day21",
-};
+const id = computed(() => parseInt(useRoute().params.id as string));
+const { data } = await useAPI().contest.info.get.use({ id: id.value });
 
 async function* allfiles(
   dirHandle: any,
@@ -35,10 +33,11 @@ const onBind = async () => {
 <template>
   <PageContainer>
     <div class="mt-4">
-      <div class="grow text-2xl text-brand">
-        #{{ data.id }} {{ data.title }}
+      <div class="grow text-2xl text-brand" v-if="data">
+        #{{ data.meta.id }} {{ data.meta.title }}
       </div>
     </div>
+    <pre v-if="data">{{ data.problems }}</pre>
     <div class="my-4">
       <UBtn @click="onBind">Bind Workding Directory</UBtn>
     </div>

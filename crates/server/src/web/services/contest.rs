@@ -1,7 +1,8 @@
 use crate::{
     block_it,
-    data::contest::{ContestMeta, CtstDB},
+    data::contest::{ContestInfo, ContestMeta, CtstDB},
     marker::*,
+    CtstID,
 };
 use actix_web::web::Json;
 use serde::Deserialize;
@@ -31,8 +32,26 @@ async fn metas(
     ))?))
 }
 
+#[derive(Deserialize, TsType)]
+struct CtstQuery {
+    /// 比赛 id
+    id: CtstID,
+}
+
+/// 获取比赛主页信息
+#[api(method = get, path = "/info")]
+async fn info(
+    ctst_db: ServerData<CtstDB>,
+    query: QueryParam<CtstQuery>,
+) -> JsonResult<ContestInfo> {
+    let cid = query.id;
+    let info = block_it!(ctst_db.get(cid))?;
+    Ok(Json(info))
+}
+
 #[scope_service(path = "/contest")]
 pub fn service(ctst_db: ServerData<CtstDB>) {
     app_data(ctst_db);
     service(metas);
+    service(info);
 }

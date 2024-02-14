@@ -104,6 +104,12 @@ export type Code = {
 };
 /**
 */
+export type ContestInfo = {
+    meta: ContestMeta;
+    problems: ProblemMeta[];
+};
+/**
+*/
 export type ContestMeta = {
     duration: Elapse;
     end_time: number;
@@ -117,6 +123,11 @@ export type CtstMetasQuery = {
     max_count: number;
     offset: number;
     pattern: ( undefined | null | string );
+};
+/**
+*/
+export type CtstQuery = {
+    id: number;
 };
 /**
 */
@@ -684,7 +695,7 @@ export type ProblemKind = ( "Interactive" | "SubmitAnswer" | { Traditional: IOKi
 */
 export type ProblemMeta = {
     id: number;
-    tags: string;
+    meta: StmtMeta;
     title: string;
 };
 /**
@@ -1177,12 +1188,24 @@ export function useAPI () {
                     key: "/contest/metas:get",
                 },
             },
+            info: {
+                /**
+                 获取比赛主页信息
+                 */
+                get: { 
+                    use: (payload: ContestInfoGetPayload | Ref<ContestInfoGetPayload>) => callAPI("get", "/contest/info", payload) as Promise<ExtAsyncData<ContestInfoGetReturn | null>>,
+                    fetch: (payload: ContestInfoGetPayload | Ref<ContestInfoGetPayload>) => fetchAPI("get", "/contest/info", payload) as Promise<ContestInfoGetReturn>,
+                    key: "/contest/info:get",
+                },
+            },
         },
     };
 }
 export type AuthInfoGetReturn = AuthInfoRes;
 export type AuthLoginPostPayload = LoginPayload;
 export type AuthRegisterPostPayload = RegisterPayload;
+export type ContestInfoGetPayload = CtstQuery;
+export type ContestInfoGetReturn = ContestInfo;
 export type ContestMetasGetPayload = CtstMetasQuery;
 export type ContestMetasGetReturn = ContestMeta[];
 export type CustomTestGetReturn = CustomTestResult;

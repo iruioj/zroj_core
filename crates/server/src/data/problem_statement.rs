@@ -44,7 +44,17 @@ pub struct Statement {
 pub struct ProblemMeta {
     pub id: ProblemID,
     pub title: String,
-    pub tags: String,
+    pub meta: StmtMeta,
+}
+
+impl From<Problem> for ProblemMeta {
+    fn from(value: Problem) -> Self {
+        ProblemMeta {
+            id: value.id,
+            title: value.title,
+            meta: value.meta.0,
+        }
+    }
 }
 
 pub struct StmtDB(MysqlDb, FileSysDb);
@@ -142,11 +152,7 @@ impl StmtDB {
                 .limit(max_count as i64)
                 .load::<Problem>(conn)?
                 .into_iter()
-                .map(|p| ProblemMeta {
-                    id: p.id,
-                    title: p.title,
-                    tags: "umimplemented".into(),
-                })
+                .map(ProblemMeta::from)
                 .collect())
         })
     }

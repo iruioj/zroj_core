@@ -37,8 +37,8 @@ int main() {
             )],
         },
         meta: crate::render_data::statement::StmtMeta {
-            time: None,
-            memory: None,
+            time: Some(crate::Elapse::from(1000u64)),
+            memory: Some(crate::Memory::from(128u64 << 20)),
             kind: Some(crate::render_data::ProblemKind::Traditional(
                 crate::render_data::IOKind::StdIO,
             )),
@@ -62,7 +62,7 @@ pub fn a_plus_b_data() -> StandardProblem {
                 to_lower_case: false,
             },
             time_limit: crate::Elapse::from(1000u64),
-            memory_limit: crate::Memory::from(256u64 << 20),
+            memory_limit: crate::Memory::from(128u64 << 20),
             output_limit: crate::Memory::from(64u64 << 20),
         })
         .set_data(crate::data::Taskset::Subtasks {
@@ -174,8 +174,8 @@ char*s="#include<cstdio>%cchar*s=%c%s%c;main(){printf(s,10,34,s,34);}";main(){pr
             samples: vec![],
         },
         meta: crate::render_data::statement::StmtMeta {
-            time: None,
-            memory: None,
+            time: Some(crate::Elapse::from(1000u64)),
+            memory: Some(crate::Memory::from(256u64 << 20)),
             kind: Some(crate::render_data::ProblemKind::Traditional(
                 crate::render_data::IOKind::StdIO,
             )),

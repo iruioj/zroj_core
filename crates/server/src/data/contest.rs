@@ -2,7 +2,12 @@ use crate::CtstID;
 
 use super::{
     error::DataError,
-    mysql::{schema::contests, schema_model::Contest, MysqlDb},
+    mysql::{
+        schema::{contest_problems, contests, problems},
+        schema_model::{Contest, Problem},
+        MysqlDb,
+    },
+    problem_statement::ProblemMeta,
     types::*,
 };
 use diesel::*;
@@ -34,14 +39,24 @@ impl CtstDB {
                 .limit(max_count as i64)
                 .load::<Contest>(conn)?
                 .into_iter()
-                .map(|c: Contest| ContestMeta {
-                    id: c.id,
-                    title: c.title,
-                    start_time: c.start_time.to_i64(),
-                    end_time: c.end_time.to_i64(),
-                    duration: c.duration,
-                })
+                .map(ContestMeta::from)
                 .collect())
+        })
+    }
+    pub fn get(&self, id: CtstID) -> Result<ContestInfo, DataError> {
+        self.0.transaction(|conn| {
+            let meta: Contest = contests::table.filter(contests::id.eq(id)).first(conn)?;
+            let meta: ContestMeta = meta.into();
+            let problems: Vec<ProblemMeta> = contest_problems::table
+                .filter(contest_problems::cid.eq(id))
+                .inner_join(problems::table)
+                .select(Problem::as_select())
+                .load(conn)?
+                .into_iter()
+                .map(Problem::into)
+                .collect();
+
+            Ok(ContestInfo { meta, problems })
         })
     }
 }
@@ -53,4 +68,22 @@ pub struct ContestMeta {
     pub start_time: i64,
     pub end_time: i64,
     pub duration: CastElapse,
+}
+
+impl From<Contest> for ContestMeta {
+    fn from(c: Contest) -> Self {
+        ContestMeta {
+            id: c.id,
+            title: c.title,
+            start_time: c.start_time.to_i64(),
+            end_time: c.end_time.to_i64(),
+            duration: c.duration,
+        }
+    }
+}
+
+#[derive(Serialize, TsType)]
+pub struct ContestInfo {
+    meta: ContestMeta,
+    problems: Vec<ProblemMeta>,
 }
