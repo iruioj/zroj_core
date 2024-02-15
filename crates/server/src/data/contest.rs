@@ -1,10 +1,10 @@
-use crate::CtstID;
+use crate::{CtstID, UserID};
 
 use super::{
     error::DataError,
     mysql::{
-        schema::{contest_problems, contests, problems},
-        schema_model::{Contest, Problem},
+        schema::{contest_problems, contest_registrants, contests, problems, users},
+        schema_model::{Contest, ContestRegistrant, Problem},
         MysqlDb,
     },
     problem_statement::ProblemMeta,
@@ -59,6 +59,48 @@ impl CtstDB {
             Ok(ContestInfo { meta, problems })
         })
     }
+    pub fn insert_registrant(&self, id: CtstID, uid: UserID) -> Result<(), DataError> {
+        self.0.transaction(|conn| {
+            diesel::insert_or_ignore_into(contest_registrants::table)
+                .values(&ContestRegistrant { cid: id, uid })
+                .execute(conn)?;
+            Ok(())
+        })
+    }
+    pub fn remove_registrant(&self, id: CtstID, uid: UserID) -> Result<(), DataError> {
+        self.0.transaction(|conn| {
+            diesel::delete(
+                contest_registrants::table.filter(
+                    contest_registrants::cid
+                        .eq(id)
+                        .and(contest_registrants::uid.eq(uid)),
+                ),
+            )
+            .execute(conn)?;
+            Ok(())
+        })
+    }
+    pub fn get_registrants(
+        &self,
+        id: CtstID,
+        max_count: u8,
+        offset: usize,
+    ) -> Result<Vec<UserMeta>, DataError> {
+        self.0.transaction(|conn| {
+            let user_metas: Vec<UserMeta> = contest_registrants::table
+                .filter(contest_registrants::cid.eq(id))
+                .inner_join(users::table)
+                .offset(offset as i64)
+                .limit(max_count as i64)
+                .select((users::id, users::username))
+                .load::<(UserID, Username)>(conn)?
+                .into_iter()
+                .map(|(id, username)| UserMeta { id, username })
+                .collect();
+
+            Ok(user_metas)
+        })
+    }
 }
 
 #[derive(TsType, Serialize)]
@@ -86,4 +128,10 @@ impl From<Contest> for ContestMeta {
 pub struct ContestInfo {
     meta: ContestMeta,
     problems: Vec<ProblemMeta>,
+}
+
+#[derive(Serialize, TsType)]
+pub struct UserMeta {
+    id: UserID,
+    username: Username,
 }

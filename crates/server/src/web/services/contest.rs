@@ -1,8 +1,8 @@
 use crate::{
     block_it,
-    data::contest::{ContestInfo, ContestMeta, CtstDB},
+    data::contest::{ContestInfo, ContestMeta, CtstDB, UserMeta},
     marker::*,
-    CtstID,
+    CtstID, UserID,
 };
 use actix_web::web::Json;
 use serde::Deserialize;
@@ -49,9 +49,61 @@ async fn info(
     Ok(Json(info))
 }
 
+#[derive(Deserialize, TsType)]
+struct CtstRegistQuery {
+    #[serde(flatten)]
+    list: super::ListQuery,
+
+    /// 比赛 id
+    id: CtstID,
+}
+
+/// 获取比赛报名用户列表
+#[api(method = get, path = "/registrants")]
+async fn registrants(
+    ctst_db: ServerData<CtstDB>,
+    query: QueryParam<CtstRegistQuery>,
+) -> JsonResult<Vec<UserMeta>> {
+    let r = block_it!(ctst_db.get_registrants(
+        query.id,
+        query.list.max_count,
+        query.list.offset as usize
+    ))?;
+    Ok(Json(r))
+}
+
+#[derive(Deserialize, TsType)]
+struct CtstRegistInfo {
+    cid: CtstID,
+    uid: UserID,
+}
+
+/// 添加比赛报名用户
+#[api(method = post, path = "/registrants")]
+async fn registrant_post(
+    ctst_db: ServerData<CtstDB>,
+    reg_info: JsonBody<CtstRegistInfo>,
+) -> AnyResult<String> {
+    block_it!(ctst_db.insert_registrant(reg_info.cid, reg_info.uid))?;
+    Ok("ok".into())
+}
+
+/// 删除比赛报名用户
+#[api(method = delete, path = "/registrants")]
+async fn registrant_delete(
+    ctst_db: ServerData<CtstDB>,
+    reg_info: JsonBody<CtstRegistInfo>,
+) -> AnyResult<String> {
+    block_it!(ctst_db.remove_registrant(reg_info.cid, reg_info.uid))?;
+    Ok("ok".into())
+}
+
 #[scope_service(path = "/contest")]
 pub fn service(ctst_db: ServerData<CtstDB>) {
     app_data(ctst_db);
     service(metas);
     service(info);
+    service(registrants);
+    service(registrant_post);
+    service(registrant_delete);
 }

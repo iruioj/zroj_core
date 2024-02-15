@@ -131,6 +131,19 @@ export type CtstQuery = {
 };
 /**
 */
+export type CtstRegistInfo = {
+    cid: number;
+    uid: number;
+};
+/**
+*/
+export type CtstRegistQuery = {
+    id: number;
+    max_count: number;
+    offset: number;
+};
+/**
+*/
 export type CustomTestResult = {
     result: ( undefined | TaskReport | null );
 };
@@ -980,6 +993,12 @@ export type UserEditInfo = {
 };
 /**
 */
+export type UserMeta = {
+    id: number;
+    username: Username;
+};
+/**
+*/
 export type UserUpdateInfo = {
     email: ( undefined | null | string );
     gender: ( undefined | Gender | null );
@@ -1198,6 +1217,32 @@ export function useAPI () {
                     key: "/contest/info:get",
                 },
             },
+            registrants: {
+                /**
+                 获取比赛报名用户列表
+                 */
+                get: { 
+                    use: (payload: ContestRegistrantsGetPayload | Ref<ContestRegistrantsGetPayload>) => callAPI("get", "/contest/registrants", payload) as Promise<ExtAsyncData<ContestRegistrantsGetReturn | null>>,
+                    fetch: (payload: ContestRegistrantsGetPayload | Ref<ContestRegistrantsGetPayload>) => fetchAPI("get", "/contest/registrants", payload) as Promise<ContestRegistrantsGetReturn>,
+                    key: "/contest/registrants:get",
+                },
+                /**
+                 添加比赛报名用户
+                 */
+                post: { 
+                    use: (payload: ContestRegistrantsPostPayload | Ref<ContestRegistrantsPostPayload>) => callAPI("post", "/contest/registrants", payload) as Promise<ExtAsyncData<ContestRegistrantsPostReturn | null>>,
+                    fetch: (payload: ContestRegistrantsPostPayload | Ref<ContestRegistrantsPostPayload>) => fetchAPI("post", "/contest/registrants", payload) as Promise<ContestRegistrantsPostReturn>,
+                    key: "/contest/registrants:post",
+                },
+                /**
+                 删除比赛报名用户
+                 */
+                delete: { 
+                    use: (payload: ContestRegistrantsDeletePayload | Ref<ContestRegistrantsDeletePayload>) => callAPI("delete", "/contest/registrants", payload) as Promise<ExtAsyncData<ContestRegistrantsDeleteReturn | null>>,
+                    fetch: (payload: ContestRegistrantsDeletePayload | Ref<ContestRegistrantsDeletePayload>) => fetchAPI("delete", "/contest/registrants", payload) as Promise<ContestRegistrantsDeleteReturn>,
+                    key: "/contest/registrants:delete",
+                },
+            },
         },
     };
 }
@@ -1208,6 +1253,12 @@ export type ContestInfoGetPayload = CtstQuery;
 export type ContestInfoGetReturn = ContestInfo;
 export type ContestMetasGetPayload = CtstMetasQuery;
 export type ContestMetasGetReturn = ContestMeta[];
+export type ContestRegistrantsDeletePayload = CtstRegistInfo;
+export type ContestRegistrantsDeleteReturn = any;
+export type ContestRegistrantsGetPayload = CtstRegistQuery;
+export type ContestRegistrantsGetReturn = UserMeta[];
+export type ContestRegistrantsPostPayload = CtstRegistInfo;
+export type ContestRegistrantsPostReturn = any;
 export type CustomTestGetReturn = CustomTestResult;
 export type CustomTestPostPayload = FormData;
 export type CustomTestPostReturn = any;

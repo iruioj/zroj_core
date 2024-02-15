@@ -116,24 +116,15 @@ You can use `[pdf](path/to/pdf)` to display PDF (<= {} bytes) in page.
     )?;
     mysqldb.upsert(
         contest_problems::table,
-        schema_model::ContestProblem {
-            cid: 1,
-            pid: 1,
-        },
+        schema_model::ContestProblem { cid: 1, pid: 1 },
     )?;
     mysqldb.upsert(
         contest_problems::table,
-        schema_model::ContestProblem {
-            cid: 1,
-            pid: 2,
-        },
+        schema_model::ContestProblem { cid: 1, pid: 2 },
     )?;
     mysqldb.upsert(
         contest_problems::table,
-        schema_model::ContestProblem {
-            cid: 1,
-            pid: 3,
-        },
+        schema_model::ContestProblem { cid: 1, pid: 3 },
     )?;
 
     eprintln!("insert a contest, elapsing 1h, with 2 problems, not started");
@@ -149,17 +140,11 @@ You can use `[pdf](path/to/pdf)` to display PDF (<= {} bytes) in page.
     )?;
     mysqldb.upsert(
         contest_problems::table,
-        schema_model::ContestProblem {
-            cid: 2,
-            pid: 1,
-        },
+        schema_model::ContestProblem { cid: 2, pid: 1 },
     )?;
     mysqldb.upsert(
         contest_problems::table,
-        schema_model::ContestProblem {
-            cid: 2,
-            pid: 2,
-        },
+        schema_model::ContestProblem { cid: 2, pid: 2 },
     )?;
 
     eprintln!("done");
