@@ -35,10 +35,19 @@ impl Override<Meta> for &'_ () {
     fn over(self, _: &mut Meta) {}
 }
 
-#[derive(FsStore, Debug)]
+#[derive(FsStore)]
 pub struct Task {
     pub input: StoreFile,
     pub output: StoreFile,
+}
+
+impl std::fmt::Debug for Task {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Task")
+            .field("input", &self.input.display_as_tuple())
+            .field("output", &self.output.display_as_tuple())
+            .finish()
+    }
 }
 
 /// Traditional problems submission contains only a single source file,

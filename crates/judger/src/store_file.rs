@@ -1,15 +1,48 @@
 use crate::FileType;
 use anyhow::Context;
+use sandbox::Memory;
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
-use std::io::{self, Seek, Write};
+use std::{
+    io::{self, Seek, Write},
+    os::unix::fs::MetadataExt,
+};
 use store::FsStore;
 
 /// 一个带类型的 buffer
-#[derive(Debug, Serialize, Deserialize, TsType, Clone, Hash)]
+#[derive(Serialize, Deserialize, TsType, Clone, Hash)]
 pub struct SourceFile {
     pub source: String,
     pub file_type: FileType,
+}
+
+pub struct SourceFileLine<'a>(&'a str, usize);
+
+impl std::fmt::Debug for SourceFileLine<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // align left with minimum width
+        write!(f, "| {:<width$} |", self.0, width = self.1)
+    }
+}
+
+impl std::fmt::Debug for SourceFile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let src_lines = self.source.split('\n').collect::<Vec<&str>>();
+        let lw = src_lines
+            .iter()
+            .map(|l| l.len())
+            .max()
+            .unwrap_or(self.source.len());
+        let src_lines = src_lines
+            .into_iter()
+            .map(|s| SourceFileLine(s, lw))
+            .collect::<Vec<_>>();
+
+        f.debug_struct("SourceFile")
+            .field("source (lines)", &src_lines)
+            .field("file_type", &self.file_type)
+            .finish()
+    }
 }
 
 impl SourceFile {
@@ -57,7 +90,24 @@ pub struct StoreFile {
     pub file_type: FileType,
 }
 
+pub struct StoreFileDbg(FileType, Option<Memory>);
+
+impl std::fmt::Debug for StoreFileDbg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)?;
+        if let Some(size) = self.1 {
+            write!(f, ", {:?}", size)
+        } else {
+            write!(f, ", unknown size")
+        }
+    }
+}
+
 impl StoreFile {
+    pub fn display_as_tuple(&self) -> StoreFileDbg {
+        let size = self.file.metadata().map(|m| Memory::from(m.size())).ok();
+        StoreFileDbg(self.file_type.clone(), size)
+    }
     pub fn reset_cursor(&mut self) -> Result<(), io::Error> {
         self.file.seek(io::SeekFrom::Start(0))?;
         Ok(())

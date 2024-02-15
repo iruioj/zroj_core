@@ -11,19 +11,15 @@ pub enum StandardProblem {
     Traditional(TraditionalOJData),
 }
 
-impl StandardProblem {
-    pub fn meta_description(&self) -> String {
-        let info = match self {
-            StandardProblem::Traditional(pr) => {
-                ("traditional", pr.meta.time_limit, pr.meta.memory_limit)
+impl std::fmt::Debug for StandardProblem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let inner = match self {
+            Self::Traditional(arg0) => {
+                write!(f, "[traditional] ")?;
+                arg0
             }
         };
-        format!(
-            "type: {}\ntl: {}\nml: {}",
-            info.0,
-            info.1.pretty(),
-            info.2.pretty()
-        )
+        inner.fmt(f)
     }
 }
 

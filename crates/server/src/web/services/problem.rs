@@ -181,7 +181,8 @@ async fn fulldata_meta(
     query: QueryParam<FullDataMetaQuery>,
     db: ServerData<OJDataDB>,
 ) -> AnyResult<String> {
-    Ok(db.get(query.id)?.meta_description())
+    let prob = db.get(query.id)?;
+    Ok(format!("{:#?}", prob))
 }
 
 #[derive(Debug, MultipartForm)]

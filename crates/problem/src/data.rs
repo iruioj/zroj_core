@@ -1,5 +1,7 @@
 //! 题目数据存储
 
+use std::fmt::Debug;
+
 pub use judger::FileType;
 use serde::{Deserialize, Serialize};
 use store::FsStore;
@@ -44,6 +46,8 @@ where
     T: FsStore,
     M: FsStore,
 {
+    /// see [`Data`]
+    pub meta: M,
     /// 测试数据
     pub data: Taskset<T>,
     /// 样例评测的数据
@@ -54,10 +58,6 @@ where
     ///
     /// 初始化时与 data 的元信息一致，数据集为空
     pub extra: Taskset<T>,
-    /// see [`Data`]
-    pub meta: M,
-    // see [`Data`]
-    // pub rule: Rule,
 }
 
 impl<T, M> OJData<T, M>
@@ -94,7 +94,7 @@ where
     }
 }
 
-#[derive(FsStore, Debug)]
+#[derive(FsStore)]
 pub struct Subtask<Task>
 where
     Task: FsStore,
@@ -104,8 +104,17 @@ where
     pub score: f64,
 }
 
+pub struct SubtaskDbg<'a, Task: FsStore + Debug>(&'a Subtask<Task>, usize);
+
+impl<Task: FsStore + Debug> Debug for SubtaskDbg<'_, Task> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Subtask #{} (score = {}) ", self.1, self.0.score)?;
+        self.0.tasks.fmt(f)
+    }
+}
+
 /// 任务集合，分成测试点模式和子任务模式
-#[derive(FsStore, Debug)]
+#[derive(FsStore)]
 pub enum Taskset<Task>
 where
     Task: FsStore,
@@ -121,6 +130,24 @@ where
     },
 }
 
+impl<Task: FsStore + Debug> Debug for Taskset<Task> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Subtasks { subtasks, deps } => {
+                let mut builder = f.debug_list();
+                for (id, sbt) in subtasks.iter().enumerate() {
+                    builder.entry(&SubtaskDbg(sbt, id));
+                }
+                for dep in deps.iter() {
+                    builder.entry(dep);
+                }
+                builder.finish()
+            }
+            Self::Tests { tasks } => tasks.fmt(f),
+        }
+    }
+}
+
 impl<T> Default for Taskset<T>
 where
     T: FsStore,
@@ -133,8 +160,14 @@ where
 }
 
 /// (a, b) a > b, a depends on b
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DepRelation(usize, usize);
+
+impl Debug for DepRelation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(#{} depend on #{})", self.0, self.1)
+    }
+}
 
 impl DepRelation {
     /// depender depends on dependee
