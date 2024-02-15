@@ -26,6 +26,8 @@ const config: Partial<Config> = {
       white: color.white,
       slate: color.slate,
       black: color.black,
+      green: color.green,
+      cool: color.gray,
       back: "rgb(var(--theme-bg) / <alpha-value>)",
       primary: "rgb(var(--theme-pri) / <alpha-value>)",
       secondary: "rgb(var(--theme-sec) / <alpha-value>)",
