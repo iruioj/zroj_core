@@ -254,7 +254,7 @@ fn compile_cabi_checker_cpp<M: std::fmt::Display>(
     let checker_obj = judger.clear_dest("checker.o")?;
     let exec = judger.clear_dest("checker")?;
 
-    Singleton::new(&judger::which("cc").unwrap())
+    Singleton::new(judger::which("cc").unwrap())
         .push_args([
             CString::new("cc").unwrap(),
             c_abi_main.to_cstring(),
@@ -267,7 +267,7 @@ fn compile_cabi_checker_cpp<M: std::fmt::Display>(
         .set_limits(|_| COMPILE_LIM)
         .exec_sandbox()?;
 
-    Singleton::new(&judger::which("g++")?)
+    Singleton::new(judger::which("g++")?)
         .push_args([
             CString::new("g++").unwrap(),
             cpp_impl_src.to_cstring(),
@@ -281,7 +281,7 @@ fn compile_cabi_checker_cpp<M: std::fmt::Display>(
         .set_limits(|_| COMPILE_LIM)
         .exec_sandbox()?;
 
-    Singleton::new(&judger::which("cc")?)
+    Singleton::new(judger::which("cc")?)
         .push_args([
             CString::new("cc").unwrap(),
             CString::new("-o").unwrap(),
@@ -312,7 +312,7 @@ fn compile_cabi_checker_rust<M: std::fmt::Display>(
     let checker_lib = judger.clear_dest("libchecker.a")?;
     let exec = judger.clear_dest("checker")?;
 
-    Singleton::new(&judger::which("cc").unwrap())
+    Singleton::new(judger::which("cc").unwrap())
         .push_args([
             CString::new("cc").unwrap(),
             c_abi_main.to_cstring(),
@@ -325,7 +325,7 @@ fn compile_cabi_checker_rust<M: std::fmt::Display>(
         .set_limits(|_| COMPILE_LIM)
         .exec_sandbox()?;
 
-    Singleton::new(&judger::which("rustc")?)
+    Singleton::new(judger::which("rustc")?)
         .push_args([
             CString::new("rustc").unwrap(),
             CString::new("--crate-type=staticlib").unwrap(),
@@ -337,7 +337,7 @@ fn compile_cabi_checker_rust<M: std::fmt::Display>(
         .set_limits(|_| COMPILE_LIM)
         .exec_sandbox()?;
 
-    Singleton::new(&judger::which("cc")?)
+    Singleton::new(judger::which("cc")?)
         .push_args([
             CString::new("cc").unwrap(),
             CString::new("-o").unwrap(),

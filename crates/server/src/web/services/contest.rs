@@ -2,7 +2,8 @@ use crate::{
     block_it,
     data::contest::{ContestInfo, ContestMeta, CtstDB, UserMeta},
     marker::*,
-    CtstID, UserID,
+    web::auth::Authentication,
+    CtstID,
 };
 use actix_web::web::Json;
 use serde::Deserialize;
@@ -75,7 +76,6 @@ async fn registrants(
 #[derive(Deserialize, TsType)]
 struct CtstRegistInfo {
     cid: CtstID,
-    uid: UserID,
 }
 
 /// 添加比赛报名用户
@@ -83,8 +83,10 @@ struct CtstRegistInfo {
 async fn registrant_post(
     ctst_db: ServerData<CtstDB>,
     reg_info: JsonBody<CtstRegistInfo>,
+    auth: Authentication,
 ) -> AnyResult<String> {
-    block_it!(ctst_db.insert_registrant(reg_info.cid, reg_info.uid))?;
+    let uid = auth.user_id_or_unauthorized()?;
+    block_it!(ctst_db.insert_registrant(reg_info.cid, uid))?;
     Ok("ok".into())
 }
 
@@ -93,8 +95,10 @@ async fn registrant_post(
 async fn registrant_delete(
     ctst_db: ServerData<CtstDB>,
     reg_info: JsonBody<CtstRegistInfo>,
+    auth: Authentication,
 ) -> AnyResult<String> {
-    block_it!(ctst_db.remove_registrant(reg_info.cid, reg_info.uid))?;
+    let uid = auth.user_id_or_unauthorized()?;
+    block_it!(ctst_db.remove_registrant(reg_info.cid, uid))?;
     Ok("ok".into())
 }
 

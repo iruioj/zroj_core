@@ -126,7 +126,7 @@ impl FileType {
             }
             FileType::Plain => panic!("a plain file should never be compiled"),
             FileType::Rust => {
-                let r = Singleton::new(&crate::which("rustc").unwrap())
+                let r = Singleton::new(crate::which("rustc").unwrap())
                     .push_args([
                         CString::new("rustc").unwrap(),
                         source.to_cstring(),

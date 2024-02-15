@@ -39,7 +39,8 @@ struct StmtQuery {
     id: ProblemID,
 }
 
-/// 获取题面数据
+/// Get the problem statement. Currently only one default statement is returned.
+/// It will be extended to support i18n.
 #[api(method = get, path = "/statement")]
 async fn statement(
     stmt_db: ServerData<StmtDB>,
@@ -139,7 +140,12 @@ struct PostDataReturn {
     id: ProblemID,
 }
 
-/// 上传题目数据
+/// Upload the problem data. The HTTP request body is a formdata composed of
+///
+/// - An optional text field `id` (if not found, a new problem will be created)
+/// - A binary file `data` containing the content of a zip file. This file is often
+///   created by problem configuring tools, which can be safely opened as [`ProblemFullData`].
+///
 #[api(method = post, path = "/fulldata")]
 async fn fulldata(
     payload: FormData<PostDataPayload>,
@@ -189,7 +195,27 @@ struct JudgeReturn {
     sid: SubmID,
 }
 
-/// 评测题目
+/// Problem judge. User's submission can be seen as a series of files each named
+/// `name.lang.ext`. The HTTP request body is composed of a form data, containing
+/// a text field `pid` and a list of files. Here's an example of frontend payload
+/// construction:
+///
+/// ```javascript
+/// const form = new FormData();
+/// form.append("pid", r.params.id as string);
+/// // append will not override existing key-value pair
+/// form.append(
+///   "files",
+///   new File([s.payload], `source.${lang.value!.value}.cpp`),
+/// );
+/// ```
+///
+/// See [`parse_named_file`] for more information.
+///
+/// Different problems require different submission format. It is encouraged to
+/// implement UI for each of the buildin problems (e.g. stdio problem, interactive
+/// problem, etc.), and a general UI for any custom problem.
+///
 #[api(method = post, path = "/submit")]
 async fn judge(
     auth: Authentication,

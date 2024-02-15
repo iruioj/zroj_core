@@ -98,7 +98,7 @@ fn main() -> anyhow::Result<()> {
             .unwrap()
     });
 
-    let mut s = sandbox::unix::Singleton::new(&cli.exec.unwrap())
+    let mut s = sandbox::unix::Singleton::new(cli.exec.unwrap())
         .push_args(
             args.iter()
                 .map(|s| CString::new(s.as_bytes()))

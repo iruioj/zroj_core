@@ -25,6 +25,12 @@ pub struct CustomTestPayload {
     pub input: TempFile,
 }
 
+/// Upload a source file and input file for simple testing.
+/// The HTTP request body is a formdata composed of
+///
+/// - `source`: a named source file, whose name is `name.lang.ext`. see [`parse_named_file`].
+/// - `input`: an arbitrary named plain text file.
+///
 #[api(method = post, path = "")]
 async fn custom_test_post(
     payload: FormData<CustomTestPayload>,

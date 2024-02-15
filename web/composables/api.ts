@@ -133,7 +133,6 @@ export type CtstQuery = {
 */
 export type CtstRegistInfo = {
     cid: number;
-    uid: number;
 };
 /**
 */
@@ -1034,6 +1033,8 @@ export function useAPI () {
                  用户登陆，需要提供用户名和密码的哈希值
                 
                  如果登陆成功，http 请求头中会返回 cookie
+                
+                 Password should be hashed by [`passwd::login_hash`]
                  */
                 post: { 
                     use: (payload: AuthLoginPostPayload | Ref<AuthLoginPostPayload>) => callAPI("post", "/auth/login", payload) as Promise<ExtAsyncData<void>>,
@@ -1050,6 +1051,7 @@ export function useAPI () {
             },
             register: {
                 /**
+                 Register a new user. Password should be hashed by [`passwd::register_hash`]
                  */
                 post: { 
                     use: (payload: AuthRegisterPostPayload | Ref<AuthRegisterPostPayload>) => callAPI("post", "/auth/register", payload) as Promise<ExtAsyncData<void>>,
@@ -1072,6 +1074,12 @@ export function useAPI () {
                 key: "/custom_test:get",
             },
             /**
+             Upload a source file and input file for simple testing.
+             The HTTP request body is a formdata composed of
+            
+             - `source`: a named source file, whose name is `name.lang.ext`. see [`parse_named_file`].
+             - `input`: an arbitrary named plain text file.
+            
              */
             post: { 
                 use: (payload: CustomTestPostPayload | Ref<CustomTestPostPayload>) => callAPI("post", "/custom_test", payload) as Promise<ExtAsyncData<CustomTestPostReturn | null>>,
@@ -1093,7 +1101,8 @@ export function useAPI () {
             },
             statement: {
                 /**
-                 获取题面数据
+                 Get the problem statement. Currently only one default statement is returned.
+                 It will be extended to support i18n.
                  */
                 get: { 
                     use: (payload: ProblemStatementGetPayload | Ref<ProblemStatementGetPayload>) => callAPI("get", "/problem/statement", payload) as Promise<ExtAsyncData<ProblemStatementGetReturn | null>>,
@@ -1103,7 +1112,12 @@ export function useAPI () {
             },
             fulldata: {
                 /**
-                 上传题目数据
+                 Upload the problem data. The HTTP request body is a formdata composed of
+                
+                 - An optional text field `id` (if not found, a new problem will be created)
+                 - A binary file `data` containing the content of a zip file. This file is often
+                   created by problem configuring tools, which can be safely opened as [`ProblemFullData`].
+                
                  */
                 post: { 
                     use: (payload: ProblemFulldataPostPayload | Ref<ProblemFulldataPostPayload>) => callAPI("post", "/problem/fulldata", payload) as Promise<ExtAsyncData<ProblemFulldataPostReturn | null>>,
@@ -1123,7 +1137,27 @@ export function useAPI () {
             },
             submit: {
                 /**
-                 评测题目
+                 Problem judge. User's submission can be seen as a series of files each named
+                 `name.lang.ext`. The HTTP request body is composed of a form data, containing
+                 a text field `pid` and a list of files. Here's an example of frontend payload
+                 construction:
+                
+                 ```javascript
+                 const form = new FormData();
+                 form.append("pid", r.params.id as string);
+                 // append will not override existing key-value pair
+                 form.append(
+                   "files",
+                   new File([s.payload], `source.${lang.value!.value}.cpp`),
+                 );
+                 ```
+                
+                 See [`parse_named_file`] for more information.
+                
+                 Different problems require different submission format. It is encouraged to
+                 implement UI for each of the buildin problems (e.g. stdio problem, interactive
+                 problem, etc.), and a general UI for any custom problem.
+                
                  */
                 post: { 
                     use: (payload: ProblemSubmitPostPayload | Ref<ProblemSubmitPostPayload>) => callAPI("post", "/problem/submit", payload) as Promise<ExtAsyncData<ProblemSubmitPostReturn | null>>,
