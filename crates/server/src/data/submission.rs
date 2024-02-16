@@ -3,12 +3,12 @@ use super::{
     mysql::{
         last_insert_id,
         schema::*,
-        schema_model::{SubmissionDetail, SubmissionMeta},
+        schema_model::{ContestSubmission, SubmissionDetail, SubmissionMeta},
         MysqlDb,
     },
     types::*,
 };
-use crate::{ProblemID, SubmID, UserID};
+use crate::{CtstID, ProblemID, SubmID, UserID};
 use diesel::*;
 use serde::Serialize;
 use serde_ts_typing::TsType;
@@ -78,6 +78,7 @@ impl SubmDB {
         &self,
         uid: UserID,
         pid: ProblemID,
+        cid: Option<CtstID>,
         lang: Option<judger::FileType>,
         raw: &SubmRaw,
     ) -> Result<SubmID, DataError> {
@@ -98,6 +99,14 @@ impl SubmDB {
                     raw: raw.clone(),
                 })
                 .execute(conn)?;
+            if let Some(cid) = cid {
+                diesel::insert_into(contest_submissions::table)
+                    .values(ContestSubmission {
+                        cid,
+                        sid: id as SubmID,
+                    })
+                    .execute(conn)?;
+            }
             Ok(id as SubmID)
         })
     }

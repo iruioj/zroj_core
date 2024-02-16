@@ -11,7 +11,7 @@ use crate::{
     manager::ProblemJudger,
     marker::*,
     web::{auth::Authentication, services::parse_named_file},
-    ProblemID, SubmID,
+    CtstID, ProblemID, SubmID,
 };
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{error, http::header::ContentDisposition, web::Json};
@@ -188,6 +188,7 @@ async fn fulldata_meta(
 #[derive(Debug, MultipartForm)]
 struct JudgePayload {
     pid: Text<ProblemID>,
+    cid: Option<Text<CtstID>>,
     files: Vec<TempFile>,
 }
 
@@ -198,7 +199,7 @@ struct JudgeReturn {
 
 /// Problem judge. User's submission can be seen as a series of files each named
 /// `name.lang.ext`. The HTTP request body is composed of a form data, containing
-/// a text field `pid` and a list of named files, which is coverted to [`SubmRaw`]. 
+/// a text field `pid` and a list of named files, which is coverted to [`SubmRaw`].
 /// Here's an example of frontend payload construction:
 ///
 /// ```javascript
@@ -236,12 +237,13 @@ async fn judge(
 
     let pid = payload.pid.0;
     let stddata = ojdata_db.get(pid)?;
+    let cid = payload.cid.map(|o| o.0);
 
     let sid = match stddata {
         problem::StandardProblem::Traditional(ojdata) => {
             let raw2 = raw.clone();
             let file_type = raw2.get("source").map(|x| x.file_type.clone());
-            let subm_id = block_it!(subm_db.insert_new(uid, pid, file_type, &raw2,))?;
+            let subm_id = block_it!(subm_db.insert_new(uid, pid, cid, file_type, &raw2,))?;
 
             let subm = traditional::Subm {
                 source: raw
