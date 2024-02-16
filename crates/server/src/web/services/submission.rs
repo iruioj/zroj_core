@@ -48,10 +48,12 @@ struct SubmMetasQuery {
 
     pid: Option<crate::ProblemID>,
     uid: Option<crate::UserID>,
+    cid: Option<crate::CtstID>,
     lang: Option<judger::FileType>,
 }
 
-/// 获取提交记录列表
+/// Get the list of submission, which can be filted by Problem ID,
+/// User ID, Contest ID and Language.
 #[api(method = get, path = "/metas")]
 async fn metas(
     subm_db: ServerData<SubmDB>,
@@ -63,6 +65,7 @@ async fn metas(
         query.list.offset as usize,
         query.pid,
         query.uid,
+        query.cid,
         query.lang,
     ))?))
 }

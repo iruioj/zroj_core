@@ -160,6 +160,7 @@ impl SubmDB {
         offset: usize,
         pid: Option<ProblemID>,
         uid: Option<UserID>,
+        cid: Option<CtstID>,
         lang: Option<judger::FileType>,
     ) -> Result<Vec<SubmMeta>, DataError> {
         self.0.transaction(|conn| {
@@ -176,14 +177,28 @@ impl SubmDB {
             if let Some(lang) = lang {
                 table = table.filter(submission_metas::lang.eq(JsonStr(lang)));
             }
-            let table = table.inner_join(problems::table).inner_join(users::table);
-            let res: Vec<(SubmissionMeta, String, Username)> = table
-                .select((
-                    SubmissionMeta::as_select(),
-                    problems::title,
-                    users::username,
-                ))
-                .load::<(SubmissionMeta, String, Username)>(conn)?;
+            let table = table
+                .inner_join(problems::table)
+                .inner_join(users::table)
+                .inner_join(contest_submissions::table);
+            let res: Vec<(SubmissionMeta, String, Username)> = if let Some(cid) = cid {
+                table
+                    .filter(contest_submissions::cid.eq(cid))
+                    .select((
+                        SubmissionMeta::as_select(),
+                        problems::title,
+                        users::username,
+                    ))
+                    .load::<(SubmissionMeta, String, Username)>(conn)
+            } else {
+                table
+                    .select((
+                        SubmissionMeta::as_select(),
+                        problems::title,
+                        users::username,
+                    ))
+                    .load::<(SubmissionMeta, String, Username)>(conn)
+            }?;
             Ok(res.into_iter().map(SubmMeta::from).collect())
         })
     }

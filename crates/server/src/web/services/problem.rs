@@ -204,7 +204,8 @@ struct JudgeReturn {
 ///
 /// ```javascript
 /// const form = new FormData();
-/// form.append("pid", r.params.id as string);
+/// form.append("pid", problem_id.to_string());
+/// form.append("cid", contest_id.to_string()); // this is optional
 /// // append will not override existing key-value pair
 /// form.append(
 ///   "files",

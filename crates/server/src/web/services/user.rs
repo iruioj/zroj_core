@@ -114,6 +114,7 @@ pub struct GravatarInfo {
     pub no_cache: Option<bool>,
 }
 
+/// Get the Gravatar image
 #[api(method = get, path = "/gravatar")]
 async fn gravatar(
     info: QueryParam<GravatarInfo>,
@@ -124,6 +125,8 @@ async fn gravatar(
         .await
         .map_err(error::ErrorInternalServerError)?;
     Ok(HttpResponse::build(StatusCode::OK)
+        // https://imagekit.io/blog/ultimate-guide-to-http-caching-for-static-assets/
+        .insert_header(("Cache-Control", "public, max-age=15552000"))
         .content_type("image/jpeg")
         .body(img_content))
 }

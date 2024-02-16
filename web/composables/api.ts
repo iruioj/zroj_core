@@ -846,6 +846,7 @@ export type SubmMeta = {
 /**
 */
 export type SubmMetasQuery = {
+    cid: ( undefined | null | number );
     lang: ( undefined | FileType | null );
     max_count: number;
     offset: number;
@@ -1139,12 +1140,13 @@ export function useAPI () {
                 /**
                  Problem judge. User's submission can be seen as a series of files each named
                  `name.lang.ext`. The HTTP request body is composed of a form data, containing
-                 a text field `pid` and a list of files. Here's an example of frontend payload
-                 construction:
+                 a text field `pid` and a list of named files, which is coverted to [`SubmRaw`].
+                 Here's an example of frontend payload construction:
                 
                  ```javascript
                  const form = new FormData();
-                 form.append("pid", r.params.id as string);
+                 form.append("pid", problem_id.to_string());
+                 form.append("cid", contest_id.to_string()); // this is optional
                  // append will not override existing key-value pair
                  form.append(
                    "files",
@@ -1189,7 +1191,8 @@ export function useAPI () {
             },
             metas: {
                 /**
-                 获取提交记录列表
+                 Get the list of submission, which can be filted by Problem ID,
+                 User ID, Contest ID and Language.
                  */
                 get: { 
                     use: (payload: SubmissionMetasGetPayload | Ref<SubmissionMetasGetPayload>) => callAPI("get", "/submission/metas", payload) as Promise<ExtAsyncData<SubmissionMetasGetReturn | null>>,
