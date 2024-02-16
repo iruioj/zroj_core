@@ -1,7 +1,8 @@
-import {
+import type {
   AsyncDataExecuteOptions,
   AsyncDataRequestStatus,
-} from "nuxt/dist/app/composables/asyncData";
+} from "#app/composables/asyncData"
+
 import type { FetchError } from "ofetch";
 
 // auto watch args if it is ref or reactive
