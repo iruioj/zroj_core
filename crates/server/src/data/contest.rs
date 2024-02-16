@@ -59,10 +59,16 @@ impl CtstDB {
             Ok(ContestInfo { meta, problems })
         })
     }
+    /// Try to insert a registrant for a contest with [`ContestRegistrant::register_time`]
+    /// set to the current time.
     pub fn insert_registrant(&self, id: CtstID, uid: UserID) -> Result<(), DataError> {
         self.0.transaction(|conn| {
             diesel::insert_or_ignore_into(contest_registrants::table)
-                .values(&ContestRegistrant { cid: id, uid })
+                .values(&ContestRegistrant {
+                    cid: id,
+                    uid,
+                    register_time: DateTime::now(),
+                })
                 .execute(conn)?;
             Ok(())
         })

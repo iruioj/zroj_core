@@ -11,6 +11,14 @@ diesel::table! {
     contest_registrants (cid, uid) {
         cid -> Unsigned<Integer>,
         uid -> Unsigned<Integer>,
+        register_time -> Bigint,
+    }
+}
+
+diesel::table! {
+    contest_submissions (cid, sid) {
+        cid -> Unsigned<Integer>,
+        sid -> Unsigned<Integer>,
     }
 }
 
@@ -80,6 +88,8 @@ diesel::joinable!(contest_problems -> contests (cid));
 diesel::joinable!(contest_problems -> problems (pid));
 diesel::joinable!(contest_registrants -> contests (cid));
 diesel::joinable!(contest_registrants -> users (uid));
+diesel::joinable!(contest_submissions -> contests (cid));
+diesel::joinable!(contest_submissions -> submission_metas (sid));
 diesel::joinable!(problem_statements -> problems (pid));
 diesel::joinable!(submission_details -> submission_metas (sid));
 diesel::joinable!(submission_metas -> problems (pid));
@@ -88,6 +98,7 @@ diesel::joinable!(submission_metas -> users (uid));
 diesel::allow_tables_to_appear_in_same_query!(
     contest_problems,
     contest_registrants,
+    contest_submissions,
     contests,
     problem_statements,
     problems,

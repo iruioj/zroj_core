@@ -83,7 +83,9 @@ pub struct SubmissionDetail {
 pub struct Contest {
     pub id: CtstID,
     pub title: String,
+    /// contest start time is not necessarily contestants' start_time
     pub start_time: DateTime,
+    /// contestants' end time must be earlier than contest end time
     pub end_time: DateTime,
     pub duration: CastElapse,
 }
@@ -106,4 +108,18 @@ pub struct ContestProblem {
 pub struct ContestRegistrant {
     pub cid: CtstID,
     pub uid: UserID,
+    /// This contest is available for the registrant starting from
+    /// max([`Contest::start_time`], [`ContestRegistrant::register_time`]),
+    /// elapsing [`Contest::duration`] but not exceeding [`Contest::end_time`].
+    pub register_time: DateTime,
+}
+
+#[derive(Debug, Associations, Identifiable, Clone, Queryable, Selectable, Insertable)]
+#[diesel(belongs_to(Contest, foreign_key = cid))]
+#[diesel(belongs_to(SubmissionMeta, foreign_key = sid))]
+#[diesel(table_name = contest_submissions)]
+#[diesel(primary_key(cid, sid))]
+pub struct ContestSubmission {
+    pub cid: CtstID,
+    pub sid: SubmID,
 }

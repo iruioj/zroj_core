@@ -2,8 +2,8 @@
 CREATE TABLE contests (
     id integer unsigned NOT NULL AUTO_INCREMENT,
     title tinytext NOT NULL,
-    start_time bigint NOT NULL, -- contest start time is not necessarily contestants' start_time
-    end_time bigint NOT NULL, -- contestants' end time must be earlier than contest end time
+    start_time bigint NOT NULL,
+    end_time bigint NOT NULL,
     duration bigint unsigned NOT NULL,
     PRIMARY KEY (id)
 );
@@ -19,8 +19,17 @@ CREATE TABLE contest_problems (
 CREATE TABLE contest_registrants (
     cid integer unsigned NOT NULL,
     uid integer unsigned NOT NULL,
+    register_time bigint NOT NULL, 
 
     PRIMARY KEY (cid, uid),
     FOREIGN KEY(uid) REFERENCES users(id),
     FOREIGN KEY(cid) REFERENCES contests(id)
 );
+CREATE TABLE contest_submissions (
+    cid integer unsigned NOT NULL,
+    sid integer unsigned NOT NULL,
+
+    PRIMARY KEY (cid, sid),
+    FOREIGN KEY(sid) REFERENCES submission_metas(id),
+    FOREIGN KEY(cid) REFERENCES contests(id)
+)

@@ -198,8 +198,8 @@ struct JudgeReturn {
 
 /// Problem judge. User's submission can be seen as a series of files each named
 /// `name.lang.ext`. The HTTP request body is composed of a form data, containing
-/// a text field `pid` and a list of files. Here's an example of frontend payload
-/// construction:
+/// a text field `pid` and a list of named files, which is coverted to [`SubmRaw`]. 
+/// Here's an example of frontend payload construction:
 ///
 /// ```javascript
 /// const form = new FormData();
