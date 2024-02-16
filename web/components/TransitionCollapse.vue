@@ -1,6 +1,5 @@
 <!-- 主体不要随便加 Y 轴的 padding，可能会影响到动画。必要时考虑 box-border -->
 <script lang="ts">
-
 export default {
   props: {
     duration: {

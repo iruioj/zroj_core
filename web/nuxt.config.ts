@@ -5,10 +5,10 @@ import topLevelAwait from "vite-plugin-top-level-await";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  devtools: { enabled: true, },
+  devtools: { enabled: true },
   modules: ["@nuxt/ui", "nuxt-icons", "@pinia/nuxt"],
 
-  css: ['~/assets/main.css'],
+  css: ["~/assets/main.css"],
 
   runtimeConfig: {
     // The private keys which are only available server-side
@@ -39,23 +39,22 @@ export default defineNuxtConfig({
       strictPort: true,
       hmr: {
         port: 3456,
-        protocol: 'ws',
-        host: 'localhost',
+        protocol: "ws",
+        host: "localhost",
       },
     },
   },
   hooks: {
-    'vite:extendConfig'(viteInlineConfig, env) {
+    "vite:extendConfig"(viteInlineConfig, env) {
       viteInlineConfig.server = {
         ...viteInlineConfig.server,
         hmr: {
-          protocol: 'ws',
-          host: 'localhost',
+          protocol: "ws",
+          host: "localhost",
         },
-      }
+      };
     },
   },
-
 
   typescript: {
     tsConfig: {
@@ -63,6 +62,5 @@ export default defineNuxtConfig({
         moduleResolution: "bundler",
       },
     },
-
   },
 });

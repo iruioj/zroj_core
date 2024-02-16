@@ -3,7 +3,7 @@ import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 
 const config: Partial<Config> = {
-  darkMode: 'class',
+  darkMode: "class",
   content: [
     "./components/**/*.{js,vue,ts}",
     "./layouts/**/*.vue",
@@ -80,17 +80,14 @@ const config: Partial<Config> = {
   },
   plugins: [
     plugin(function ({ addBase, theme }) {
-      const back = "rgb(var(--theme-bg))"
-      const front = "rgb(var(--theme-pri))"
+      const back = "rgb(var(--theme-bg))";
+      const front = "rgb(var(--theme-pri))";
       addBase({
         input: {
           "background-color": back,
         },
         "input:autofill": {
-          "-webkit-box-shadow":
-            "0 0 0 30px " +
-            back +
-            " inset !important",
+          "-webkit-box-shadow": "0 0 0 30px " + back + " inset !important",
           "-webkit-text-fill-color": `${front} !important`,
         },
         html: {

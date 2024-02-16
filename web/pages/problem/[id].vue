@@ -15,9 +15,7 @@ watch(data, (val) => {
 <template>
   <PageContainer>
     <div v-if="data" class="mt-8 mb-4 flex">
-      <div class="grow text-2xl text-brand">
-        #{{ id }} {{ data.title }}
-      </div>
+      <div class="grow text-2xl text-brand">#{{ id }} {{ data.title }}</div>
       <RouterTabsBar
         class="print:hidden"
         :items="[
