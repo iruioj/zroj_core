@@ -3,26 +3,29 @@ import { defineStore } from "pinia";
 // todo: https://github.com/damien-hl/nuxt3-auth-example/blob/main/composables/auth/useAuth.ts
 export const useAuth = defineStore("auth_store", () => {
   const username = ref<null | string>(null);
+  const email = ref<null | string>(null)
 
   async function refresh() {
     if (process.client) {
-      const res = await fetch(
-        useRuntimeConfig().public.apiBase + "/auth/info",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          mode: "cors",
-        },
-      );
-      if (res.ok) {
-        const data = await res.json();
-        username.value = data.username;
-      } else if ((await res.text()) === "user not found") {
-        username.value = null;
-      }
-    }
+		  const res = await fetch(
+			useRuntimeConfig().public.apiBase + "/auth/info",
+			{
+			  method: "GET",
+			  headers: {
+				"Content-Type": "application/json",
+			  },
+			  mode: "cors",
+			},
+		  );
+		  if (res.ok) {
+			const data = await res.json();
+			console.log(data.email);
+			username.value = data.username;
+			email.value = data.email;
+		  } else{
+			username.value = null;
+		  }
+	  	    }
   }
 
   if (process.client) {
@@ -31,6 +34,7 @@ export const useAuth = defineStore("auth_store", () => {
 
   return {
     username,
+	email,
     refresh,
   };
 });
