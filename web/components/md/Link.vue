@@ -6,16 +6,16 @@ defineProps<{
 }>();
 
 function isPdf(data: NodeLink): boolean {
-    let c = data.children.at(0);
-    return c?.type == 'text' && (c as NodeText).value.startsWith("pdf")
+  const c = data.children.at(0);
+  return c?.type == "text" && (c as NodeText).value.startsWith("pdf");
 }
 </script>
 
 <template>
-  <iframe 
-    v-if="isPdf(data)" 
-    :src="data.url" 
-    style="width: 100%;height: 600px; border: none;"
+  <iframe
+    v-if="isPdf(data)"
+    :src="data.url"
+    style="width: 100%; height: 600px; border: none"
   ></iframe>
   <pre v-else>{{ data }}</pre>
 </template>

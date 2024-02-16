@@ -2,8 +2,6 @@
 <script setup lang="ts">
 const auth = useAuth();
 const { list } = useMsgStore();
-
-
 </script>
 
 <template>
@@ -25,9 +23,13 @@ const { list } = useMsgStore();
       </div>
       <div class="grow"></div>
 
-	<AvatarDropdown v-if="auth.username" :username="auth.username" class="px-4"/>
+      <AvatarDropdown
+        v-if="auth.username"
+        :username="auth.username"
+        class="px-4"
+      />
       <div v-else class="px-4 print:hidden">
-          <TextLink to="/auth/signin" class="py-2">Sign In/Up</TextLink>
+        <TextLink to="/auth/signin" class="py-2">Sign In/Up</TextLink>
       </div>
     </div>
     <div class="text-xs mx-2 print:hidden sm:hidden border-t border-theme">

@@ -33,7 +33,7 @@ const onBind = async () => {
 <template>
   <PageContainer>
     <div class="mt-4">
-      <div class="grow text-2xl text-brand" v-if="data">
+      <div v-if="data" class="grow text-2xl text-brand">
         #{{ data.meta.id }} {{ data.meta.title }}
       </div>
     </div>

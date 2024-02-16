@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import type { NodeRoot } from "@/composables/api";
 import Node from "./Node.vue";
+import type { NodeRoot } from "@/composables/api";
 
 defineProps<{
   data: NodeRoot;

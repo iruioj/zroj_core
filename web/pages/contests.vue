@@ -41,13 +41,9 @@ const { data, fetching } = await useAPI().contest.metas.get.use(query);
         </table>
 
         <ul v-if="data" class="sm:hidden">
-          <li
-            v-for="p in data"
-            :key="p.id"
-            class="py-2 border-b border-theme"
-          >
+          <li v-for="p in data" :key="p.id" class="py-2 border-b border-theme">
             <div class="text-md pb-1">
-                <TextLink :to="`/contest/${p.id}`">{{ p.title }}</TextLink>
+              <TextLink :to="`/contest/${p.id}`">{{ p.title }}</TextLink>
             </div>
             <div>
               <NuxtIcon name="schedule" class="inline-block align-middle" />{{
