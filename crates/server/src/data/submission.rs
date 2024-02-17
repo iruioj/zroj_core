@@ -180,7 +180,7 @@ impl SubmDB {
             let table = table
                 .inner_join(problems::table)
                 .inner_join(users::table)
-                .inner_join(contest_submissions::table);
+                .left_join(contest_submissions::table);
             let res: Vec<(SubmissionMeta, String, Username)> = if let Some(cid) = cid {
                 table
                     .filter(contest_submissions::cid.eq(cid))
