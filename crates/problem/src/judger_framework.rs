@@ -135,15 +135,13 @@ pub enum LogMessage {
 /// 返回的得分是单位化的（0-1之间）
 ///
 /// 子任务中的测试点默认按照 Min 的策略记分
-pub fn judge<T, M, J>(
-    data: &mut Data<'_, T, M>,
+pub fn judge<J>(
+    data: &mut Data<'_, J::T, J::M>,
     judger: &mut impl judger::Judger<LogMessage>,
     subm: &mut J::Subm,
 ) -> anyhow::Result<judger::JudgeReport>
 where
-    T: FsStore,
-    M: FsStore,
-    J: JudgeTask<T = T, M = M>,
+    J: JudgeTask,
 {
     Ok(match &mut data.tasks {
         crate::data::Taskset::Subtasks { subtasks, deps } => {

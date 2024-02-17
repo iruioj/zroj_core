@@ -252,7 +252,7 @@ async fn judge(
                     .ok_or(error::ErrorBadRequest("source file not found"))?,
             };
             judger
-                .add_test::<_, _, Traditional>(subm_id, ojdata, subm)
+                .add_test::<Traditional>(subm_id, ojdata, subm)
                 .map_err(error::ErrorInternalServerError)?;
             subm_id
         }

@@ -9,7 +9,7 @@ use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
-use store::{FsStore, Handle};
+use store::Handle;
 
 fn update_state_data(
     state: &mut HashMap<SubmID, Result<FullJudgeReport, String>>,
@@ -66,17 +66,17 @@ impl ProblemJudger {
             .get(sid)
             .cloned())
     }
-    pub fn add_test<T, M, J>(
+    pub fn add_test<J>(
         &self,
         sid: SubmID,
-        mut ojdata: OJData<T, M>,
+        mut ojdata: OJData<J::T, J::M>,
         mut subm: J::Subm,
         // callback: impl FnOnce(Result<FullJudgeReport, String>) -> Result<(), String> + Send + Sync,
     ) -> anyhow::Result<()>
     where
-        T: FsStore + Send + Sync + 'static,
-        M: FsStore + Send + Sync + 'static,
-        J: JudgeTask<T = T, M = M>,
+        J: JudgeTask,
+        J::T: Send + Sync + 'static,
+        J::M: Send + Sync + 'static,
     {
         let state = self.state.clone();
         let logs = self.logs.clone();
@@ -109,8 +109,8 @@ impl ProblemJudger {
                     }
                 });
 
-                let data_report = judge::<_, _, J>(&mut data, &mut judger, &mut subm)
-                    .map_err(|e| e.to_string())?;
+                let data_report =
+                    judge::<J>(&mut data, &mut judger, &mut subm).map_err(|e| e.to_string())?;
                 update_state_data(
                     &mut state.write().expect("save data state"),
                     sid,
