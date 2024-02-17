@@ -7,19 +7,26 @@ fn main() {
     let dir_handle = Handle::new(dir.path());
     let problem_judger = ProblemJudger::new(dir_handle).unwrap();
 
-    let StandardProblem::Traditional(ojdata) = problem::sample::a_plus_b_data() else {
-        panic!("not traditional data")
-    };
-    let subm = problem::sample::a_plus_b_std();
+    let mut metas = Vec::new();
 
-    problem_judger
-        .add_test::<Traditional>(0, ojdata, subm)
-        .unwrap();
-    println!("test added");
+    for i in 0..10 {
+        eprintln!("test #{i}");
+        let StandardProblem::Traditional(ojdata) = problem::sample::a_plus_b_data() else {
+            panic!("not traditional data")
+        };
+        let subm = problem::sample::a_plus_b_std();
 
-    let (_, rep) = problem_judger.reciver().recv().unwrap();
 
-    dbg!(rep);
+        problem_judger
+            .add_test::<Traditional>(0, ojdata, subm)
+            .unwrap();
+        println!("test added");
+
+        let (_, rep) = problem_judger.reciver().recv().unwrap();
+
+        metas.push(rep.data.unwrap().meta)
+    }
+    dbg!(metas);
 
     drop(problem_judger);
     drop(dir)

@@ -1,10 +1,8 @@
-#include "share.h"
-#include "sigutils.h"
+#include "utils.h"
 
 #include <fcntl.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #define MAXLINE 1024 /* max line size */
 
@@ -138,9 +136,21 @@ void free_shared(global_shared_t *global_shared) {
 int get_children_rusage(rusage_t *ru) {
   struct rusage r;
   int rc = getrusage(RUSAGE_CHILDREN, &r);
-  ru->ru_stime = r.ru_stime;
-  ru->ru_utime = r.ru_utime;
-  ru->ru_maxrss = r.ru_maxrss;
+  if (ru != NULL) {
+    ru->ru_stime = r.ru_stime;
+    ru->ru_utime = r.ru_utime;
+    ru->ru_maxrss = r.ru_maxrss;
+  }
+  return rc;
+}
+int get_self_rusage(rusage_t *ru) {
+  struct rusage r;
+  int rc = getrusage(RUSAGE_SELF, &r);
+  if (ru != NULL) {
+    ru->ru_stime = r.ru_stime;
+    ru->ru_utime = r.ru_utime;
+    ru->ru_maxrss = r.ru_maxrss;
+  }
   return rc;
 }
 
@@ -154,8 +164,19 @@ void signal_echo_handler(int signo) {
   // psignal(signo, "receve signal");
 }
 
-inline int get_sigchld(){ return SIGCHLD; }
-inline int get_sigkill(){ return SIGKILL; }
-inline int get_sigxcpu(){ return SIGXCPU; }
+inline int get_sigchld() { return SIGCHLD; }
+inline int get_sigkill() { return SIGKILL; }
+inline int get_sigxcpu() { return SIGXCPU; }
 
 void *signal_echo(int signo) { return signal(signo, signal_echo_handler); }
+
+int wait_rusage(pid_t pid, int *stat_loc, int options, rusage_t *ru) {
+  struct rusage r;
+  int rc = wait4(pid, stat_loc, options, &r);
+  if (ru != NULL) {
+    ru->ru_stime = r.ru_stime;
+    ru->ru_utime = r.ru_utime;
+    ru->ru_maxrss = r.ru_maxrss;
+  }
+  return rc;
+}

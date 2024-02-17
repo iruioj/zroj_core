@@ -8,7 +8,7 @@ mod cbind {
     #![allow(non_snake_case)]
     #![allow(unused)]
 
-    include!(concat!(env!("OUT_DIR"), "/sigutilscc.rs"));
+    include!(concat!(env!("OUT_DIR"), "/utilscc.rs"));
 }
 
 pub const STDERR_FILENO: i32 = cbind::STDERR_FILENO as i32;
@@ -277,7 +277,7 @@ pub fn get_sigxcpu() -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::unix::signal_safe::cbind;
+    use crate::unix::sigsafe::cbind;
 
     #[test]
     fn test_fork() {

@@ -1,5 +1,5 @@
 use crate::{
-    unix::{share_mem, signal_safe, Limitation},
+    unix::{share_mem, sigsafe, Limitation},
     Elapse, Memory, Status, Termination,
 };
 use anyhow::{bail, Context};
@@ -32,35 +32,41 @@ impl Singleton {
         path: &CStr,
         args: &[*mut std::ffi::c_char],
         env: &[*mut std::ffi::c_char],
-        guard: signal_safe::SigblockGuard,
+        guard: sigsafe::SigblockGuard,
         shared: share_mem::GlobalShared,
-    ) -> Result<(), signal_safe::Errno> {
+    ) -> Result<(), sigsafe::Errno> {
         // register a handler for SIGCHLD to make sigsuspend work
-        signal_safe::signal_echo(signal_safe::get_sigchld());
+        sigsafe::signal_echo(sigsafe::get_sigchld());
 
-        // at this time, all signals are blocked, so we can fork directly
-        let pid_child = signal_safe::fork()?;
+        let max_rss_before = share_mem::get_rusage_self()
+            .map(|o| o.ru_maxrss)
+            .unwrap_or(0);
+        sigsafe::print_cstr(b"(child) self's max_rss before execve: \x00");
+        sigsafe::print_i64(max_rss_before as i64);
+        sigsafe::print_cstr(b"\n\x00");
 
         // fork another child process to execute program
+        // at this time, all signals are blocked, so we can fork directly
+        let pid_child = sigsafe::fork()?;
         if pid_child == 0 {
-            signal_safe::print_cstr(b"(child-child) pid = \x00");
-            signal_safe::print_i64(signal_safe::getpid() as i64);
-            signal_safe::print_cstr(b"\n\x00");
-            signal_safe::set_self_grp();
+            sigsafe::print_cstr(b"(child-child) pid = \x00");
+            sigsafe::print_i64(sigsafe::getpid() as i64);
+            sigsafe::print_cstr(b"\n\x00");
+            sigsafe::set_self_grp();
             // redirect standard IO
             if let Some(stdin) = &self.stdin {
-                let fd = signal_safe::open_read(stdin)?;
-                signal_safe::dup2(fd, signal_safe::STDIN_FILENO);
+                let fd = sigsafe::open_read(stdin)?;
+                sigsafe::dup2(fd, sigsafe::STDIN_FILENO);
             }
             if let Some(stdout) = &self.stdout {
-                let fd = signal_safe::open_write(stdout)?;
-                signal_safe::dup2(fd, signal_safe::STDOUT_FILENO);
+                let fd = sigsafe::open_write(stdout)?;
+                sigsafe::dup2(fd, sigsafe::STDOUT_FILENO);
             }
             if let Some(stderr) = &self.stderr {
-                let fd = signal_safe::open_write(stderr)?;
-                signal_safe::dup2(fd, signal_safe::STDERR_FILENO);
+                let fd = sigsafe::open_write(stderr)?;
+                sigsafe::dup2(fd, sigsafe::STDERR_FILENO);
             } else {
-                signal_safe::print_cstr(b"(child-child) stderr not redirected\n\x00");
+                sigsafe::print_cstr(b"(child-child) stderr not redirected\n\x00");
             }
 
             // set resource limit
@@ -68,10 +74,10 @@ impl Singleton {
                 ($i:ident, $r:ident, $f:ident) => {
                     match self.limits.$i {
                         super::Lim::Single(s) => {
-                            signal_safe::setrlimit(signal_safe::$r as i32, s.$f(), s.$f())?;
+                            sigsafe::setrlimit(sigsafe::$r as i32, s.$f(), s.$f())?;
                         }
                         super::Lim::Double(s, h) => {
-                            signal_safe::setrlimit(signal_safe::$r as i32, s.$f(), h.$f())?;
+                            sigsafe::setrlimit(sigsafe::$r as i32, s.$f(), h.$f())?;
                         }
                     }
                 };
@@ -87,28 +93,28 @@ impl Singleton {
             setlim!(output_memory, RLIMIT_FSIZE, byte);
             setlim!(fileno, RLIMIT_NOFILE, into);
             if self.stderr.is_none() {
-                signal_safe::print_cstr(b"(child-child) resource limited\n\x00");
+                sigsafe::print_cstr(b"(child-child) resource limited\n\x00");
             }
             drop(guard); // unblock signals
                          // todo: set syscall limit
-            signal_safe::execve(path, args, env);
+            sigsafe::execve(path, args, env);
         }
 
-        signal_safe::print_cstr(b"(child) fork a timmer\n\x00");
+        sigsafe::print_cstr(b"(child) fork a timmer\n\x00");
 
         // at this time, all signals are blocked, so we can fork directly
         let pid_timer = match self.limits.real_time {
             super::Lim::Single(s) | super::Lim::Double(s, _) => {
                 // fork a process to setup timer
-                let pid = signal_safe::fork()?;
+                let pid = sigsafe::fork()?;
                 if pid == 0 {
                     let secs = s.sec().clamp(0, u32::MAX as u64) as u32;
-                    signal_safe::print_cstr(b"(child-timer) sleep for \x00");
-                    signal_safe::print_i64(secs as i64);
-                    signal_safe::print_cstr(b" seconds\n\x00");
-                    signal_safe::sleep(secs);
-                    signal_safe::print_cstr(b"(child-timer) timmer exit\n\x00");
-                    signal_safe::exit(0);
+                    sigsafe::print_cstr(b"(child-timer) sleep for \x00");
+                    sigsafe::print_i64(secs as i64);
+                    sigsafe::print_cstr(b" seconds\n\x00");
+                    sigsafe::sleep(secs);
+                    sigsafe::print_cstr(b"(child-timer) timmer exit\n\x00");
+                    sigsafe::exit(0);
                 }
                 Some(pid)
             }
@@ -117,51 +123,42 @@ impl Singleton {
         // can be interrupted either by timer or child process
         let mut timer_first = false;
         let mut child_status = None;
+        let mut child_rusage = None;
 
-        signal_safe::print_cstr(b"(child) wait for tested process and timer\n\x00");
+        sigsafe::print_cstr(b"(child) wait for tested process and timer\n\x00");
 
         let ru = 'outer: loop {
             // notice that sigsuspend only interrupts for signals whose action is
             // either calling handler function or exit (thus sometimes you need to
             // register handler for a signal to make it work).
             guard.suspend();
-            signal_safe::print_cstr(b"(child) suspend over\n\x00");
+            sigsafe::print_cstr(b"(child) suspend over\n\x00");
             loop {
                 // since all signals are blocked, SIGCHLD will not interrupt
-                let r = signal_safe::waitpid(-1, signal_safe::WNOHANG);
+                let r = share_mem::wait_rusage(-1, sigsafe::WNOHANG);
 
                 match r {
-                    Ok((pid, status)) => {
+                    Ok((pid, status, ru)) => {
                         if pid_timer.is_some_and(|pid_timer| pid_timer == pid) {
                             // normally the timer should be killed by signal. thus if timer returned first -> TLE
                             if status.exited() {
                                 timer_first = true;
                                 // at this time, child hasn't been reaped, thus it's pid is not freed
-                                if let Err(e) =
-                                    signal_safe::kill(pid_child, signal_safe::get_sigkill())
-                                {
-                                    if self.stderr.is_none() {
-                                        signal_safe::print_cstr(
-                                            b"(child) timer kill child failed\n\x00",
-                                        );
-                                    }
+                                if let Err(e) = sigsafe::kill(pid_child, sigsafe::get_sigkill()) {
+                                    sigsafe::print_cstr(b"(child) timer kill child failed\n\x00");
                                     break 'outer Err(e);
                                 }
                             } // otherwise timer is killed, ignored
                         } else if pid_child == pid {
                             child_status = Some(status);
+                            child_rusage = Some(ru);
                             if !timer_first {
                                 // child return first
                                 // at this time, timer hasn't been reaped, thus it's pid is not freed
                                 if let Some(pid_timer) = pid_timer {
-                                    if let Err(e) =
-                                        signal_safe::kill(pid_timer, signal_safe::get_sigkill())
+                                    if let Err(e) = sigsafe::kill(pid_timer, sigsafe::get_sigkill())
                                     {
-                                        if self.stderr.is_none() {
-                                            signal_safe::print_cstr(
-                                                b"(child) kill timer failed\n\x00",
-                                            );
-                                        }
+                                        sigsafe::print_cstr(b"(child) kill timer failed\n\x00");
                                         break 'outer Err(e);
                                     }
                                 }
@@ -174,13 +171,25 @@ impl Singleton {
                         }
                     }
                     Err(errno) => {
-                        if errno.is_errno(signal_safe::ECHILD) {
-                            // no child to wait
-                            break 'outer share_mem::get_rusage();
+                        if errno.is_errno(sigsafe::ECHILD) {
+                            break 'outer if let Some(mut ru) = child_rusage {
+                                sigsafe::print_cstr(b"(child) max_rss after execve: \x00");
+                                sigsafe::print_i64(ru.ru_maxrss as i64);
+                                sigsafe::print_cstr(b"\n\x00");
+
+                                // FIXME: substract the residual set size before execve.
+                                // This implemention is not guaranteed to work properly, but it indead
+                                // solves the increasing rusage problem. However, it also causes a
+                                // decreasing rusage in the test of problem judger. Further fixes are
+                                // required.
+                                ru.ru_maxrss -= max_rss_before;
+                                Ok(ru)
+                            } else {
+                                sigsafe::print_cstr(b"(child) get child rusage failed\n\x00");
+                                Err(super::sigsafe::Errno(1))
+                            };
                         } else {
-                            if self.stderr.is_none() {
-                                signal_safe::print_cstr(b"(child) child wait child failed\n\x00");
-                            }
+                            sigsafe::print_cstr(b"(child) child wait child failed\n\x00");
                             break 'outer Err(errno);
                         }
                     }
@@ -193,8 +202,8 @@ impl Singleton {
             timer_first: if timer_first { 1 } else { 0 },
             status: child_status.map(|a| a.0).unwrap_or(-1),
         }) {
-            signal_safe::print_cstr(b"(child) set shared memory error\n\x00");
-            signal_safe::exit(1);
+            sigsafe::print_cstr(b"(child) set shared memory error\n\x00");
+            sigsafe::exit(1);
         }
         Ok(())
     }
@@ -202,7 +211,7 @@ impl Singleton {
         &self,
         child: i32,
         start: Instant,
-        guard: signal_safe::SigblockGuard,
+        guard: sigsafe::SigblockGuard,
         shared: &share_mem::GlobalShared,
     ) -> anyhow::Result<Termination> {
         // do something before waiting for child process
@@ -210,8 +219,7 @@ impl Singleton {
 
         println!("(parent) wait for child process id: {child}");
 
-        let (_, child_status) =
-            signal_safe::waitpid(child, 0).context("parent wait child error")?;
+        let (_, child_status) = sigsafe::waitpid(child, 0).context("parent wait child error")?;
 
         println!("(parent) wait done.");
 
@@ -240,7 +248,7 @@ impl Singleton {
                 !self.limits.real_time.check(&real_time)
             };
         }
-        let child_status = signal_safe::WaitStatus(status);
+        let child_status = sigsafe::WaitStatus(status);
         let status: Status = if child_status.exited() {
             println!("子进程正常退出, exit_code = {}", child_status.exitstatus());
             let exit_code = child_status.exitstatus();
@@ -259,10 +267,7 @@ impl Singleton {
             }
             println!("子进程被信号终止, signal = {}", child_status.termsig());
             let signal = child_status.termsig();
-            if signal == signal_safe::get_sigkill()
-                || signal == signal_safe::get_sigxcpu()
-                || real_tle!()
-            {
+            if signal == sigsafe::get_sigkill() || signal == sigsafe::get_sigxcpu() || real_tle!() {
                 println!("子进程被计时线程终止");
                 Status::TimeLimitExceeded
             } else {
@@ -285,15 +290,15 @@ impl crate::ExecSandBox for Singleton {
             "exec: {:?} {:?} {{ stdin: {:?}, stdout: {:?}, stderr: {:?} }}",
             self.exec_path, self.arguments, self.stdin, self.stdout, self.stderr
         );
-        eprintln!("pid: {}", signal_safe::getpid());
+        eprintln!("pid: {}", sigsafe::getpid());
         // prepare for arguments
         let args = crate::to_exec_array(self.arguments.clone());
         let env = crate::to_exec_array(self.envs.clone());
 
         let start = Instant::now(); // record the real time duration of tested process
 
-        let guard = signal_safe::sigblockall(); // block all signals before forking
-        if guard.contains(signal_safe::get_sigchld())? {
+        let guard = sigsafe::sigblockall(); // block all signals before forking
+        if guard.contains(sigsafe::get_sigchld())? {
             bail!("previous block sigset contains SIGCHLD");
         }
 
@@ -303,16 +308,16 @@ impl crate::ExecSandBox for Singleton {
         std::io::stdout().flush()?;
         std::io::stderr().flush()?;
 
-        let r = match signal_safe::fork() {
+        let r = match sigsafe::fork() {
             Ok(0) => {
                 let err = self.exec_child(self.exec_path.as_c_str(), &args, &env, guard, shared);
                 if let Err(err) = err {
-                    signal_safe::print_cstr(b"exec_sandbox child: errno = \x00");
-                    signal_safe::print_i64(err.0 as i64);
-                    signal_safe::print_cstr(b"\n\x00");
-                    signal_safe::exit(1);
+                    sigsafe::print_cstr(b"exec_sandbox child: errno = \x00");
+                    sigsafe::print_i64(err.0 as i64);
+                    sigsafe::print_cstr(b"\n\x00");
+                    sigsafe::exit(1);
                 }
-                signal_safe::exit(0);
+                sigsafe::exit(0);
             }
             Ok(pid) => self.exec_parent(pid, start, guard, &shared),
             Err(e) => {

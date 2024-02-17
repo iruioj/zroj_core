@@ -1,4 +1,4 @@
-use super::signal_safe::{errno_result, Errno};
+use super::sigsafe::{errno_result, Errno, WaitStatus};
 
 mod cbind {
     #![allow(non_upper_case_globals)]
@@ -6,7 +6,7 @@ mod cbind {
     #![allow(non_snake_case)]
     #![allow(unused)]
 
-    include!(concat!(env!("OUT_DIR"), "/sharecc.rs"));
+    include!(concat!(env!("OUT_DIR"), "/utilscc.rs"));
 }
 
 pub use cbind::global_shared_t;
@@ -44,7 +44,7 @@ impl GlobalShared {
     }
 }
 
-pub fn get_rusage() -> Result<cbind::rusage_t, Errno> {
+pub fn get_rusage_children() -> Result<cbind::rusage_t, Errno> {
     unsafe {
         let mut rusage = cbind::rusage_t {
             ru_utime: cbind::timeval {
@@ -62,6 +62,56 @@ pub fn get_rusage() -> Result<cbind::rusage_t, Errno> {
             errno_result()
         } else {
             Ok(rusage)
+        }
+    }
+}
+pub fn get_rusage_self() -> Result<cbind::rusage_t, Errno> {
+    unsafe {
+        let mut rusage = cbind::rusage_t {
+            ru_utime: cbind::timeval {
+                tv_sec: 0,
+                tv_usec: 0,
+            },
+            ru_stime: cbind::timeval {
+                tv_sec: 0,
+                tv_usec: 0,
+            },
+            ru_maxrss: 0,
+        };
+        let rc = cbind::get_self_rusage(&mut rusage as *mut cbind::rusage_t);
+        if rc < 0 {
+            errno_result()
+        } else {
+            Ok(rusage)
+        }
+    }
+}
+
+/// return (pid, status, rusage_t)
+pub fn wait_rusage(pid: i32, options: u32) -> Result<(i32, WaitStatus, cbind::rusage_t), Errno> {
+    unsafe {
+        let mut rusage = cbind::rusage_t {
+            ru_utime: cbind::timeval {
+                tv_sec: 0,
+                tv_usec: 0,
+            },
+            ru_stime: cbind::timeval {
+                tv_sec: 0,
+                tv_usec: 0,
+            },
+            ru_maxrss: 0,
+        };
+        let mut status = 0;
+        let rc = cbind::wait_rusage(
+            pid,
+            &mut status as *mut i32,
+            options as i32,
+            &mut rusage as *mut cbind::rusage_t,
+        );
+        if rc < 0 {
+            errno_result()
+        } else {
+            Ok((rc, WaitStatus(status), rusage))
         }
     }
 }

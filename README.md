@@ -120,6 +120,7 @@ apt update
 apt install build-essential
 # install LLVM
 apt-get install clang-17 lldb-17 lld-17
+# for clangd: https://clangd.llvm.org/installation.html
 
 # setup proxy (if necessary)
 export http_proxy=http://host.docker.internal:6666 # optional

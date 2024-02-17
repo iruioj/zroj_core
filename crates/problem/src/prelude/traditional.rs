@@ -106,7 +106,7 @@ impl JudgeTask for Traditional {
         }
 
         let mut execfile = execfile.context("compile succeed but execfile not found")?;
-        dbg!(execfile.metadata().unwrap().permissions());
+        // dbg!(execfile.metadata().unwrap().permissions());
         let exec = judger.copy_file(&mut execfile, "main")?;
 
         let input = judger.copy_store_file(&mut task.input, "input")?;

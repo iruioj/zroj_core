@@ -1,5 +1,5 @@
 pub(crate) mod share_mem;
-pub(crate) mod signal_safe;
+pub(crate) mod sigsafe;
 pub(crate) mod singleton;
 
 use std::fmt::Display;
