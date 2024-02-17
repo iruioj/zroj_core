@@ -2100,17 +2100,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sandbox_bin"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "sandbox",
- "serde_json",
- "shadow-rs",
-]
-
-[[package]]
 name = "scheduled-thread-pool"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3176,6 +3165,18 @@ dependencies = [
  "byteorder",
  "crc32fast",
  "crossbeam-utils",
+]
+
+[[package]]
+name = "zroj-sandbox"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "sandbox",
+ "serde",
+ "serde_json",
+ "shadow-rs",
 ]
 
 [[package]]

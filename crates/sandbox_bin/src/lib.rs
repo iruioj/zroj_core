@@ -1,3 +1,5 @@
+pub mod config;
+
 use clap::builder::styling::{AnsiColor, Color, Style};
 
 /// Cargo-like terminal color style

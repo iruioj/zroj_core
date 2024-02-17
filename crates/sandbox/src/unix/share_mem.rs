@@ -44,7 +44,7 @@ impl GlobalShared {
     }
 }
 
-pub fn get_rusage_children() -> Result<cbind::rusage_t, Errno> {
+pub fn _get_rusage_children() -> Result<cbind::rusage_t, Errno> {
     unsafe {
         let mut rusage = cbind::rusage_t {
             ru_utime: cbind::timeval {

@@ -19,8 +19,10 @@ where
     T: PartialOrd,
 {
     /// 一个硬限制
+    #[serde(rename = "single")]
     Single(T),
     /// soft and hard
+    #[serde(rename = "double")]
     Double(T, T),
 }
 

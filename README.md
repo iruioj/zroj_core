@@ -13,10 +13,14 @@ Recommend VSCode extensions:
 
 ## Testing
 
-First init database and generate data for testing:
+Preparation:
 
 ```bash
+# First init database and generate data for testing:
 cargo run --bin gen_testdata
+# Then build and install the sandbox executable.
+# After installation you may execute `zroj-sandbox -h` for more information.
+cargo install --path crates/sandbox_bin
 ```
 
 Then start the dev server (sometimes Cargo complaines during compliation, where you may just rerun Cargo):

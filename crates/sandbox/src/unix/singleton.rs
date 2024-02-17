@@ -13,15 +13,16 @@ use std::{
 
 /// 执行单个可执行文件
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(missing_docs)]
 pub struct Singleton {
-    limits: Limitation,
-    exec_path: CString,
-    arguments: Vec<CString>,
-    envs: Vec<CString>,
+    pub limits: Limitation,
+    pub exec_path: CString,
+    pub arguments: Vec<CString>,
+    pub envs: Vec<CString>,
     /// 为 None 表示不提供/不获取 读入/输出
-    stdin: Option<CString>,
-    stdout: Option<CString>,
-    stderr: Option<CString>,
+    pub stdin: Option<CString>,
+    pub stdout: Option<CString>,
+    pub stderr: Option<CString>,
 }
 
 impl Singleton {

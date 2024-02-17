@@ -11,3 +11,7 @@ edition = "2021"
 keywords = ["online_judge", "sandbox"]
 version = "0.1.0"
 repository = "https://github.com/iruioj/zroj_core"
+
+[profile.release]
+opt-level = 3
+codegen-units = 1

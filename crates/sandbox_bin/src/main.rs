@@ -1,60 +1,49 @@
-use std::{ffi::CString, os::unix::ffi::OsStrExt, path::PathBuf, str::FromStr};
+use std::{ffi::CString, path::PathBuf};
 
-use anyhow::Context;
-use clap::{error::ErrorKind, CommandFactory, Parser};
-use sandbox::{unix::Limitation, ExecSandBox};
+use clap::{CommandFactory, Parser, Subcommand};
+use sandbox::{unix::Singleton, ExecSandBox};
+use zroj_sandbox::config::SingletonConfig;
 
-/// ZROJ sandbox
+#[derive(Subcommand)]
+enum Commands {
+    /// create a default configuration for a command
+    Show {
+        /// input file (redirected to stdin)
+        #[arg(long)]
+        stdin: Option<String>,
+        /// output file (redirected to stdout)
+        #[arg(long)]
+        stdout: Option<String>,
+        /// inhert the env variables of calling process
+        #[arg(long)]
+        set_envs: bool,
+
+        /// command to be execute
+        cmd: String,
+        /// arguments passed to the command
+        args: Vec<String>,
+    },
+    /// execute with JSON config file
+    Run {
+        /// config file path
+        cfg: PathBuf,
+    },
+}
+
 #[derive(Parser)]
 #[command(
     name = "zroj-sandbox", 
     author,
     disable_version_flag = true,
     about,
-    long_about = None,
-    styles = sandbox_bin::get_styles(),
+    long_about,
+    styles = zroj_sandbox::get_styles(),
 )]
 struct Cli {
-    /// path of the executable
-    exec: Option<PathBuf>,
+    #[command(subcommand)]
+    command: Option<Commands>,
 
-    /// arguments passed to the executable
-    args: Vec<String>,
-
-    /// If set, the first argument denotes the name of executable.
-    /// Otherwise `exec` is inserted at the begining of the argument list.
-    #[arg(long)]
-    full_args: bool,
-
-    /// environment variables
-    #[arg(short, long, group = "env")]
-    envs: Vec<String>,
-
-    /// inherit current environment variables
-    #[arg(long, group = "env")]
-    pass_env: bool,
-
-    /// redirect stdin from file
-    #[arg(long)]
-    stdin: Option<PathBuf>,
-
-    /// redirect stdout to file
-    #[arg(long)]
-    stdout: Option<PathBuf>,
-
-    /// redirect stderr to file
-    #[arg(long)]
-    stderr: Option<PathBuf>,
-
-    /// resource limitation
-    #[arg(long)]
-    lim: Option<String>,
-
-    /// save termination status to file, otherwise ignored
-    #[arg(short, long, value_name = "FILE")]
-    save: Option<PathBuf>,
-
-    /// display version infomation
+    /// display version information
     #[arg(short = 'V', long)]
     version: bool,
 }
@@ -63,73 +52,47 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     if cli.version {
-        sandbox_bin::print_build();
+        zroj_sandbox::print_build();
         return Ok(());
     }
+
     let mut cmd = Cli::command();
-    if cli.exec.is_none() {
-        cmd.error(
-            ErrorKind::MissingRequiredArgument,
-            "missing executable path",
-        )
-        .exit();
-    }
-
-    let mut envs = cli.envs;
-    if cli.pass_env {
-        for (key, value) in std::env::vars() {
-            envs.push(format!("{}={}", key, value));
+    match cli.command {
+        Some(Commands::Run { cfg }) => {
+            let file = std::fs::File::open(cfg)?;
+            let singleton: SingletonConfig = serde_json::from_reader(file)?;
+            let singleton = Singleton::from(singleton);
+            let term = singleton.exec_sandbox()?;
+            serde_json::to_writer_pretty(std::io::stdout(), &term)?;
         }
-    }
-
-    let mut args = cli.args;
-    if !cli.full_args {
-        args.insert(0, cli.exec.clone().unwrap().to_str().unwrap().to_string())
-    }
-    let lim = cli.lim.map(|s| {
-        Limitation::from_str(&s)
-            .map_err(|e| {
-                cmd.error(
-                    ErrorKind::InvalidValue,
-                    format!("invalid limitation value: {e}"),
-                )
-                .exit();
-            })
-            .unwrap()
-    });
-
-    let mut s = sandbox::unix::Singleton::new(cli.exec.unwrap())
-        .push_args(
-            args.iter()
-                .map(|s| CString::new(s.as_bytes()))
-                .collect::<Result<Vec<CString>, _>>()
-                .unwrap(),
-        )
-        .push_envs(
-            envs.iter()
-                .map(|s| CString::new(s.as_bytes()))
-                .collect::<Result<Vec<CString>, _>>()
-                .unwrap(),
-        );
-    if let Some(stdin) = cli.stdin {
-        s = s.stdin(CString::new(stdin.as_os_str().as_bytes()).unwrap());
-    }
-    if let Some(stdout) = cli.stdout {
-        s = s.stdout(CString::new(stdout.as_os_str().as_bytes()).unwrap());
-    }
-    if let Some(stderr) = cli.stderr {
-        s = s.stderr(CString::new(stderr.as_os_str().as_bytes()).unwrap());
-    }
-    if let Some(lim) = lim {
-        s = s.set_limits(|_| lim)
-    }
-
-    let term = s.exec_sandbox().context("execute sandbox")?;
-
-    if let Some(path) = cli.save {
-        let file = std::fs::File::create(path).unwrap();
-        serde_json::to_writer_pretty(&file, &term).unwrap();
-        drop(file)
+        Some(Commands::Show {
+            cmd,
+            args,
+            stdin,
+            stdout,
+            set_envs,
+        }) => {
+            let r = std::process::Command::new("which").arg(&cmd).output()?;
+            let cmd_path = String::from_utf8(r.stdout)?;
+            let cmd_path = cmd_path.trim();
+            let mut singleton = Singleton::new(cmd_path)
+                .push_args([CString::new(cmd).unwrap()])
+                .push_args(args.into_iter().map(|s| CString::new(s).unwrap()));
+            if set_envs {
+                singleton = singleton.with_current_env();
+            }
+            if let Some(stdin) = stdin {
+                singleton = singleton.stdin(CString::new(stdin).unwrap());
+            }
+            if let Some(stdout) = stdout {
+                singleton = singleton.stdout(CString::new(stdout).unwrap());
+            }
+            serde_json::to_writer_pretty(std::io::stdout(), &SingletonConfig::from(singleton))?;
+        }
+        None => {
+            cmd.print_help()?;
+            return Ok(());
+        }
     }
     Ok(())
 }
