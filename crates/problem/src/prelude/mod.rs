@@ -7,6 +7,7 @@ pub type Traditional = traditional::Traditional;
 type TraditionalOJData = OJData<traditional::Task, traditional::Meta>;
 
 /// OJ 支持的题目类型，用于题目数据的保存和读取
+#[non_exhaustive]
 pub enum StandardProblem {
     Traditional(TraditionalOJData),
 }

@@ -16,7 +16,7 @@ use serde_ts_typing::TsType;
 #[derive(TsType, Serialize)]
 pub struct SubmMeta {
     id: SubmID,
-    pid: ProblemID,
+    pub pid: ProblemID,
     problem_title: String,
     uid: UserID,
     username: Username,
@@ -47,8 +47,8 @@ impl From<(SubmissionMeta, String, Username)> for SubmMeta {
 }
 #[derive(TsType, Serialize)]
 pub struct SubmInfo {
-    meta: SubmMeta,
-    raw: SubmRaw,
+    pub meta: SubmMeta,
+    pub raw: SubmRaw,
     report: Option<FullJudgeReport>,
 }
 

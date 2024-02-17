@@ -7,7 +7,9 @@ fn main() {
     let dir_handle = Handle::new(dir.path());
     let problem_judger = ProblemJudger::new(dir_handle).unwrap();
 
-    let StandardProblem::Traditional(ojdata) = problem::sample::a_plus_b_data();
+    let StandardProblem::Traditional(ojdata) = problem::sample::a_plus_b_data() else {
+        panic!("not traditional data")
+    };
     let subm = problem::sample::a_plus_b_std();
 
     problem_judger

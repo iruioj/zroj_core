@@ -1,17 +1,26 @@
 <script setup lang="ts">
 const route = useRoute();
-const { data } = await useAPI().submission.detail.get.use({
+const { data, refresh } = await useAPI().submission.detail.get.use({
   sid: parseInt(route.params.id as string),
 });
+const onRejudge = async () => {
+  const dat = data.value;
+  if (dat) {
+    const payload = new FormData();
+    payload.append("sid", dat.info.meta.id.toString());
+    await useAPI().problem.submit.post.fetch(payload)
+    console.log('rejudge posted!')
+  }
+}
+const onRefresh = async () => {
+  await refresh()
+}
 </script>
 
 <template>
   <PageContainer>
     <div>
-      <table
-        v-if="data"
-        class="border-collapse w-full my-2 text-sm sm:text-md border border-table"
-      >
+      <table v-if="data" class="border-collapse w-full my-2 text-sm sm:text-md border border-table">
         <thead>
           <tr class="text-brand">
             <th class="border py-1 w-20">ID</th>
@@ -32,8 +41,12 @@ const { data } = await useAPI().submission.detail.get.use({
             <td class="border py-1 px-1 text-center">
               {{ data.info.meta.lang }}
             </td>
-            <td class="border py-1 text-center">114</td>
-            <td class="border py-1 text-center">514</td>
+            <td class="border py-1 text-center">
+              <span v-if="data.info.meta.time">{{ data.info.meta.time }}ms</span>
+            </td>
+            <td class="border py-1 text-center">
+              <span v-if="data.info.meta.memory">{{ (data.info.meta.memory / 1e6).toFixed(3) }}MB</span>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -60,5 +73,10 @@ const { data } = await useAPI().submission.detail.get.use({
         <CodeBlock :raw="val.source" lang="cpp" />
       </div>
     </SectionContainer>
+
+    <UButtonGroup>
+    <UButton @click="onRejudge">Rejudge</UButton>
+    <UButton @click="onRefresh">Refresh</UButton>
+    </UButtonGroup>
   </PageContainer>
 </template>

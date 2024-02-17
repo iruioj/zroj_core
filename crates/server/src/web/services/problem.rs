@@ -5,7 +5,7 @@ use crate::{
     data::{
         problem_ojdata::OJDataDB,
         problem_statement::{self, ProblemMeta},
-        submission::SubmDB,
+        submission::{SubmDB, SubmInfo},
         types::SubmRaw,
     },
     manager::ProblemJudger,
@@ -187,8 +187,9 @@ async fn fulldata_meta(
 
 #[derive(Debug, MultipartForm)]
 struct JudgePayload {
-    pid: Text<ProblemID>,
+    pid: Option<Text<ProblemID>>,
     cid: Option<Text<CtstID>>,
+    sid: Option<Text<SubmID>>,
     files: Vec<TempFile>,
 }
 
@@ -204,13 +205,19 @@ struct JudgeReturn {
 ///
 /// ```javascript
 /// const form = new FormData();
+///
+/// /// Case 1: post a new submission
 /// form.append("pid", problem_id.to_string());
 /// form.append("cid", contest_id.to_string()); // this is optional
+///
 /// // append will not override existing key-value pair
 /// form.append(
 ///   "files",
 ///   new File([s.payload], `source.${lang.value!.value}.cpp`),
 /// );
+///
+/// /// Case 2: post a rejudge submission
+/// form.append("sid", submission_id.to_string());
 /// ```
 ///
 /// See [`parse_named_file`] for more information.
@@ -228,34 +235,58 @@ async fn judge(
     ojdata_db: ServerData<OJDataDB>,
 ) -> JsonResult<JudgeReturn> {
     let uid = auth.user_id_or_unauthorized()?;
-    tracing::info!("run judge handler");
-
     let payload = payload.into_inner();
     let subm_db = subm_db.into_inner();
     let mut raw = SubmRaw(payload.files.iter().filter_map(parse_named_file).collect());
 
-    tracing::info!("request parsed");
+    let sid = if let Some(Text(pid)) = payload.pid {
+        let stddata = ojdata_db.get(pid)?;
+        let cid = payload.cid.as_ref().map(|o| o.0);
 
-    let pid = payload.pid.0;
-    let stddata = ojdata_db.get(pid)?;
-    let cid = payload.cid.map(|o| o.0);
+        match stddata {
+            problem::StandardProblem::Traditional(ojdata) => {
+                let raw2 = raw.clone();
+                let subm_id = block_it! {
+                    let file_type = raw2.get("source").map(|x| x.file_type.clone());
+                    subm_db.insert_new(uid, pid, cid, file_type, &raw2)
+                }?;
 
-    let sid = match stddata {
-        problem::StandardProblem::Traditional(ojdata) => {
-            let raw2 = raw.clone();
-            let file_type = raw2.get("source").map(|x| x.file_type.clone());
-            let subm_id = block_it!(subm_db.insert_new(uid, pid, cid, file_type, &raw2,))?;
-
-            let subm = traditional::Subm {
-                source: raw
-                    .remove("source")
-                    .ok_or(error::ErrorBadRequest("source file not found"))?,
-            };
-            judger
-                .add_test::<Traditional>(subm_id, ojdata, subm)
-                .map_err(error::ErrorInternalServerError)?;
-            subm_id
+                let subm = traditional::Subm {
+                    source: raw
+                        .remove("source")
+                        .ok_or(error::ErrorBadRequest("source file not found"))?,
+                };
+                judger
+                    .add_test::<Traditional>(subm_id, ojdata, subm)
+                    .map_err(error::ErrorInternalServerError)?;
+                subm_id
+            }
+            _ => todo!(),
         }
+    } else {
+        let Some(Text(sid)) = payload.sid else {
+            return Err(error::ErrorBadRequest("pid or sid not found"));
+        };
+        tracing::info!(?sid, "rejudge problem");
+
+        let SubmInfo { mut raw, meta, .. } = subm_db.get_info(&sid)?;
+        let stddata = ojdata_db.get(meta.pid)?;
+
+        match stddata {
+            problem::StandardProblem::Traditional(ojdata) => {
+                let subm = traditional::Subm {
+                    source: raw
+                        .remove("source")
+                        .ok_or(error::ErrorBadRequest("source file not found"))?,
+                };
+                judger
+                    .add_test::<Traditional>(sid, ojdata, subm)
+                    .map_err(error::ErrorInternalServerError)?;
+            }
+            _ => todo!(),
+        }
+
+        sid
     };
 
     Ok(Json(JudgeReturn { sid }))

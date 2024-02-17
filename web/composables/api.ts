@@ -1145,13 +1145,19 @@ export function useAPI () {
                 
                  ```javascript
                  const form = new FormData();
+                
+                 /// Case 1: post a new submission
                  form.append("pid", problem_id.to_string());
                  form.append("cid", contest_id.to_string()); // this is optional
+                
                  // append will not override existing key-value pair
                  form.append(
                    "files",
                    new File([s.payload], `source.${lang.value!.value}.cpp`),
                  );
+                
+                 /// Case 2: post a rejudge submission
+                 form.append("sid", submission_id.to_string());
                  ```
                 
                  See [`parse_named_file`] for more information.
@@ -1225,6 +1231,7 @@ export function useAPI () {
             },
             gravatar: {
                 /**
+                 Get the Gravatar image
                  */
                 get: { 
                     use: (payload: UserGravatarGetPayload | Ref<UserGravatarGetPayload>) => callAPI("get", "/user/gravatar", payload) as Promise<ExtAsyncData<void>>,
