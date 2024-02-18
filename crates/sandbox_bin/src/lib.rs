@@ -48,16 +48,20 @@ pub fn print_build() {
         .fg_color(Some(Color::Ansi(AnsiColor::BrightGreen)));
     println!("{label}version{label:#}: {}", build::PKG_VERSION);
     println!(
-        "{label}commit{label:#}: {}, {}",
+        "{label}commit{label:#}: {}, {}, {}",
         build::SHORT_COMMIT,
-        build::BRANCH
+        build::BRANCH,
+        build::COMMIT_DATE,
     );
+    if !build::GIT_STATUS_FILE.trim().is_empty() {
+        print!("{}", build::GIT_STATUS_FILE)
+    }
     println!("{label}build_os{label:#}: {}", build::BUILD_OS);
-    println!("{label}rust_version{label:#}: {}", build::RUST_VERSION);
     println!(
         "{label}build_channel{label:#}: {}, {}",
         build::RUST_CHANNEL,
         build::BUILD_RUST_CHANNEL
     );
-    println!("{label}build_time{label:#}: {}", build::BUILD_TIME);
+    println!("{label}rust_version{label:#}: {}", build::RUST_VERSION);
+    println!("{label}cargo_version{label:#}: {}", build::CARGO_VERSION);
 }
