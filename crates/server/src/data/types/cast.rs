@@ -1,3 +1,6 @@
+//! Wrapper type builder for any type that implements [`TryFrom`] and [`TryInto`]
+//! for primitive types.
+
 use super::*;
 use problem::{Elapse, Memory};
 use serde_ts_typing::TsType;

@@ -1,11 +1,12 @@
-//! 自定义用户名的类型，实现内容正确性检验
+//! A wrapper type of [`String`].
 
 use super::*;
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use std::fmt::Display;
 
-/// 用户名类型，在创建时会进行内容检查，确保没有不合法字符
+/// A valid username contains alphabetic letters, numbers, and the underscore `_`.
+/// Moreover, its length must lies in `[4, 20]`, and the first character must be alphabetic.
 #[derive(
     Debug, Serialize, Clone, Hash, PartialEq, Eq, TsType, SqlType, FromSqlRow, AsExpression,
 )]
@@ -29,7 +30,7 @@ impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
             Error::TooLong => write!(f, "username too long (> 20)"),
-            Error::TooShort => write!(f, "username too short (< 6)"),
+            Error::TooShort => write!(f, "username too short (< 4)"),
             Error::InvalidChar(c) => write!(f, "username contains invalid char '{c}'"),
         }
     }
@@ -40,15 +41,21 @@ impl std::error::Error for Error {}
 impl Username {
     /// Check sanity and create a new username object
     pub fn new(value: impl AsRef<str>) -> Result<Self, Error> {
+        // avoid the use of regex for performance
         let value = value.as_ref().to_string();
-        if value.len() < 6 {
+        if value.len() < 4 {
             Err(Error::TooShort)
         } else if value.len() > 20 {
             Err(Error::TooLong)
         } else {
-            match value.chars().find(|c| !(c.is_alphanumeric() || *c == '_')) {
-                Some(c) => Err(Error::InvalidChar(c)),
-                None => Ok(Self(value)),
+            let first_c = value.chars().next().unwrap();
+            if !first_c.is_alphabetic() {
+                Err(Error::InvalidChar(first_c))
+            } else {
+                match value.chars().find(|c| !(c.is_alphanumeric() || *c == '_')) {
+                    Some(c) => Err(Error::InvalidChar(c)),
+                    None => Ok(Self(value)),
+                }
             }
         }
     }

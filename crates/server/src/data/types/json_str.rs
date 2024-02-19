@@ -1,4 +1,4 @@
-//! 提供任意可序列化类型的 sql 存储类型
+//! Wrapper type builder for any serializable data types.
 //!
 //! 对于自定义的类型，可以使用 [`impl_serde_json_sql`] macro 来实现 ToSql, FromSql，
 //! 对于非自定义的类型可以使用 [`JsonStr`] Wrapper 实现

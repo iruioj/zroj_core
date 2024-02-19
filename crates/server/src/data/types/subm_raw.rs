@@ -1,3 +1,5 @@
+//! A wrapper type of [`BTreeMap`].
+
 use super::*;
 use judger::SourceFile;
 use serde_ts_typing::TsType;

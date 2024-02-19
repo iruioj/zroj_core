@@ -1,3 +1,5 @@
+//! A wrapper type of [`chrono::DateTime`].
+
 use super::*;
 use std::fmt::Display;
 

@@ -1,3 +1,4 @@
+//! A wrapper type of [`email_address::EmailAddress`].
 use super::*;
 use std::{
     borrow::{Borrow, BorrowMut},
