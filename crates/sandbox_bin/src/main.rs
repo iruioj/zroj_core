@@ -6,7 +6,7 @@ use zroj_sandbox::config::SingletonConfig;
 
 #[derive(Subcommand)]
 enum Commands {
-    /// create a default configuration for a command
+    /// Create a default configuration for a command.
     Show {
         /// input file (redirected to stdin)
         #[arg(long)]
@@ -18,14 +18,16 @@ enum Commands {
         #[arg(long)]
         set_envs: bool,
 
-        /// command to be execute
+        /// name of command to be execute
         cmd: String,
         /// arguments passed to the command
         args: Vec<String>,
     },
-    /// execute with JSON config file
+    /// Execute with JSON config file.
+    /// 
+    /// The output JSON can be deserialized into `Result<sandbox::Termination, Vec<String>>`.
     Run {
-        /// config file path
+        /// path to the JSON config file
         cfg: PathBuf,
     },
 }
@@ -62,7 +64,9 @@ fn main() -> anyhow::Result<()> {
             let file = std::fs::File::open(cfg)?;
             let singleton: SingletonConfig = serde_json::from_reader(file)?;
             let singleton = Singleton::from(singleton);
-            let term = singleton.exec_sandbox()?;
+            let term = singleton
+                .exec_sandbox()
+                .map_err(|e| e.chain().map(|e| e.to_string()).collect::<Vec<String>>());
             serde_json::to_writer_pretty(std::io::stdout(), &term)?;
         }
         Some(Commands::Show {
