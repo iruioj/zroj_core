@@ -42,17 +42,14 @@ impl Singleton {
         let max_rss_before = share_mem::get_rusage_self()
             .map(|o| o.ru_maxrss)
             .unwrap_or(0);
-        sigsafe::print_cstr(b"(child) self's max_rss before execve: \x00");
-        sigsafe::print_i64(max_rss_before as i64);
-        sigsafe::print_cstr(b"\n\x00");
+
+        seprintln!("(child) self's max_rss before execve: {max_rss_before}");
 
         // fork another child process to execute program
         // at this time, all signals are blocked, so we can fork directly
         let pid_child = sigsafe::fork()?;
         if pid_child == 0 {
-            sigsafe::print_cstr(b"(child-child) pid = \x00");
-            sigsafe::print_i64(sigsafe::getpid() as i64);
-            sigsafe::print_cstr(b"\n\x00");
+            seprintln!("(child-child) pid = {}", sigsafe::getpid());
             sigsafe::set_self_grp();
             // redirect standard IO
             if let Some(stdin) = &self.stdin {
@@ -67,7 +64,7 @@ impl Singleton {
                 let fd = sigsafe::open_write(stderr)?;
                 sigsafe::dup2(fd, sigsafe::STDERR_FILENO);
             } else {
-                sigsafe::print_cstr(b"(child-child) stderr not redirected\n\x00");
+                seprintln!("(child-child) stderr not redirected");
             }
 
             // set resource limit
@@ -94,14 +91,14 @@ impl Singleton {
             setlim!(output_memory, RLIMIT_FSIZE, byte);
             setlim!(fileno, RLIMIT_NOFILE, into);
             if self.stderr.is_none() {
-                sigsafe::print_cstr(b"(child-child) resource limited\n\x00");
+                seprintln!("(child-child) resource limited");
             }
             drop(guard); // unblock signals
                          // todo: set syscall limit
             sigsafe::execve(path, args, env);
         }
 
-        sigsafe::print_cstr(b"(child) fork a timmer\n\x00");
+        seprintln!("(child) fork a timmer");
 
         // at this time, all signals are blocked, so we can fork directly
         let pid_timer = match self.limits.real_time {
@@ -110,11 +107,9 @@ impl Singleton {
                 let pid = sigsafe::fork()?;
                 if pid == 0 {
                     let secs = s.sec().clamp(0, u32::MAX as u64) as u32;
-                    sigsafe::print_cstr(b"(child-timer) sleep for \x00");
-                    sigsafe::print_i64(secs as i64);
-                    sigsafe::print_cstr(b" seconds\n\x00");
+                    seprintln!("(child-timer) sleep for {secs} seconds");
                     sigsafe::sleep(secs);
-                    sigsafe::print_cstr(b"(child-timer) timmer exit\n\x00");
+                    seprintln!("(child-timer) timmer exit");
                     sigsafe::exit(0);
                 }
                 Some(pid)
@@ -126,14 +121,14 @@ impl Singleton {
         let mut child_status = None;
         let mut child_rusage = None;
 
-        sigsafe::print_cstr(b"(child) wait for tested process and timer\n\x00");
+        seprintln!("(child) wait for tested process and timer");
 
         let ru = 'outer: loop {
             // notice that sigsuspend only interrupts for signals whose action is
             // either calling handler function or exit (thus sometimes you need to
             // register handler for a signal to make it work).
             guard.suspend();
-            sigsafe::print_cstr(b"(child) suspend over\n\x00");
+            seprintln!("(child) suspend over");
             loop {
                 // since all signals are blocked, SIGCHLD will not interrupt
                 let r = share_mem::wait_rusage(-1, sigsafe::WNOHANG);
@@ -146,7 +141,7 @@ impl Singleton {
                                 timer_first = true;
                                 // at this time, child hasn't been reaped, thus it's pid is not freed
                                 if let Err(e) = sigsafe::kill(pid_child, sigsafe::get_sigkill()) {
-                                    sigsafe::print_cstr(b"(child) timer kill child failed\n\x00");
+                                    seprintln!("(child) timer kill child failed");
                                     break 'outer Err(e);
                                 }
                             } // otherwise timer is killed, ignored
@@ -159,7 +154,7 @@ impl Singleton {
                                 if let Some(pid_timer) = pid_timer {
                                     if let Err(e) = sigsafe::kill(pid_timer, sigsafe::get_sigkill())
                                     {
-                                        sigsafe::print_cstr(b"(child) kill timer failed\n\x00");
+                                        seprintln!("(child) kill timer failed");
                                         break 'outer Err(e);
                                     }
                                 }
@@ -174,9 +169,7 @@ impl Singleton {
                     Err(errno) => {
                         if errno.is_errno(sigsafe::ECHILD) {
                             break 'outer if let Some(mut ru) = child_rusage {
-                                sigsafe::print_cstr(b"(child) max_rss after execve: \x00");
-                                sigsafe::print_i64(ru.ru_maxrss as i64);
-                                sigsafe::print_cstr(b"\n\x00");
+                                seprintln!("(child) max_rss after execve: {}", ru.ru_maxrss);
 
                                 // FIXME: substract the residual set size before execve.
                                 // This implemention is not guaranteed to work properly, but it indead
@@ -186,11 +179,11 @@ impl Singleton {
                                 ru.ru_maxrss -= max_rss_before;
                                 Ok(ru)
                             } else {
-                                sigsafe::print_cstr(b"(child) get child rusage failed\n\x00");
+                                seprintln!("(child) get child rusage failed");
                                 Err(super::sigsafe::Errno(1))
                             };
                         } else {
-                            sigsafe::print_cstr(b"(child) child wait child failed\n\x00");
+                            seprintln!("(child) child wait child failed");
                             break 'outer Err(errno);
                         }
                     }
@@ -203,7 +196,7 @@ impl Singleton {
             timer_first: if timer_first { 1 } else { 0 },
             status: child_status.map(|a| a.0).unwrap_or(-1),
         }) {
-            sigsafe::print_cstr(b"(child) set shared memory error\n\x00");
+            seprintln!("(child) set shared memory error");
             sigsafe::exit(1);
         }
         Ok(())
@@ -313,18 +306,13 @@ impl crate::ExecSandBox for Singleton {
             Ok(0) => {
                 let err = self.exec_child(self.exec_path.as_c_str(), &args, &env, guard, shared);
                 if let Err(err) = err {
-                    sigsafe::print_cstr(b"exec_sandbox child: errno = \x00");
-                    sigsafe::print_i64(err.0 as i64);
-                    sigsafe::print_cstr(b"\n\x00");
+                    seprintln!("exec_sandbox child: errno = {}", err.0);
                     sigsafe::exit(1);
                 }
                 sigsafe::exit(0);
             }
             Ok(pid) => self.exec_parent(pid, start, guard, &shared),
-            Err(e) => {
-                drop(guard); // recover signal mask
-                Err(e.into())
-            }
+            Err(e) => Err(e.into()),
         };
         shared.free();
         r.context("exec_sandbox error")

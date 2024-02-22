@@ -40,15 +40,6 @@ size_t sio_strlen(const char *const s) {
   return i;
 }
 
-/* sio_copy - Copy len chars from fmt to s (by Ding Rui) */
-void sio_copy(char *s, const char *const fmt, size_t len) {
-  if (!len)
-    return;
-
-  for (size_t i = 0; i < len; i++)
-    s[i] = fmt[i];
-}
-
 /* Public Sio functions */
 
 /* Put string */

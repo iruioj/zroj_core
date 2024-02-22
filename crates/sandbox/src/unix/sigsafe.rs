@@ -15,6 +15,51 @@ pub const STDERR_FILENO: i32 = cbind::STDERR_FILENO as i32;
 pub const STDIN_FILENO: i32 = cbind::STDIN_FILENO as i32;
 pub const STDOUT_FILENO: i32 = cbind::STDOUT_FILENO as i32;
 
+/// As [`std::fmt`] says, formatting macros avoid immediate memory allocation,
+/// thus it preserves async-signal-safety.
+pub struct FilenoWriter(i32);
+
+impl core::fmt::Write for FilenoWriter {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        // If count is zero and fd refers to a regular file, then write() may return a failure status
+        if s.is_empty() {
+            return Ok(());
+        }
+        let count: isize = unsafe { cbind::write(self.0, s.as_bytes().as_ptr().cast(), s.len()) };
+        if count == -1 {
+            Err(std::fmt::Error)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+pub fn thread_unsafe_writer(fileno: i32) -> FilenoWriter {
+    FilenoWriter(fileno)
+}
+
+/// Print formatted items to stderr with async-signal-safety
+#[macro_export]
+macro_rules! seprint {
+    ($($arg:tt)*) => {{
+        use core::fmt::Write;
+        use $crate::unix::sigsafe;
+        let _ = write!(sigsafe::thread_unsafe_writer(sigsafe::STDERR_FILENO), $($arg)*);
+    }}
+}
+
+/// Print formatted items to stderr with async-signal-safety
+#[macro_export]
+macro_rules! seprintln {
+    () => {
+        seprint!("\n");
+    };
+    ($($arg:tt)*) => {{
+        seprint!($($arg)*);
+        seprint!("\n");
+    }};
+}
+
 use std::ffi::CStr;
 
 /// error denoted by errno
@@ -40,34 +85,10 @@ pub fn errno_result<T>() -> Result<T, Errno> {
     Err(Errno(unsafe { cbind::get_errno() }))
 }
 
-fn error_exit(msg: &[u8]) -> ! {
-    unsafe { cbind::sio_error(msg.as_ptr().cast()) }
-    unreachable!()
-}
-
-pub fn dprint(fd: i32, s: &[u8]) -> isize {
-    debug_assert!(*s.last().unwrap() == 0);
-    unsafe { cbind::sio_dputs(fd, s.as_ptr().cast()) }
-}
-
-pub fn dprint_i64(fd: i32, num: i64) -> isize {
-    unsafe { cbind::sio_dputl(fd, num) }
-}
-
-/// For async-signal-safety, you should use `b"..."` to declare a byte string.
-/// make sure to add the \x00 for null-termination.
-pub fn print_cstr(s: &[u8]) -> isize {
-    dprint(STDERR_FILENO, s)
-}
-
-pub fn print_i64(num: i64) -> isize {
-    dprint_i64(STDERR_FILENO, num)
-}
-
 pub fn dup2(to: i32, from: i32) {
     unsafe {
         if cbind::dup2(to, from) < 0 {
-            print_cstr(b"warning: dup failed\n\x00");
+            seprintln!("warning: dup failed");
         }
     }
 }
@@ -76,7 +97,8 @@ pub fn dup2(to: i32, from: i32) {
 pub fn set_self_grp() {
     unsafe {
         if cbind::setpgid(0, 0) < 0 {
-            error_exit(b"setpgid error\x00"); /* abort */
+            seprintln!("setpgid error");
+            cbind::_exit(1)
         }
     }
 }
@@ -84,7 +106,8 @@ pub fn set_self_grp() {
 pub fn execve(path: &CStr, argv: &[*mut std::ffi::c_char], envp: &[*mut std::ffi::c_char]) -> ! {
     unsafe {
         if cbind::execve(path.as_ptr(), argv.as_ptr(), envp.as_ptr()) < 0 {
-            error_exit(b"execve error\x00")
+            seprintln!("execve error");
+            cbind::_exit(1)
         }
     }
     unreachable!()
@@ -230,7 +253,8 @@ pub fn sigsuspend(sigmask: &Sigset) {
     unsafe {
         let rc = cbind::sigsuspend(sigmask as *const Sigset);
         if rc < 0 && cbind::get_errno() as u32 == cbind::EFAULT {
-            error_exit(b"sigsuspend: invalid sigmask\n\x00")
+            seprintln!("sigsuspend: invalid sigmask");
+            cbind::_exit(1)
         }
     }
 }
@@ -284,15 +308,15 @@ mod tests {
         unsafe {
             let pid = cbind::fork();
             if pid < 0 {
-                super::print_cstr(b"fork failed\n\x00");
+                seprintln!("fork failed");
             }
             if pid == 0 {
-                super::print_cstr(b"child\n\x00");
+                seprintln!("child");
                 cbind::_exit(0);
             } else {
                 let mut status = 0;
                 let pid = cbind::wait(&mut status as *mut i32);
-                super::print_cstr(b"parent\n\x00");
+                seprintln!("parent");
                 println!("pid = {pid}");
             }
         }

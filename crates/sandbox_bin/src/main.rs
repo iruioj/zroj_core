@@ -24,7 +24,7 @@ enum Commands {
         args: Vec<String>,
     },
     /// Execute with JSON config file.
-    /// 
+    ///
     /// The output JSON can be deserialized into `Result<sandbox::Termination, Vec<String>>`.
     Run {
         /// path to the JSON config file

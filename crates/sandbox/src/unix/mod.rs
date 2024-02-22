@@ -1,4 +1,6 @@
 pub(crate) mod share_mem;
+
+#[macro_use]
 pub(crate) mod sigsafe;
 pub(crate) mod singleton;
 
