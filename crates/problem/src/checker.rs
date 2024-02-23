@@ -1,14 +1,10 @@
 use std::{
-    ffi::CString,
     fs::File,
     io::{BufRead, BufReader},
 };
 
 use anyhow::Context;
-use judger::{
-    sandbox::{unix::Singleton, ExecSandBox},
-    Judger, SourceFile, StoreFile, COMPILE_LIM,
-};
+use judger::{sandbox::unix::SingletonConfig, Judger, SourceFile, StoreFile, COMPILE_LIM};
 use store::{FsStore, Handle};
 
 fn compare_byline(
@@ -180,15 +176,16 @@ impl Checker {
                 let checker = judger.copy_file(&mut execfile, "checker")?;
                 let checker_log = judger.clear_dest("checker.log")?;
 
-                let term = judger::sandbox::unix::Singleton::new(checker.path())
-                    .push_args([
-                        CString::new("checker").unwrap(),
-                        input.to_cstring(),
-                        output.to_cstring(),
-                        answer.to_cstring(),
-                    ])
-                    .stderr(checker_log.to_cstring())
-                    .exec_sandbox()?;
+                let term = judger.exec_sandbox(
+                    SingletonConfig::new(checker.to_string())
+                        .push_args([
+                            "checker",
+                            &input.to_string(),
+                            &output.to_string(),
+                            &answer.to_string(),
+                        ])
+                        .stderr(checker_log.to_string()),
+                )?;
 
                 let checker_log =
                     std::fs::read_to_string(&checker_log).context("read checker log")?;
@@ -218,14 +215,12 @@ impl Checker {
                 let checker_out = judger.clear_dest("checker_stdout")?;
 
                 // use default limitation
-                Singleton::new(exec.path())
-                    .push_args([
-                        CString::new("checker").unwrap(),
-                        judger.working_dir().to_cstring(),
-                    ])
-                    .with_current_env()
-                    .stdout(checker_out.to_cstring())
-                    .exec_sandbox()?;
+                judger.exec_sandbox(
+                    SingletonConfig::new(exec.to_string())
+                        .push_args(["checker", &judger.working_dir().to_string()])
+                        .with_current_env()
+                        .stdout(checker_out.to_string()),
+                )?;
 
                 let check_output = std::fs::read_to_string(&checker_out)?;
                 let score: f64 = check_output
@@ -254,46 +249,49 @@ fn compile_cabi_checker_cpp<M: std::fmt::Display>(
     let checker_obj = judger.clear_dest("checker.o")?;
     let exec = judger.clear_dest("checker")?;
 
-    Singleton::new(judger::which("cc").unwrap())
-        .push_args([
-            CString::new("cc").unwrap(),
-            c_abi_main.to_cstring(),
-            CString::new("-o").unwrap(),
-            main_obj.to_cstring(),
-            CString::new("-c").unwrap(),
-            CString::new("-O2").unwrap(),
-        ])
-        .with_current_env()
-        .set_limits(|_| COMPILE_LIM)
-        .exec_sandbox()?;
+    judger.exec_sandbox(
+        SingletonConfig::new(judger::which("cc").unwrap())
+            .push_args([
+                "cc",
+                &c_abi_main.to_string(),
+                "-o",
+                &main_obj.to_string(),
+                "-c",
+                "-O2",
+            ])
+            .with_current_env()
+            .set_limits(|_| COMPILE_LIM),
+    )?;
 
-    Singleton::new(judger::which("g++")?)
-        .push_args([
-            CString::new("g++").unwrap(),
-            cpp_impl_src.to_cstring(),
-            CString::new("-o").unwrap(),
-            checker_obj.to_cstring(),
-            CString::new("-c").unwrap(),
-            CString::new(stdflag).unwrap(),
-            CString::new("-O2").unwrap(),
-        ])
-        .with_current_env()
-        .set_limits(|_| COMPILE_LIM)
-        .exec_sandbox()?;
+    judger.exec_sandbox(
+        SingletonConfig::new(judger::which("g++")?)
+            .push_args([
+                "g++",
+                &cpp_impl_src.to_string(),
+                "-o",
+                &checker_obj.to_string(),
+                "-c",
+                stdflag,
+                "-O2",
+            ])
+            .with_current_env()
+            .set_limits(|_| COMPILE_LIM),
+    )?;
 
-    Singleton::new(judger::which("cc")?)
-        .push_args([
-            CString::new("cc").unwrap(),
-            CString::new("-o").unwrap(),
-            exec.to_cstring(),
-            main_obj.to_cstring(),
-            checker_obj.to_cstring(),
-            CString::new("-O2").unwrap(),
-            CString::new("-lstdc++").unwrap(),
-        ])
-        .with_current_env()
-        .set_limits(|_| COMPILE_LIM)
-        .exec_sandbox()?;
+    judger.exec_sandbox(
+        SingletonConfig::new(judger::which("cc")?)
+            .push_args([
+                "cc",
+                "-o",
+                &exec.to_string(),
+                &main_obj.to_string(),
+                &checker_obj.to_string(),
+                "-O2",
+                "-lstdc++",
+            ])
+            .with_current_env()
+            .set_limits(|_| COMPILE_LIM),
+    )?;
 
     assert!(exec.path().exists());
 
@@ -312,45 +310,48 @@ fn compile_cabi_checker_rust<M: std::fmt::Display>(
     let checker_lib = judger.clear_dest("libchecker.a")?;
     let exec = judger.clear_dest("checker")?;
 
-    Singleton::new(judger::which("cc").unwrap())
-        .push_args([
-            CString::new("cc").unwrap(),
-            c_abi_main.to_cstring(),
-            CString::new("-o").unwrap(),
-            main_obj.to_cstring(),
-            CString::new("-c").unwrap(),
-            CString::new("-O2").unwrap(),
-        ])
-        .with_current_env()
-        .set_limits(|_| COMPILE_LIM)
-        .exec_sandbox()?;
+    judger.exec_sandbox(
+        SingletonConfig::new(judger::which("cc").unwrap())
+            .push_args([
+                "cc",
+                &c_abi_main.to_string(),
+                "-o",
+                &main_obj.to_string(),
+                "-c",
+                "-O2",
+            ])
+            .with_current_env()
+            .set_limits(|_| COMPILE_LIM),
+    )?;
 
-    Singleton::new(judger::which("rustc")?)
-        .push_args([
-            CString::new("rustc").unwrap(),
-            CString::new("--crate-type=staticlib").unwrap(),
-            rust_impl_src.to_cstring(),
-            CString::new("-o").unwrap(),
-            checker_lib.to_cstring(),
-        ])
-        .with_current_env()
-        .set_limits(|_| COMPILE_LIM)
-        .exec_sandbox()?;
+    judger.exec_sandbox(
+        SingletonConfig::new(judger::which("rustc")?)
+            .push_args([
+                "rustc",
+                "--crate-type=staticlib",
+                &rust_impl_src.to_string(),
+                "-o",
+                &checker_lib.to_string(),
+            ])
+            .with_current_env()
+            .set_limits(|_| COMPILE_LIM),
+    )?;
 
-    Singleton::new(judger::which("cc")?)
-        .push_args([
-            CString::new("cc").unwrap(),
-            CString::new("-o").unwrap(),
-            exec.to_cstring(),
-            main_obj.to_cstring(),
-            checker_lib.to_cstring(),
-            CString::new("-O2").unwrap(),
-            CString::new("-lpthread").unwrap(),
-            CString::new("-ldl").unwrap(),
-        ])
-        .with_current_env()
-        .set_limits(|_| COMPILE_LIM)
-        .exec_sandbox()?;
+    judger.exec_sandbox(
+        SingletonConfig::new(judger::which("cc")?)
+            .push_args([
+                "cc",
+                "-o",
+                &exec.to_string(),
+                &main_obj.to_string(),
+                &checker_lib.to_string(),
+                "-O2",
+                "-lpthread",
+                "-ldl",
+            ])
+            .with_current_env()
+            .set_limits(|_| COMPILE_LIM),
+    )?;
 
     assert!(exec.path().exists());
 

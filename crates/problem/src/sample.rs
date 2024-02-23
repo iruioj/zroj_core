@@ -246,7 +246,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sample() {
+    fn test_sample() -> anyhow::Result<()> {
         let dir = tempfile::tempdir().unwrap();
         let cache_dir = tempfile::tempdir().unwrap();
         let mut default_judger =
@@ -258,15 +258,13 @@ mod tests {
 
         let mut subm = a_plus_b_std();
         let report =
-            judger_framework::judge::<Traditional>(&mut data, &mut default_judger, &mut subm)
-                .unwrap();
+            judger_framework::judge::<Traditional>(&mut data, &mut default_judger, &mut subm)?;
         dbg!(&report);
         assert!((report.meta.score_rate - 1.).abs() < 1e-5);
 
         let mut subm = a_plus_b_wa();
         let report =
-            judger_framework::judge::<Traditional>(&mut data, &mut default_judger, &mut subm)
-                .unwrap();
+            judger_framework::judge::<Traditional>(&mut data, &mut default_judger, &mut subm)?;
         dbg!(&report);
         assert!(report.meta.score_rate.abs() < 1e-5);
 
@@ -275,12 +273,13 @@ mod tests {
         let mut data = data.get_data_mut();
         let mut subm = quine_std();
         let report =
-            judger_framework::judge::<Traditional>(&mut data, &mut default_judger, &mut subm)
-                .unwrap();
+            judger_framework::judge::<Traditional>(&mut data, &mut default_judger, &mut subm)?;
         dbg!(&report);
         assert!((report.meta.score_rate - 1.).abs() < 1e-5);
 
         drop(cache_dir);
         drop(dir);
+
+        Ok(())
     }
 }

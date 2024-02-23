@@ -31,7 +31,7 @@ impl OneOff {
             time_limit: Elapse::from_sec(1),
             memory_limit: Memory::from_mb(1024),
             output_limit: Memory::from_mb(128),
-            fileno_limit: 6,
+            fileno_limit: 10,
         }
     }
     pub fn set_wd(&mut self, dir: Handle) -> &mut Self {
@@ -42,10 +42,9 @@ impl OneOff {
     pub fn exec(&mut self) -> anyhow::Result<TaskReport> {
         use crate::TaskMeta;
         use sandbox::{
-            unix::{Lim, Singleton},
+            unix::{Lim, SingletonConfig},
             ExecSandBox,
         };
-        use std::{ffi::CString, os::unix::ffi::OsStrExt};
 
         let src = self
             .working_dir
@@ -102,7 +101,7 @@ impl OneOff {
         self.stdin.copy_to(&input).expect("cannot copy input file");
         assert!(dest.as_ref().exists());
         let term: sandbox::Termination = {
-            let s = Singleton::new(dest.path())
+            let s = SingletonConfig::new(dest.to_string())
                 .set_limits(|_| Limitation {
                     real_time: Lim::Double(self.time_limit, Elapse::from(self.time_limit.ms() * 2)),
                     cpu_time: self.time_limit.into(),
@@ -112,9 +111,10 @@ impl OneOff {
                     output_memory: self.output_limit.into(),
                     fileno: self.fileno_limit.into(),
                 })
-                .stdout(CString::new(out.as_ref().as_os_str().as_bytes()).unwrap())
-                .stderr(CString::new(log.as_ref().as_os_str().as_bytes()).unwrap())
-                .stdin(CString::new(input.as_ref().as_os_str().as_bytes()).unwrap());
+                .stdout(out.to_string())
+                .stderr(log.to_string())
+                .stdin(input.to_string())
+                .build();
             eprintln!("开始运行选手程序");
             // 为了避免 getrusage 数值累加，使用 exec_fork
             let term = s.exec_sandbox().unwrap();

@@ -1,5 +1,3 @@
-use std::ffi::CString;
-
 use crate::{
     data::StoreFile,
     judger_framework::{JudgeTask, LogMessage},
@@ -8,8 +6,8 @@ use crate::{
 use anyhow::Context;
 use judger::{
     sandbox::{
-        unix::{Lim, Singleton},
-        Elapse, ExecSandBox, Memory,
+        unix::{Lim, SingletonConfig},
+        Elapse, Memory,
     },
     truncstr::{TruncStr, TRUNCATE_LEN},
     SourceFile,
@@ -115,11 +113,11 @@ impl JudgeTask for Traditional {
         let output = judger.clear_dest("output")?;
         let log = judger.clear_dest("log")?;
 
-        let s = Singleton::new(exec.path())
-            .push_args([CString::new("main").unwrap()])
-            .stdin(input.to_cstring())
-            .stdout(output.to_cstring())
-            .stderr(log.to_cstring())
+        let s = SingletonConfig::new(exec.to_string())
+            .push_args(["main"])
+            .stdin(input.to_string())
+            .stdout(output.to_string())
+            .stderr(log.to_string())
             .set_limits(|_| judger::sandbox::unix::Limitation {
                 real_time: Lim::Double(meta.time_limit, meta.time_limit * 1.1),
                 cpu_time: meta.time_limit.into(),
@@ -127,10 +125,10 @@ impl JudgeTask for Traditional {
                 real_memory: meta.memory_limit.into(),
                 stack_memory: meta.memory_limit.into(),
                 output_memory: meta.output_limit.into(),
-                fileno: 5.into(),
+                fileno: 10.into(),
             });
 
-        let term = s.exec_sandbox().unwrap();
+        let term = judger.exec_sandbox(s)?;
         let term_status = term.status.clone();
 
         let mut report = judger::TaskReport {
@@ -211,9 +209,7 @@ mod tests {
         };
 
         let report = Traditional::judge_task(&mut jd, &mut meta, &mut task, &mut subm).unwrap();
-        let judger::Status::Good = report.meta.status else {
-            panic!("not accepted")
-        };
-        dbg!(report);
+        dbg!(&report);
+        assert_eq!(judger::Status::Good, report.meta.status);
     }
 }

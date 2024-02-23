@@ -8,10 +8,11 @@ mod report;
 mod store_file;
 pub mod truncstr;
 
-use std::hash::Hash;
+use std::{hash::Hash, process::Stdio};
 
 use anyhow::Context;
 // pub use cache::Cache;
+use ::sandbox::{unix::SingletonConfig, Termination};
 pub use env::which;
 pub use lang::{FileType, COMPILE_LIM};
 pub use one_off::OneOff;
@@ -141,6 +142,26 @@ pub trait Judger<
         inputs: I,
     ) -> anyhow::Result<R> {
         func(self, inputs)
+    }
+
+    /// Use the `zroj-sandbox` to execute
+    fn exec_sandbox(&self, cfg: SingletonConfig) -> anyhow::Result<Termination> {
+        let mut child = std::process::Command::new("zroj-sandbox")
+            .arg("run")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .context("failed to spawn child process")?;
+
+        let stdin = child.stdin.take().context("failed to open stdin")?;
+        std::thread::spawn(move || {
+            serde_json::to_writer(stdin, &cfg).expect("failed to write to stdin");
+        });
+        let output = child.wait_with_output().context("failed to read stdout")?;
+        let term: Result<Termination, Vec<String>> =
+            serde_json::from_slice(&output.stdout).context("deserialize sandbox output")?;
+
+        term.map_err(|e| anyhow::anyhow!("sandbox error: {e:?}"))
     }
 }
 

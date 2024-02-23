@@ -1,20 +1,18 @@
-use sandbox::unix::{Lim, Limitation, Singleton};
+use sandbox::unix::{Lim, Limitation, SingletonConfig};
 use sandbox::{Elapse, ExecSandBox, Memory};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
-use std::ffi::CString;
-use std::path::PathBuf;
 use store::Handle;
 
 /// 使用 g++ 编译 C++ 源文件
 pub struct GnuCpp {
-    gpp_path: PathBuf,
+    gpp_path: String,
     extra_args: Vec<String>,
 }
 
 impl GnuCpp {
     /// 默认编译器为 g++
-    pub fn new(gpp_path: Option<PathBuf>, args: Vec<&'static str>) -> Self {
+    pub fn new(gpp_path: Option<String>, args: Vec<&'static str>) -> Self {
         let gpp_path = gpp_path.unwrap_or(crate::env::which("g++").unwrap());
         // dbg!(&gpp_path);
         let extra_args: Vec<String> = args.into_iter().map(|s| s.to_string()).collect();
@@ -25,6 +23,7 @@ impl GnuCpp {
     }
 }
 
+/// General resource limitation config for compilers.
 pub const COMPILE_LIM: Limitation = Limitation {
     real_time: Lim::Double(Elapse::from_sec(10), Elapse::from_sec(20)),
     cpu_time: Lim::Single(Elapse::from_sec(10)),
@@ -42,23 +41,14 @@ impl GnuCpp {
         dest: &Handle,
         log: &Handle,
     ) -> Box<dyn ExecSandBox> {
-        let r = Singleton::new(&self.gpp_path)
-            .push_args([CString::new("g++").unwrap()])
-            .push_args(
-                self.extra_args
-                    .iter()
-                    .map(|s| CString::new(s.as_bytes()))
-                    .collect::<Result<Vec<CString>, _>>()
-                    .unwrap(),
-            )
-            .push_args([
-                source.to_cstring(),
-                CString::new("-o").unwrap(),
-                dest.to_cstring(),
-            ])
+        let r = SingletonConfig::new(&self.gpp_path)
+            .push_args(["g++"])
+            .push_args(self.extra_args.iter().map(|s| s.as_str()))
+            .push_args([&source.to_string(), "-o", &dest.to_string()])
             .with_current_env()
             .set_limits(|_| COMPILE_LIM)
-            .stderr(log.to_cstring());
+            .stderr(log.to_string())
+            .build();
         Box::new(r)
     }
 }
@@ -126,15 +116,11 @@ impl FileType {
             }
             FileType::Plain => panic!("a plain file should never be compiled"),
             FileType::Rust => {
-                let r = Singleton::new(crate::which("rustc").unwrap())
-                    .push_args([
-                        CString::new("rustc").unwrap(),
-                        source.to_cstring(),
-                        CString::new("-o").unwrap(),
-                        dest.to_cstring(),
-                    ])
+                let r = SingletonConfig::new(crate::which("rustc").unwrap())
+                    .push_args(["rustc", &source.to_string(), "-o", &dest.to_string()])
                     .with_current_env()
-                    .set_limits(|_| COMPILE_LIM);
+                    .set_limits(|_| COMPILE_LIM)
+                    .build();
                 Box::new(r)
             }
             _ => unimplemented!(),
