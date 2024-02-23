@@ -1,12 +1,20 @@
+#[cfg(feature = "exec_sandbox")]
 pub(crate) mod share_mem;
-
 #[macro_use]
+#[cfg(feature = "exec_sandbox")]
 pub(crate) mod sigsafe;
+
+pub(crate) mod config;
+
+#[cfg(feature = "exec_sandbox")]
 pub(crate) mod singleton;
 
 use std::fmt::Display;
 use std::str::FromStr;
 
+pub use config::SingletonConfig;
+
+#[cfg(feature = "exec_sandbox")]
 pub use singleton::Singleton;
 
 use serde::{Deserialize, Serialize};

@@ -10,7 +10,7 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sandbox = { path = "../sandbox" }
+sandbox = { path = "../sandbox", features = ["exec_sandbox"] }
 shadow-rs = "0.26.1"
 anyhow = "1.0"
 clap = { version = "4.4", features = ["derive"] }

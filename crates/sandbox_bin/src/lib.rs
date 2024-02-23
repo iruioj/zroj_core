@@ -1,4 +1,4 @@
-pub mod config;
+// pub mod config;
 
 use clap::builder::styling::{AnsiColor, Color, Style};
 

@@ -63,6 +63,7 @@ pub struct Termination {
 }
 
 /// 在沙箱中执行一系列的任务，返回相应的结果
+#[cfg(feature = "exec_sandbox")]
 pub trait ExecSandBox {
     /// 在实现时需要考虑 async-signal-safe，详见
     fn exec_sandbox(&self) -> anyhow::Result<Termination>;
@@ -204,6 +205,7 @@ impl Memory {
 
 /// copy from nix, create a null-terminate c-style string array.
 /// This function is not necessarily async-signal safe
+#[cfg(feature = "exec_sandbox")]
 fn to_exec_array(args: Vec<std::ffi::CString>) -> Vec<*mut std::ffi::c_char> {
     use std::iter::once;
     args.into_iter()

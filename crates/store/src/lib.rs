@@ -100,6 +100,13 @@ impl Handle {
     }
 }
 
+impl std::fmt::Display for Handle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = self.path().to_str().expect("handle to str failed");
+        f.write_str(str)
+    }
+}
+
 impl Handle {
     fn _fmt(
         &self,

@@ -1,3 +1,16 @@
+#[allow(unused)]
+macro_rules! println {
+    ($($rest:tt)*) => {
+        compile_error!("println! is disabled in this module, use seprintln! instead")
+    };
+}
+#[allow(unused)]
+macro_rules! print {
+    ($($rest:tt)*) => {
+        compile_error!("print! is disabled in this module, use seprint! instead")
+    };
+}
+
 use crate::{
     unix::{share_mem, sigsafe, Limitation},
     Elapse, Memory, Status, Termination,
@@ -7,7 +20,6 @@ use serde::{Deserialize, Serialize};
 use std::{
     ffi::{CStr, CString},
     io::Write,
-    path::Path,
     time::Instant,
 };
 
@@ -21,8 +33,10 @@ pub struct Singleton {
     pub envs: Vec<CString>,
     /// 为 None 表示不提供/不获取 读入/输出
     pub stdin: Option<CString>,
-    pub stdout: Option<CString>,
-    pub stderr: Option<CString>,
+    // to avoid messing up with the output of calling process, stdout and stderr are required to provided,
+    // otherwise they are set to `/dev/null`.
+    pub stdout: CString,
+    pub stderr: CString,
 }
 
 impl Singleton {
@@ -51,21 +65,6 @@ impl Singleton {
         if pid_child == 0 {
             seprintln!("(child-child) pid = {}", sigsafe::getpid());
             sigsafe::set_self_grp();
-            // redirect standard IO
-            if let Some(stdin) = &self.stdin {
-                let fd = sigsafe::open_read(stdin)?;
-                sigsafe::dup2(fd, sigsafe::STDIN_FILENO);
-            }
-            if let Some(stdout) = &self.stdout {
-                let fd = sigsafe::open_write(stdout)?;
-                sigsafe::dup2(fd, sigsafe::STDOUT_FILENO);
-            }
-            if let Some(stderr) = &self.stderr {
-                let fd = sigsafe::open_write(stderr)?;
-                sigsafe::dup2(fd, sigsafe::STDERR_FILENO);
-            } else {
-                seprintln!("(child-child) stderr not redirected");
-            }
 
             // set resource limit
             macro_rules! setlim {
@@ -90,9 +89,18 @@ impl Singleton {
             setlim!(stack_memory, RLIMIT_STACK, byte);
             setlim!(output_memory, RLIMIT_FSIZE, byte);
             setlim!(fileno, RLIMIT_NOFILE, into);
-            if self.stderr.is_none() {
-                seprintln!("(child-child) resource limited");
+            seprintln!("(child-child) resource limited");
+
+            // redirect standard IO
+            if let Some(stdin) = &self.stdin {
+                let fd = sigsafe::open_read(stdin)?;
+                sigsafe::dup2(fd, sigsafe::STDIN_FILENO);
             }
+            let fd = sigsafe::open_write(&self.stdout)?;
+            sigsafe::dup2(fd, sigsafe::STDOUT_FILENO);
+            let fd = sigsafe::open_write(&self.stderr)?;
+            sigsafe::dup2(fd, sigsafe::STDERR_FILENO);
+
             drop(guard); // unblock signals
                          // todo: set syscall limit
             sigsafe::execve(path, args, env);
@@ -211,11 +219,11 @@ impl Singleton {
         // do something before waiting for child process
         drop(guard);
 
-        println!("(parent) wait for child process id: {child}");
+        seprintln!("(parent) wait for child process id: {child}");
 
         let (_, child_status) = sigsafe::waitpid(child, 0).context("parent wait child error")?;
 
-        println!("(parent) wait done.");
+        seprintln!("(parent) wait done.");
 
         let real_time = start.elapsed().into();
 
@@ -244,7 +252,7 @@ impl Singleton {
         }
         let child_status = sigsafe::WaitStatus(status);
         let status: Status = if child_status.exited() {
-            println!("子进程正常退出, exit_code = {}", child_status.exitstatus());
+            seprintln!("子进程正常退出, exit_code = {}", child_status.exitstatus());
             let exit_code = child_status.exitstatus();
             if !self.limits.real_memory.check(&memory) {
                 Status::MemoryLimitExceeded
@@ -259,16 +267,16 @@ impl Singleton {
             if !child_status.signaled() {
                 return Err(anyhow::anyhow!("unknown child status {}", child_status.0));
             }
-            println!("子进程被信号终止, signal = {}", child_status.termsig());
+            seprintln!("子进程被信号终止, signal = {}", child_status.termsig());
             let signal = child_status.termsig();
             if signal == sigsafe::get_sigkill() || signal == sigsafe::get_sigxcpu() || real_tle!() {
-                println!("子进程被计时线程终止");
+                seprintln!("子进程被计时线程终止");
                 Status::TimeLimitExceeded
             } else {
                 Status::RuntimeError(child_status.0)
             }
         };
-        println!("主进程正常结束");
+        seprintln!("主进程正常结束");
         Ok(Termination {
             status,
             real_time,
@@ -278,13 +286,23 @@ impl Singleton {
     }
 }
 
+#[cfg(feature = "exec_sandbox")]
 impl crate::ExecSandBox for Singleton {
     fn exec_sandbox(&self) -> anyhow::Result<crate::Termination> {
-        eprintln!(
-            "exec: {:?} {:?} {{ stdin: {:?}, stdout: {:?}, stderr: {:?} }}",
-            self.exec_path, self.arguments, self.stdin, self.stdout, self.stderr
+        // flush rust codes' outputs
+        std::io::stdout().flush()?;
+        std::io::stderr().flush()?;
+
+        seprintln!(
+            "(parent) exec: {:?} {:?} {{ stdin: {:?}, stdout: {:?}, stderr: {:?} }}",
+            self.exec_path,
+            self.arguments,
+            self.stdin,
+            self.stdout,
+            self.stderr
         );
-        eprintln!("pid: {}", sigsafe::getpid());
+        seprintln!("(parent) pid: {}", sigsafe::getpid());
+
         // prepare for arguments
         let args = crate::to_exec_array(self.arguments.clone());
         let env = crate::to_exec_array(self.envs.clone());
@@ -298,15 +316,11 @@ impl crate::ExecSandBox for Singleton {
 
         let shared = share_mem::GlobalShared::init(); // should be freed in exec_parent
 
-        // flush rust codes' outputs
-        std::io::stdout().flush()?;
-        std::io::stderr().flush()?;
-
         let r = match sigsafe::fork() {
             Ok(0) => {
                 let err = self.exec_child(self.exec_path.as_c_str(), &args, &env, guard, shared);
                 if let Err(err) = err {
-                    seprintln!("exec_sandbox child: errno = {}", err.0);
+                    seprintln!("(child) errno = {}", err);
                     sigsafe::exit(1);
                 }
                 sigsafe::exit(0);
@@ -316,63 +330,5 @@ impl crate::ExecSandBox for Singleton {
         };
         shared.free();
         r.context("exec_sandbox error")
-    }
-}
-
-// new API
-impl Singleton {
-    /// Create a new builder with the path of executable
-    pub fn new(exec: impl AsRef<Path>) -> Self {
-        Singleton {
-            limits: Limitation::default(),
-            stdin: None,
-            stdout: None,
-            stderr: None,
-            exec_path: CString::new(exec.as_ref().as_os_str().as_encoded_bytes()).unwrap(),
-            arguments: Vec::new(),
-            envs: Vec::new(),
-        }
-    }
-    /// set the path of input file, which will be rediected to stdin.
-    pub fn stdin(mut self, arg: CString) -> Self {
-        self.stdin = Some(arg);
-        self
-    }
-    /// set the path of output file, which will be rediected to stdout.
-    pub fn stdout(mut self, arg: CString) -> Self {
-        self.stdout = Some(arg);
-        self
-    }
-    /// set the path of error output file, which will be rediected to stderr.
-    pub fn stderr(mut self, arg: CString) -> Self {
-        self.stderr = Some(arg);
-        self
-    }
-    /// add an argument to the end of argument list
-    pub fn push_args(mut self, args: impl IntoIterator<Item = CString>) -> Self {
-        for arg in args {
-            self.arguments.push(arg);
-        }
-        self
-    }
-    /// add an argument to the end of environment list
-    pub fn push_envs(mut self, args: impl IntoIterator<Item = CString>) -> Self {
-        for arg in args {
-            self.envs.push(arg);
-        }
-        self
-    }
-    /// add current process's env to the list
-    pub fn with_current_env(mut self) -> Self {
-        for (key, value) in std::env::vars() {
-            self.envs
-                .push(CString::new(format!("{}={}", key, value)).unwrap());
-        }
-        self
-    }
-    /// set resource limitation
-    pub fn set_limits(mut self, modifier: impl FnOnce(Limitation) -> Limitation) -> Self {
-        self.limits = modifier(self.limits);
-        self
     }
 }

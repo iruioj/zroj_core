@@ -1,8 +1,7 @@
-use std::{ffi::CString, path::PathBuf};
+use std::path::PathBuf;
 
 use clap::{CommandFactory, Parser, Subcommand};
-use sandbox::{unix::Singleton, ExecSandBox};
-use zroj_sandbox::config::SingletonConfig;
+use sandbox::{unix::SingletonConfig, ExecSandBox};
 
 #[derive(Subcommand)]
 enum Commands {
@@ -28,7 +27,7 @@ enum Commands {
     /// The output JSON can be deserialized into `Result<sandbox::Termination, Vec<String>>`.
     Run {
         /// path to the JSON config file
-        cfg: PathBuf,
+        cfg: Option<PathBuf>,
     },
 }
 
@@ -61,9 +60,13 @@ fn main() -> anyhow::Result<()> {
     let mut cmd = Cli::command();
     match cli.command {
         Some(Commands::Run { cfg }) => {
-            let file = std::fs::File::open(cfg)?;
-            let singleton: SingletonConfig = serde_json::from_reader(file)?;
-            let singleton = Singleton::from(singleton);
+            let singleton: SingletonConfig = if let Some(cfg) = cfg {
+                let file = std::fs::File::open(cfg)?;
+                serde_json::from_reader(file)?
+            } else {
+                serde_json::from_reader(std::io::stdin())?
+            };
+            let singleton = singleton.build();
             let term = singleton
                 .exec_sandbox()
                 .map_err(|e| e.chain().map(|e| e.to_string()).collect::<Vec<String>>());
@@ -79,19 +82,19 @@ fn main() -> anyhow::Result<()> {
             let r = std::process::Command::new("which").arg(&cmd).output()?;
             let cmd_path = String::from_utf8(r.stdout)?;
             let cmd_path = cmd_path.trim();
-            let mut singleton = Singleton::new(cmd_path)
-                .push_args([CString::new(cmd).unwrap()])
-                .push_args(args.into_iter().map(|s| CString::new(s).unwrap()));
+            let mut singleton = SingletonConfig::new(cmd_path)
+                .push_args([cmd.as_str()])
+                .push_args(args.iter().map(|s| s.as_str()));
             if set_envs {
                 singleton = singleton.with_current_env();
             }
             if let Some(stdin) = stdin {
-                singleton = singleton.stdin(CString::new(stdin).unwrap());
+                singleton = singleton.stdin(stdin);
             }
             if let Some(stdout) = stdout {
-                singleton = singleton.stdout(CString::new(stdout).unwrap());
+                singleton = singleton.stdout(stdout);
             }
-            serde_json::to_writer_pretty(std::io::stdout(), &SingletonConfig::from(singleton))?;
+            serde_json::to_writer_pretty(std::io::stdout(), &singleton)?;
         }
         None => {
             cmd.print_help()?;

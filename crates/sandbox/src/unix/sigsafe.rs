@@ -74,7 +74,44 @@ impl Errno {
 
 impl std::fmt::Display for Errno {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        let name = match self.0 {
+            1 => "EPERM(1): Operation not permitted",
+            2 => "ENOENT(2): No such file or directory",
+            3 => "ESRCH(3): No such process",
+            4 => "EINTR(4): Interrupted system call",
+            5 => "EIO(5): I/O error",
+            6 => "ENXIO(6): No such device or address",
+            7 => "E2BIG(7): Argument list too long",
+            8 => "ENOEXEC(8): Exec format error",
+            9 => "EBADF(9): Bad file number",
+            10 => "ECHILD(10): No child processes",
+            11 => "EAGAIN(11): Try again",
+            12 => "ENOMEM(12): Out of memory",
+            13 => "EACCES(13): Permission denied",
+            14 => "EFAULT(14): Bad address",
+            15 => "ENOTBLK(15): Block device required",
+            16 => "EBUSY(16): Device or resource busy",
+            17 => "EEXIST(17): File exists",
+            18 => "EXDEV(18): Cross-device link",
+            19 => "ENODEV(19): No such device",
+            20 => "ENOTDIR(20): Not a directory",
+            21 => "EISDIR(21): Is a directory",
+            22 => "EINVAL(22): Invalid argument",
+            23 => "ENFILE(23): File table overflow",
+            24 => "EMFILE(24): Too many open files",
+            25 => "ENOTTY(25): Not a typewriter",
+            26 => "ETXTBSY(26): Text file busy",
+            27 => "EFBIG(27): File too large",
+            28 => "ENOSPC(28): No space left on device",
+            29 => "ESPIPE(29): Illegal seek",
+            30 => "EROFS(30): Read-only file system",
+            31 => "EMLINK(31): Too many links",
+            32 => "EPIPE(32): Broken pipe",
+            33 => "EDOM(33): Math argument out of domain of func",
+            34 => "ERANGE(34): Math result not representable",
+            _ => "Unknown Errno",
+        };
+        f.write_str(name)
     }
 }
 
