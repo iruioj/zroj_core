@@ -29,6 +29,9 @@ impl TruncStr {
             truncated,
         }
     }
+    pub fn as_str(&self) -> &str {
+        &self.str
+    }
 }
 
 impl std::fmt::Display for TruncStr {

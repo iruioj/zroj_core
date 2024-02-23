@@ -8,7 +8,7 @@ mod report;
 mod store_file;
 pub mod truncstr;
 
-use std::{hash::Hash, process::Stdio};
+use std::{hash::Hash, marker::PhantomData, process::Stdio};
 
 use anyhow::Context;
 // pub use cache::Cache;
@@ -24,6 +24,8 @@ use truncstr::TruncStr;
 
 /// Loosen the constraint of [`std::hash::Hash`],
 /// for [`std::fs::File`] associated hash.
+///
+/// See [`Judger::cachable_block`] for usage.
 pub trait HashMut {
     fn hash_mut<H: std::hash::Hasher>(&mut self, state: &mut H) -> anyhow::Result<()>;
 }
@@ -51,23 +53,18 @@ pub struct Compilation {
     pub execfile: Option<std::fs::File>,
 }
 
-/// Judger 是一个评测服务的上下文，可以提供评测环境的信息，访问相关缓存等等
+/// `Judger` handles the execution of task (testcase) judgement. It provides working directory information,
+/// FS manipulation utilities and an optional cache backend.
 ///
-/// Judger 不依赖于具体的题目类型，并且一般不会随题目评测完毕而销毁（持久化）
-///
-/// 写成 trait 的原因是 Judger 可以有不同的实现，例如跨平台实现、是否有缓存、是否实现了一些安全机制等等
-///
-/// `Judger` trait is provided for further implementation of problem task judging.
+/// `Judger` does not depend on specific problem type, and is often not dropped after each testcase done.
 ///
 /// It is not recommended to create subfolder under the working directory.
-pub trait Judger<
-    // The type of the message (define your own message type for better performance)
-    M: std::fmt::Display,
->
-{
-    /// 返回当前的工作目录
+pub trait Judger<M: std::fmt::Display> {
+    /// return the current working directory.
     fn working_dir(&self) -> &store::Handle;
-    /// 输出评测日志
+    /// write judger log, where `M` is the type of message,
+    /// which implements [`std::fmt::Display`].
+    /// Define your own message type for better performance.
     fn runtime_log(&mut self, msg: M);
 
     /// This method will do the following things:
@@ -86,11 +83,9 @@ pub trait Judger<
 
         file.copy_all(&mut src.create_new_file()?)?;
 
-        let term = file
-            .file_type
-            .compile_sandbox(&src, &exec, &clog)
-            .exec_sandbox()
-            .unwrap();
+        let term = self
+            .exec_sandbox(file.file_type.compile_sandbox(&src, &exec, &clog))
+            .context("compile file")?;
         Ok(Compilation {
             termination: term,
             log_payload: std::fs::read_to_string(&clog)?.into(),
@@ -165,17 +160,22 @@ pub trait Judger<
     }
 }
 
-/// A simple judger that prints logs to `stderr`
-pub struct DefaultJudger {
+/// A simple judger that prints logs to `stderr`.
+pub struct DefaultJudger<M> {
     wd: store::Handle,
     cached: Option<store::Handle>,
+    _mark: PhantomData<M>,
 }
-impl DefaultJudger {
+impl<M> DefaultJudger<M> {
     pub fn new(wd: store::Handle, cached: Option<store::Handle>) -> Self {
-        Self { wd, cached }
+        Self {
+            wd,
+            cached,
+            _mark: PhantomData,
+        }
     }
 }
-impl<M: std::fmt::Display> Judger<M> for DefaultJudger {
+impl<M: std::fmt::Display> Judger<M> for DefaultJudger<M> {
     fn working_dir(&self) -> &store::Handle {
         &self.wd
     }

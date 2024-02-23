@@ -1,5 +1,5 @@
 use sandbox::unix::{Lim, Limitation, SingletonConfig};
-use sandbox::{Elapse, ExecSandBox, Memory};
+use sandbox::{Elapse, Memory};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
 use store::Handle;
@@ -35,21 +35,14 @@ pub const COMPILE_LIM: Limitation = Limitation {
 };
 
 impl GnuCpp {
-    fn compile_sandbox(
-        &self,
-        source: &Handle,
-        dest: &Handle,
-        log: &Handle,
-    ) -> Box<dyn ExecSandBox> {
-        let r = SingletonConfig::new(&self.gpp_path)
+    fn compile_sandbox(&self, source: &Handle, dest: &Handle, log: &Handle) -> SingletonConfig {
+        SingletonConfig::new(&self.gpp_path)
             .push_args(["g++"])
             .push_args(self.extra_args.iter().map(|s| s.as_str()))
             .push_args([&source.to_string(), "-o", &dest.to_string()])
             .with_current_env()
             .set_limits(|_| COMPILE_LIM)
             .stderr(log.to_string())
-            .build();
-        Box::new(r)
     }
 }
 
@@ -95,12 +88,7 @@ impl FileType {
     /// - source: 源文件路径
     /// - dest: 编译产生的可执行文件的路径
     /// - log: 编译日志文件
-    pub fn compile_sandbox(
-        &self,
-        source: &Handle,
-        dest: &Handle,
-        log: &Handle,
-    ) -> Box<dyn ExecSandBox> {
+    pub fn compile_sandbox(&self, source: &Handle, dest: &Handle, log: &Handle) -> SingletonConfig {
         match self {
             FileType::GnuCpp20O2 => {
                 GnuCpp::new(None, vec!["-std=c++2a", "-O2", "-Wall", "-Wextra"])
@@ -115,14 +103,10 @@ impl FileType {
                     .compile_sandbox(source, dest, log)
             }
             FileType::Plain => panic!("a plain file should never be compiled"),
-            FileType::Rust => {
-                let r = SingletonConfig::new(crate::which("rustc").unwrap())
-                    .push_args(["rustc", &source.to_string(), "-o", &dest.to_string()])
-                    .with_current_env()
-                    .set_limits(|_| COMPILE_LIM)
-                    .build();
-                Box::new(r)
-            }
+            FileType::Rust => SingletonConfig::new(crate::which("rustc").unwrap())
+                .push_args(["rustc", &source.to_string(), "-o", &dest.to_string()])
+                .with_current_env()
+                .set_limits(|_| COMPILE_LIM),
             _ => unimplemented!(),
         }
     }

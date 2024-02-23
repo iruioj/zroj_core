@@ -6,7 +6,7 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sandbox = { path = "../sandbox", features = ["exec_sandbox"] }
+sandbox = { path = "../sandbox" }
 serde_ts_typing = { path = "../serde_ts_typing" }
 store = { path = "../store" }
 

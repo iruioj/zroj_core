@@ -1,9 +1,12 @@
 //! Experimental. one off mode: 自定义评测
 
-use sandbox::{unix::Limitation, Elapse, Memory};
+use crate::{Judger, SourceFile, StoreFile, TaskMeta, TaskReport};
+use anyhow::Context;
+use sandbox::{
+    unix::{Lim, Limitation, SingletonConfig},
+    Elapse, Memory,
+};
 use store::Handle;
-
-use crate::{SourceFile, Status, StoreFile, TaskReport};
 
 /// OneOff 用于执行自定义测试，流程包含：编译、运行可执行文件。
 ///
@@ -38,104 +41,70 @@ impl OneOff {
         self.working_dir = dir;
         self
     }
-    #[cfg(unix)]
     pub fn exec(&mut self) -> anyhow::Result<TaskReport> {
-        use crate::TaskMeta;
-        use sandbox::{
-            unix::{Lim, SingletonConfig},
-            ExecSandBox,
-        };
+        let judger = crate::DefaultJudger::<&str>::new(self.working_dir.clone(), None);
 
-        let src = self
-            .working_dir
-            .join("main")
-            .with_extension(self.file.file_type.ext());
-        self.file.copy_to(&src).expect("cannot copy source file");
-        // 可执行文件名
-        let dest = self.working_dir.join("main");
-        let clog = self.working_dir.join("compile.log");
+        judger
+            .working_dir()
+            .prepare_empty_dir()
+            .context("init working dir")?;
 
-        // FIXME
-        // #[cfg(target_os = "macos")]
-        // {
-        //     let mut p = Command::new("g++")
-        //         .arg(src.path())
-        //         .arg("-o")
-        //         .arg(dest.path())
-        //         .spawn()
-        //         .unwrap();
-        //     let r = p.wait().unwrap();
-        //     assert!(dest.path().is_file());
-        //     assert!(r.success());
-        // }
+        eprintln!("编译源文件");
+        let crate::Compilation {
+            termination: term,
+            log_payload,
+            execfile,
+        } = judger.compile(&mut self.file, "main-pre")?;
 
-        // compilation
-        eprintln!("编译...");
-        if !self.file.file_type.compileable() {
-            let r = TaskReport::new(TaskMeta::error_status(Status::CompileError(None)));
-            return Ok(r);
+        // Compile Error
+        if !term.status.ok() {
+            return Ok(crate::TaskReport {
+                meta: crate::TaskMeta {
+                    score_rate: 0.0,
+                    status: crate::Status::CompileError(Some(term.status)),
+                    time: term.cpu_time,
+                    memory: term.memory,
+                },
+                payload: vec![("compile log".into(), log_payload)],
+            });
         }
-        let term = self
-            .file
-            .file_type
-            .compile_sandbox(&src, &dest, &clog)
-            .exec_sandbox()
-            .unwrap();
-        let st = term.status.clone();
-        if st != sandbox::Status::Ok {
-            let r = TaskReport::new(TaskMeta {
-                score_rate: 0.0,
-                status: Status::CompileError(Some(st)),
-                time: term.cpu_time,
-                memory: term.memory,
-            })
-            .try_add_payload("compile log", clog);
-            return Ok(r);
-        }
-        eprintln!("编译成功 {:?}", dest);
 
-        // execution
-        let out = self.working_dir.join("main.out");
-        let log = self.working_dir.join("main.log");
-        let input = self.working_dir.join("main.in");
-        self.stdin.copy_to(&input).expect("cannot copy input file");
-        assert!(dest.as_ref().exists());
-        let term: sandbox::Termination = {
-            let s = SingletonConfig::new(dest.to_string())
-                .set_limits(|_| Limitation {
-                    real_time: Lim::Double(self.time_limit, Elapse::from(self.time_limit.ms() * 2)),
-                    cpu_time: self.time_limit.into(),
-                    virtual_memory: self.memory_limit.into(),
-                    real_memory: self.memory_limit.into(),
-                    stack_memory: self.memory_limit.into(),
-                    output_memory: self.output_limit.into(),
-                    fileno: self.fileno_limit.into(),
-                })
-                .stdout(out.to_string())
-                .stderr(log.to_string())
-                .stdin(input.to_string())
-                .build();
-            eprintln!("开始运行选手程序");
-            // 为了避免 getrusage 数值累加，使用 exec_fork
-            let term = s.exec_sandbox().unwrap();
-            eprintln!("程序运行结束");
-            term
-        };
+        let mut execfile = execfile.context("compile succeed but execfile not found")?;
+        let exec = judger.copy_file(&mut execfile, "main")?;
+
+        let input = judger.copy_store_file(&mut self.stdin, "input")?;
+        let output = judger.clear_dest("output")?;
+        let log = judger.clear_dest("log")?;
+
+        let s = SingletonConfig::new(exec.to_string())
+            .push_args(["main"])
+            .stdin(input.to_string())
+            .stdout(output.to_string())
+            .stderr(log.to_string())
+            .set_limits(|_| Limitation {
+                real_time: Lim::Double(self.time_limit, Elapse::from(self.time_limit.ms() * 2)),
+                cpu_time: self.time_limit.into(),
+                virtual_memory: self.memory_limit.into(),
+                real_memory: self.memory_limit.into(),
+                stack_memory: self.memory_limit.into(),
+                output_memory: self.output_limit.into(),
+                fileno: self.fileno_limit.into(),
+            });
+
+        let term = judger.exec_sandbox(s)?;
+
         let status: crate::Status = term.status.into();
-
-        Ok(TaskReport::new(TaskMeta {
+        let mut report = TaskReport::new(TaskMeta {
             score_rate: status.direct_score_rate(),
             status,
             time: term.cpu_time,
             memory: term.memory,
         })
-        .try_add_payload("compile log", clog)
-        .try_add_payload("stdout", out)
-        .try_add_payload("stderr", log))
-    }
-    #[cfg(not(unix))]
-    pub fn exec(&mut self) -> Result<TaskReport, Error> {
-        todo!()
+        .try_add_payload("stdout", output)
+        .try_add_payload("stderr", log);
+        report.payload.push(("compile log".into(), log_payload));
+
+        Ok(report)
     }
 }
 
@@ -159,7 +128,6 @@ int main() {
             FileType::GnuCpp17O2,
         );
         let input = StoreFile::from_str(r"1 2", FileType::Plain);
-        // let mut oneoff = OneOff::new(source, input, Some("/Users/sshwy/zroj_core/target/debug/zroj-sandbox".into()));
         let mut oneoff = OneOff::new(source, input);
         let dir = tempfile::TempDir::new().unwrap();
         oneoff.set_wd(Handle::new(dir.path()));

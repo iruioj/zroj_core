@@ -29,8 +29,8 @@ int main() {
 
         let res = one.exec()?;
         if let Status::Good = res.meta.status {
-            eprintln!("res = {:?}", res);
-            assert_eq!(String::from(&res.payload[1].1), "3\n");
+            eprintln!("res = {:#?}", res);
+            assert_eq!(String::from(&res.payload[0].1), "3\n");
         } else {
             panic!("not accepted, res = {:?}", res)
         }

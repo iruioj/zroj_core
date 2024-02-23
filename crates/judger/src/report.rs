@@ -85,6 +85,7 @@ pub struct TaskReport {
 
 impl std::fmt::Debug for TaskReport {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let alternate = f.alternate();
         let mut builder = f.debug_struct("Task");
         builder
             .field("score_rate", &self.meta.score_rate)
@@ -92,7 +93,15 @@ impl std::fmt::Debug for TaskReport {
             .field("time", &self.meta.time)
             .field("memory", &self.meta.memory);
         for (name, content) in &self.payload {
-            builder.field(name, &content.to_string());
+            if alternate {
+                let srcfile = crate::SourceFile {
+                    source: content.to_string(),
+                    file_type: crate::FileType::Plain,
+                };
+                builder.field(name, &srcfile);
+            } else {
+                builder.field(name, &content.as_str());
+            }
         }
         builder.finish()
     }
