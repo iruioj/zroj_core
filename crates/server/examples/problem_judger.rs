@@ -16,7 +16,6 @@ fn main() {
         };
         let subm = problem::sample::a_plus_b_std();
 
-
         problem_judger
             .add_test::<Traditional>(0, ojdata, subm)
             .unwrap();

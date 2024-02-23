@@ -19,23 +19,20 @@ fn test_testlib() -> anyhow::Result<()> {
 
     let mut judger = DefaultJudger::new(Handle::new(wd.path()), None);
     judger.runtime_log("");
-    let input = <DefaultJudger as Judger<String>>::copy_store_file(
-        &judger,
+    let input = judger.copy_store_file(
         &mut StoreFile::from_str("0", judger::FileType::Plain),
         "input",
     )?;
-    let output = <DefaultJudger as Judger<String>>::copy_store_file(
-        &judger,
+    let output = judger.copy_store_file(
         &mut StoreFile::from_str("0", judger::FileType::Plain),
         "output",
     )?;
-    let answer = <DefaultJudger as Judger<String>>::copy_store_file(
-        &judger,
+    let answer = judger.copy_store_file(
         &mut StoreFile::from_str("0.0001", judger::FileType::Plain),
         "answer",
     )?;
 
-    let r = checker.check::<String>(&judger, &input, &output, &answer)?;
+    let r = checker.check(&judger, &input, &output, &answer)?;
     assert!(r.0.abs() < 1.0e-5);
     dbg!(r);
 
@@ -66,23 +63,20 @@ extern "C" {
 
     let mut judger = DefaultJudger::new(Handle::new(wd.path()), None);
     judger.runtime_log("");
-    let input = <DefaultJudger as Judger<String>>::copy_store_file(
-        &judger,
+    let input = judger.copy_store_file(
         &mut StoreFile::from_str("0", judger::FileType::Plain),
         "input",
     )?;
-    let output = <DefaultJudger as Judger<String>>::copy_store_file(
-        &judger,
+    let output = judger.copy_store_file(
         &mut StoreFile::from_str("0", judger::FileType::Plain),
         "output",
     )?;
-    let answer = <DefaultJudger as Judger<String>>::copy_store_file(
-        &judger,
+    let answer = judger.copy_store_file(
         &mut StoreFile::from_str("0.0001", judger::FileType::Plain),
         "answer",
     )?;
 
-    let r = checker.check::<String>(&judger, &input, &output, &answer)?;
+    let r = checker.check(&judger, &input, &output, &answer)?;
     dbg!(r);
 
     Ok(())
@@ -107,23 +101,20 @@ pub extern "C" fn check() -> f32 {
 
     let mut judger = DefaultJudger::new(Handle::new(wd.path()), None);
     judger.runtime_log("");
-    let input = <DefaultJudger as Judger<String>>::copy_store_file(
-        &judger,
+    let input = judger.copy_store_file(
         &mut StoreFile::from_str("0", judger::FileType::Plain),
         "input",
     )?;
-    let output = <DefaultJudger as Judger<String>>::copy_store_file(
-        &judger,
+    let output = judger.copy_store_file(
         &mut StoreFile::from_str("0", judger::FileType::Plain),
         "output",
     )?;
-    let answer = <DefaultJudger as Judger<String>>::copy_store_file(
-        &judger,
+    let answer = judger.copy_store_file(
         &mut StoreFile::from_str("0.0001", judger::FileType::Plain),
         "answer",
     )?;
 
-    let r = checker.check::<String>(&judger, &input, &output, &answer)?;
+    let r = checker.check(&judger, &input, &output, &answer)?;
     dbg!(r);
 
     Ok(())

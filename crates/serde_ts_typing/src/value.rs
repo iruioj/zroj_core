@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-/// JSON value, modified from [`serde_json::Value`]
+/// JSON value, modified from `serde_json::Value`
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Value {
     /// Represents a JSON null value.

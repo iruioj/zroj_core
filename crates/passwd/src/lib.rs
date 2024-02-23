@@ -8,7 +8,6 @@ use sha2::{Digest, Sha256};
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
-/// SHA hash, often used for registering.
 fn sha_hash(plain: &str) -> String {
     use base64::{engine::general_purpose, Engine as _};
     let mut hasher = Sha256::new();
@@ -17,14 +16,14 @@ fn sha_hash(plain: &str) -> String {
     general_purpose::STANDARD.encode(res)
 }
 
-/// Convert to md5 hex string. Currently used by [`server::app::user::gravatar`]
+/// Convert to md5 hex string. Currently used by `server::app::user::gravatar`
 pub fn md5_hash(plain: &str) -> String {
     let mut md5 = md5::Md5::new();
     md5.update(plain);
     hex::encode(md5.finalize().as_slice())
 }
 
-/// See [`sha_hash`]. Exposed to WASM binary.
+/// SHA256 hash. Exposed to WASM binary.
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub fn register_hash(plain: &str) -> String {
     sha_hash(plain)
@@ -45,7 +44,7 @@ pub fn login_hash(plain: &str) -> String {
 /// Verify the password.
 /// `passwd` is the SHA hash of plain password, `passwd_hash` is the [`login_hash`] of plain password.
 ///
-/// View [`server::app::auth::login`] for example.
+/// View `server::app::auth::login` for example.
 pub fn verify(passwd: &str, passwd_hash: &str) -> bool {
     if let Ok(hash) = PasswordHash::new(passwd_hash) {
         let argon2 = Argon2::default();

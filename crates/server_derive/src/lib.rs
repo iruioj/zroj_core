@@ -189,7 +189,7 @@ fn parse_marker_type(marker: impl AsRef<str>, ty: &syn::Type) -> Option<syn::Typ
     None
 }
 
-/// An enhancement of the macros of [`actix_web`],
+/// An enhancement of the macros in `actix_web`,
 /// Use this macro to define a request handler and a document metadata generator function.
 ///
 /// - 使用 `method = xxx` 来声明 REST API 的 http 方法

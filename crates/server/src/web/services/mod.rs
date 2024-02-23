@@ -15,22 +15,9 @@ use serde_with::{serde_as, DisplayFromStr};
 
 use crate::ServiceDoc;
 
-/// 默认 404
-// pub async fn default_route(req: HttpRequest) -> HttpResponse {
-//     let mut r = String::new();
-//     r.push_str("Not found\n\n");
-//     r.push_str(format!("Uri: {}\n", req.uri()).as_str());
-//     r.push_str(format!("Method: {}\n", req.method()).as_str());
-//     r.push_str("Headers:\n");
-//     for (name, val) in req.headers() {
-//         r.push_str(format!("- {}:{:?}\n", name, val).as_str());
-//     }
-//     HttpResponse::NotFound().body(r)
-// }
-
 /// 将命名格式为 `name.type.suffix` 的文件解析为 SourceFile
 /// 主要用于 one_off 和 problem::submit 解析 payload
-fn parse_named_file(
+pub fn parse_named_file(
     nf: &actix_multipart::form::tempfile::TempFile,
 ) -> Option<(String, SourceFile)> {
     let binding = nf.file_name.as_ref()?;

@@ -5,19 +5,21 @@
 This project is currently under active development.
 
 Recommend VSCode extensions:
+
 - SQLTools: `mtxr.sqltools`
 - SQLTools MySQL/MariaDB/TiDB: `mtxr.sqltools-driver-mysql`
 - rust.analyzer: `rust-lang.rust-analyzer`
 - Git Graph: `mhutchie.git-graph`
 - Vue Language Features (Volar): `Vue.volar`
 
-## Testing
+## Development
 
 Preparation:
 
 ```bash
 # First init database and generate data for testing:
 cargo run --bin gen_testdata
+
 # Then build and install the sandbox executable.
 # After installation you may execute `zroj-sandbox -h` for more information.
 cargo install --path crates/sandbox_bin
@@ -48,7 +50,7 @@ pnpm dev
 
 to start the frondend dev server.
 
-## Formatting and Linting
+## Code Formatting and Linting
 
 ```bash
 # just give hints on linting

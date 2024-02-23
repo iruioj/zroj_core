@@ -81,7 +81,7 @@ impl JudgeTask for Traditional {
             termination: term,
             log_payload,
             execfile,
-        }: judger::Compilation = judger.cachable_block(
+        } = judger.cachable_block(
             |judger, source| {
                 eprintln!("编译源文件");
                 judger.compile(source, "main-pre")
@@ -98,7 +98,6 @@ impl JudgeTask for Traditional {
                     time: term.cpu_time,
                     memory: term.memory,
                 },
-                // todo: add log
                 payload: vec![("compile log".into(), log_payload)],
             });
         }

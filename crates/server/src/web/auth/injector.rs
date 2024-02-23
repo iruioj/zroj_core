@@ -12,7 +12,6 @@ use std::{
     rc::Rc,
 };
 
-// AuthInjector 的内部数据
 struct Inner {
     // 是否要求有鉴权信息。如果没有，返回 401 Unauthorized
     require: bool,
@@ -21,9 +20,6 @@ struct Inner {
 
 /// AuthInjector is a middleware that tries to extracts authentication data
 /// and register them into request-local data for future use.
-///
-/// This middleware relies on the [`actix_session`] crate since it extracts auth. info.
-/// from session.
 ///
 /// Usage:
 ///
@@ -38,14 +34,14 @@ struct Inner {
 pub struct AuthInjector(Rc<Inner>);
 
 impl AuthInjector {
-    /// 放过所有请求，只尝试提取鉴权信息
+    /// Bypass all reqests, trying to extract identity to request-local data.
     pub fn bypass(store: AuthStorage) -> Self {
         Self(Rc::new(Inner {
             require: false,
             store,
         }))
     }
-    /// 要求必须具有鉴权信息，否则返回 401 Unauthorized
+    /// If identity not found, 401 unauthorized error is returned
     pub fn require_auth(store: AuthStorage) -> Self {
         Self(Rc::new(Inner {
             require: true,
