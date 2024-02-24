@@ -1,12 +1,13 @@
-use crate::data::{
-    types::{EmailAddress, Username},
-    user::UserDB,
-};
-use crate::web::auth::{
-    injector::AuthInjector, AuthInfo, AuthStorage, Authentication, CLIENT_ID_KEY,
-};
+use crate::web::auth::{AuthInfo, Authentication};
 use crate::ClientID;
 use crate::{block_it, marker::*};
+use crate::{
+    data::{
+        types::{EmailAddress, Username},
+        user::UserDB,
+    },
+    web::auth::Manip,
+};
 use actix_web::{error, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_ts_typing::TsType;
@@ -30,10 +31,8 @@ pub struct LoginPayload {
 #[api(method = post, path = "/login")]
 async fn login(
     payload: JsonBody<LoginPayload>,
-    auth_storage: ServerData<AuthStorage>,
     user_db: ServerData<UserDB>,
 ) -> actix_web::Result<HttpResponse> {
-    use actix_web::cookie::Cookie;
     tracing::info!("login request: {:?}", payload);
     let username = payload.username.clone();
     let user = block_it!(user_db.query_by_username(&username))?;
@@ -43,16 +42,10 @@ async fn login(
     } else {
         let id = ClientID::new_v4(); // generate a random session id
         tracing::info!("generate new client id {id} for {}", payload.username);
-        auth_storage
-            .set(id, AuthInfo { uid: user.id })
-            .map_err(error::ErrorInternalServerError)?;
-        Ok(HttpResponse::Ok()
-            .cookie(
-                Cookie::build(CLIENT_ID_KEY, id.to_string())
-                    .path("/")
-                    .finish(),
-            )
-            .body("login success"))
+        let mut resp = HttpResponse::Ok();
+        resp.extensions_mut()
+            .insert(Manip::Insert(id, AuthInfo { uid: user.id }));
+        Ok(resp.body("login success"))
     }
 }
 
@@ -103,23 +96,17 @@ async fn inspect(user_db: ServerData<UserDB>, auth: Authentication) -> JsonResul
 }
 
 #[api(method = post, path = "/logout")]
-async fn logout(
-    auth_storage: ServerData<AuthStorage>,
-    auth: Authentication,
-) -> actix_web::Result<String> {
+async fn logout(auth: Authentication) -> actix_web::Result<HttpResponse> {
     if let Some(id) = auth.client_id() {
-        auth_storage
-            .remove(id)
-            .map_err(error::ErrorInternalServerError)?;
-        return Ok("logout success".into());
+        let mut resp = HttpResponse::Ok();
+        resp.extensions_mut().insert(Manip::Delete(id.clone()));
+        return Ok(resp.body("logout success"));
     }
     Err(error::ErrorBadRequest("invalid session id"))
 }
 
 #[scope_service(path = "/auth")]
-pub fn service(auth_storage: AuthStorage, user_database: ServerData<UserDB>) {
-    wrap(AuthInjector::bypass(auth_storage.clone()));
-    app_data(web::Data::new(auth_storage));
+pub fn service(user_database: ServerData<UserDB>) {
     app_data(user_database);
     service(login);
     service(logout);

@@ -1,8 +1,12 @@
-//! Auth 模块负责用户的鉴权.
-pub mod injector;
+/*!
+Provide user authentication utilities.
 
-#[cfg(session_auth)]
-pub mod session;
+A user accesses the resources on the server from whatever devices must send requests
+containing certain credential (e.g. a UUID), which is used by server to obtain its
+identity information. This identity will be further used to check his/her permission
+to get the corresponding resources.
+*/
+pub mod injector;
 
 use actix_http::HttpMessage;
 use actix_web::{FromRequest, Result};
@@ -70,7 +74,9 @@ impl std::ops::DerefMut for Authentication {
     }
 }
 
-pub struct AuthStorage(pub Arc<RwLock<HashMap<ClientID, AuthInfo>>>);
+/// Stores the map from a client's credential (which is currently a UUID) to his/her
+/// identity information.
+pub struct AuthStorage(Arc<RwLock<HashMap<ClientID, AuthInfo>>>);
 
 impl Default for AuthStorage {
     fn default() -> Self {
@@ -88,7 +94,7 @@ impl AuthStorage {
         let res: Option<AuthInfo> = mp.get(id).cloned();
         Ok(res)
     }
-    pub fn set(&self, id: ClientID, data: AuthInfo) -> anyhow::Result<()> {
+    fn set(&self, id: ClientID, data: AuthInfo) -> anyhow::Result<()> {
         let mut mp = self
             .0
             .write()
@@ -96,7 +102,7 @@ impl AuthStorage {
         mp.insert(id, data);
         Ok(())
     }
-    pub fn remove(&self, id: &ClientID) -> anyhow::Result<()> {
+    fn remove(&self, id: &ClientID) -> anyhow::Result<()> {
         let mut mp = self
             .0
             .write()
@@ -113,4 +119,10 @@ impl Clone for AuthStorage {
 }
 
 /// name of the cookie
-pub const CLIENT_ID_KEY: &str = "zroj_client_id";
+const CLIENT_ID_KEY: &str = "zroj_client_id";
+
+/// Add manipulation to response-local data to update [`AuthStorage`].
+pub enum Manip {
+    Insert(ClientID, AuthInfo),
+    Delete(ClientID)
+}

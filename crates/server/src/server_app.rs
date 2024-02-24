@@ -212,7 +212,10 @@ impl<A: ToSocketAddrs> ServerApp<A> {
                 .wrap(tracing_actix_web::TracingLogger::default())
                 .service(
                     actix_web::web::scope("/api")
-                        .service(auth::service(auth_storage.clone(), user_db.clone()))
+                        .service(
+                            auth::service(user_db.clone())
+                                .wrap(AuthInjector::bypass(auth_storage.clone())),
+                        )
                         .service(user::service(user_db.clone(), gclient).wrap(authinject.clone()))
                         .service(
                             problem::service(

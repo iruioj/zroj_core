@@ -1,4 +1,4 @@
-use super::{AuthInfo, AuthStorage, CLIENT_ID_KEY};
+use super::{AuthInfo, AuthStorage, Manip, CLIENT_ID_KEY};
 use crate::ClientID;
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
@@ -21,7 +21,9 @@ struct Inner {
 /// AuthInjector is a middleware that tries to extracts authentication data
 /// and register them into request-local data for future use.
 ///
-/// Usage:
+/// See [`super::Authentication`] for extractor usage.
+///
+/// # Example
 ///
 /// ```rust
 /// # use server::auth::injector::AuthInjector;
@@ -128,9 +130,27 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let result = self.work(&req);
         let fut = self.service.call(req);
+        let inner = self.inner.clone();
         Box::pin(async move {
             result?;
-            fut.await
+            let mut r = fut.await?;
+
+            let op = r.response_mut().extensions_mut().remove::<Manip>();
+            if let Some(op) = op {
+                match op {
+                    Manip::Insert(client_id, info) => {
+                        r.response_mut().add_cookie(
+                            &actix_web::cookie::Cookie::build(CLIENT_ID_KEY, client_id.to_string())
+                                .path("/")
+                                .finish(),
+                        )?;
+                        inner.store.set(client_id, info)
+                    }
+                    Manip::Delete(client_id) => inner.store.remove(&client_id),
+                }
+                .map_err(error::ErrorInternalServerError)?;
+            }
+            Ok(r)
         })
     }
 }

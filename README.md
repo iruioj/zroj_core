@@ -22,7 +22,7 @@ cargo run --bin gen_testdata
 
 # Then build and install the sandbox executable.
 # After installation you may execute `zroj-sandbox -h` for more information.
-cargo install --path crates/sandbox_bin
+cargo install --path crates/sandbox_bin -f
 ```
 
 Then start the dev server (sometimes Cargo complaines during compliation, where you may just rerun Cargo):
