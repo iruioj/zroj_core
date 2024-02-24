@@ -5,7 +5,7 @@ use crate::{
         mysql::{MysqlConfig, MysqlDb},
     },
     manager, utils,
-    web::auth::{injector::AuthInjector, AuthStorage},
+    web::auth::{AuthInjector, AuthStorage},
 };
 use actix_web::web::Data;
 use anyhow::Context;
