@@ -622,9 +622,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.86"
+version = "1.0.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f9fa1897e4325be0d68d48df6aa1a71ac2ed4d27723887e7754192705350730"
+checksum = "3286b845d0fccbdd15af433f61c5970e711987036cb468f437ff6badd70f4e24"
 dependencies = [
  "libc",
 ]
@@ -810,9 +810,9 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.20.7"
+version = "0.20.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a5d17510e4a1a87f323de70b7b1eaac1ee0e37866c6720b2d279452d0edf389"
+checksum = "54e36fcd13ed84ffdfda6f5be89b31287cbb80c439841fe69e04841435464391"
 dependencies = [
  "darling_core",
  "darling_macro",
@@ -820,9 +820,9 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.20.7"
+version = "0.20.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a98eea36a7ff910fa751413d0895551143a8ea41d695d9798ec7d665df7f7f5e"
+checksum = "9c2cf1c23a687a1feeb728783b993c4e1ad83d99f351801977dd809b48d0a70f"
 dependencies = [
  "fnv",
  "ident_case",
@@ -834,9 +834,9 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
-version = "0.20.7"
+version = "0.20.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6a366a3f90c5d59a4b91169775f88e52e8f71a0e7804cc98a8db2932cf4ed57"
+checksum = "a668eda54683121533a393014d8692171709ff57a7d61f187b6e782719f8933f"
 dependencies = [
  "darling_core",
  "quote",
@@ -1948,8 +1948,6 @@ dependencies = [
  "serde_ts_typing",
  "tempfile",
  "thiserror",
- "winapi",
- "windows",
 ]
 
 [[package]]
@@ -2801,16 +2799,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
-name = "windows"
-version = "0.22.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e63b5b81676d36bcf3d8c41b0f6ca574bb2399ba0963c6b9f110f7839a200bce"
-dependencies = [
- "windows_i686_msvc 0.22.1",
- "windows_x86_64_msvc 0.22.1",
-]
-
-[[package]]
 name = "windows-core"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2905,12 +2893,6 @@ checksum = "2a4e9b6a7cac734a8b4138a4e1044eac3404d8326b6c0f939276560687a033fb"
 
 [[package]]
 name = "windows_i686_msvc"
-version = "0.22.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23330f18aae0ccad49809c82a48e01e965bcc831813f32fe1bb89d8845f7365b"
-
-[[package]]
-name = "windows_i686_msvc"
 version = "0.48.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f55c233f70c4b27f66c523580f78f1004e8b5a8b659e05a4eb49d4166cca406"
@@ -2944,12 +2926,6 @@ name = "windows_x86_64_gnullvm"
 version = "0.52.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42079295511643151e98d61c38c0acc444e52dd42ab456f7ccfd5152e8ecf21c"
-
-[[package]]
-name = "windows_x86_64_msvc"
-version = "0.22.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be253f6efe83a48d5d42d13be30ac63ac597f7d87b09c7fd37221a5a04d09628"
 
 [[package]]
 name = "windows_x86_64_msvc"
