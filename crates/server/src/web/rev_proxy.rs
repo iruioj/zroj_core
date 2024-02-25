@@ -8,8 +8,6 @@ use actix_web::{
 use futures::TryStreamExt;
 use lazy_static::lazy_static;
 
-pub mod handler;
-
 /// 反向代理配置，目前主要用于开发
 pub struct RevProxy {
     /// 如果返回 None 则不代理，否则按照修改后的 path 代理
@@ -196,4 +194,15 @@ fn _remove_request_hop_by_hop_headers(headers: &mut HeaderMap) {
         }
         headers.remove(h);
     }
+}
+
+pub async fn rev_proxy(
+    req: HttpRequest,
+    payload: Payload,
+    cfg: actix_web::web::Data<RevProxy>,
+    client: actix_web::web::Data<awc::Client>,
+) -> actix_web::Result<HttpResponse> {
+    // eprintln!("rev_proxy trigger {}", req.path());
+    // let client = awc::Client::default();
+    cfg.forward(&client, req, payload).await
 }

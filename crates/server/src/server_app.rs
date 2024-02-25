@@ -208,7 +208,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
                 .app_data(revproxy.clone())
                 .app_data(web::Data::new(awc::Client::new()))
                 .route("/_nuxt/", web::get().to(crate::web::nuxt::nuxt_websocket))
-                .default_service(web::route().to(crate::web::rev_proxy::handler::rev_proxy))
+                .default_service(web::route().to(crate::web::rev_proxy::rev_proxy))
                 .wrap(tracing_actix_web::TracingLogger::default())
                 .service(
                     actix_web::web::scope("/api")
