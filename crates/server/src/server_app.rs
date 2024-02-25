@@ -35,7 +35,7 @@ pub struct ServerAppConfig<A: ToSocketAddrs> {
     runner_working_root: PathBuf,
     listen_address: A,
     gravatar_cdn_base: String, // e.g. "https://sdn.geekzu.org/avatar/"
-    frontend_base_url: String,
+    frontend_host: String,
 }
 
 impl<A> ServerAppConfig<A>
@@ -66,6 +66,7 @@ where
 
         let cfg_file = std::fs::File::options()
             .create(true)
+            .truncate(true)
             .write(true)
             .open(&path)
             .context("save local test config")?;
@@ -87,7 +88,7 @@ pub fn test_server_app_cfg() -> ServerAppConfig<String> {
         runner_working_root: ".work".into(),
         listen_address: "127.0.0.1:8080".into(),
         gravatar_cdn_base: "https://sdn.geekzu.org/avatar/".into(),
-        frontend_base_url: "http://127.0.0.1:3456".into(),
+        frontend_host: "127.0.0.1:3456".into(),
     }
 }
 
@@ -191,7 +192,10 @@ impl<A: ToSocketAddrs> ServerApp<A> {
                 })?;
         }
 
-        let revproxy = Data::new(utils::frontend_rev_proxy(self.config.frontend_base_url));
+        let revproxy = Data::new(utils::frontend_rev_proxy(format!(
+            "http://{}",
+            self.config.frontend_host
+        )));
         let auth_storage = AuthStorage::default();
         let tlscfg = std::sync::Arc::new(utils::rustls_config());
         let httpserver = actix_web::HttpServer::new(move || {
