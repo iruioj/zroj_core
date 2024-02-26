@@ -145,6 +145,7 @@ pub fn setup_database(cfg: &MysqlConfig, flag: SetupDatabaseFlag) -> Result<(), 
 }
 
 // mysql only
+// ref: https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_last-insert-id
 sql_function! { fn last_insert_id() -> Unsigned<BigInt>; }
 
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};

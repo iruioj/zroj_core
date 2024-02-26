@@ -1,4 +1,4 @@
-//! http backend services provided by online judge server
+//! HTTP backend application services provided by online judge server
 pub mod auth;
 // pub mod group;
 pub mod api_docs;
@@ -42,16 +42,16 @@ pub fn parse_named_file(
 #[derive(Deserialize, TsType)]
 #[ts(inline)]
 struct ListQuery {
+    /// restricted automatically by [`u8::MAX`].
     #[serde_as(as = "DisplayFromStr")]
     // TypeScript 类型仍然为 u8，因为通过 x-www-form-urlencoded 格式传递
     #[ts(as_type = "u8")]
-    /// 利用类型限制，一次请求的数量不能超过 256 个
     max_count: u8,
 
+    /// skip the first `offset` items.
     #[serde_as(as = "DisplayFromStr")]
     // TypeScript 类型仍然为 u32，因为通过 x-www-form-urlencoded 格式传递
     #[ts(as_type = "u32")]
-    /// 跳过前 offset 个结果
     offset: u32,
 }
 

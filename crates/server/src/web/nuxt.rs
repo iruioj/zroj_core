@@ -1,3 +1,5 @@
+//! Nuxt WebSocket (`/_nuxt/`) handler.
+
 use actix_web::web;
 use futures::{SinkExt, StreamExt};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};

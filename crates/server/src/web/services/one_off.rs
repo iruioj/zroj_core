@@ -1,3 +1,5 @@
+//! Provide user-scope custom test service.
+
 use crate::{
     manager::OneOffManager,
     marker::*,
@@ -71,7 +73,6 @@ async fn custom_test_get(
     }))
 }
 
-/// 提供自定义测试服务
 #[scope_service(path = "/custom_test")]
 pub fn service(custom_test_manager: ServerData<OneOffManager>) {
     app_data(custom_test_manager);

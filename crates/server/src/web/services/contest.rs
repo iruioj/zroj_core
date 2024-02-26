@@ -15,11 +15,11 @@ struct CtstMetasQuery {
     #[serde(flatten)]
     list: super::ListQuery,
 
-    /// 搜索的关键字/模式匹配
+    /// pattern matching
     pattern: Option<String>,
 }
 
-/// 获取比赛列表
+/// Fetch the list of contests
 #[api(method = get, path = "/metas")]
 async fn metas(
     ctst_db: ServerData<CtstDB>,
@@ -35,7 +35,7 @@ async fn metas(
 
 #[derive(Deserialize, TsType)]
 struct CtstQuery {
-    /// 比赛 id
+    /// Contest id
     id: CtstID,
 }
 

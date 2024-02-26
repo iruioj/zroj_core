@@ -1,3 +1,5 @@
+//! Reverse proxy for frontend server.
+
 use std::{net::SocketAddr, path::PathBuf, time::Duration};
 
 use actix_web::{
@@ -196,6 +198,7 @@ fn _remove_request_hop_by_hop_headers(headers: &mut HeaderMap) {
     }
 }
 
+/// reverse proxy handler
 pub async fn rev_proxy(
     req: HttpRequest,
     payload: Payload,

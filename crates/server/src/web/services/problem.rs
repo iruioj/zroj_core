@@ -109,8 +109,8 @@ struct ProbMetasQuery {
     pattern: Option<String>,
 }
 
-/// 获取题目列表。
-/// 后端的 `max_count` 为 u8 类型，限制了此 API 返回的题目数最多为 255 个
+/// Fetch a list of problems. The number of returned items is automatically
+/// restricted by [`u8::MAX`].
 #[api(method = get, path = "/metas")]
 async fn metas(
     stmt_db: ServerData<StmtDB>,
@@ -126,11 +126,10 @@ async fn metas(
 
 #[derive(Debug, MultipartForm)]
 struct PostDataPayload {
-    /// 题目 id
-    /// 如果不指定 id 就新建题目
+    /// If not provided, a new problem id is associated to the uploaded data
     id: Option<Text<ProblemID>>,
 
-    /// [`ProblemFullData`] 的压缩文件
+    /// Zip file of [`ProblemFullData`].
     data: TempFile,
 }
 
