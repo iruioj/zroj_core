@@ -96,7 +96,7 @@ async fn inspect(user_db: ServerData<UserDB>, auth: Authentication) -> JsonResul
 async fn logout(auth: Authentication) -> actix_web::Result<HttpResponse> {
     if let Some(id) = auth.client_id() {
         let mut resp = HttpResponse::Ok();
-        resp.extensions_mut().insert(Manip::Delete(id.clone()));
+        resp.extensions_mut().insert(Manip::Delete(*id));
         return Ok(resp.body("logout success"));
     }
     Err(error::ErrorBadRequest("invalid session id"))

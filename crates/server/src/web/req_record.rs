@@ -36,7 +36,7 @@ impl ReqRecord {
     pub fn new(dir: &store::Handle, start_time: &DateTime<Utc>) -> Self {
         Self(Arc::new(Inner {
             dir: dir.clone(),
-            start_time: start_time.clone(),
+            start_time: *start_time,
             count: AtomicU32::new(0),
         }))
     }

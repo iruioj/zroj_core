@@ -87,7 +87,10 @@ impl Handle {
         Ok(serde_json::to_writer(self.create_new_file()?, data).context("serialize json")?)
     }
     pub fn serialize_pretty_new_file<T: Serialize>(&self, data: &T) -> Result<(), Error> {
-        Ok(serde_json::to_writer_pretty(self.create_new_file()?, data).context("serialize json")?)
+        Ok(
+            serde_json::to_writer_pretty(self.create_new_file()?, data)
+                .context("serialize json")?,
+        )
     }
     pub fn path(&self) -> &Path {
         &self.dir
@@ -354,7 +357,7 @@ impl FsStore for Vec<u8> {
 
     fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
         let mut file = ctx.create_new_file()?;
-        file.write_all(&self).context("write buffer to file")?;
+        file.write_all(self).context("write buffer to file")?;
         Ok(())
     }
 }
