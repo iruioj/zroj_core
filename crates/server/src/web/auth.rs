@@ -140,7 +140,7 @@ struct Inner {
 /// AuthInjector is a middleware that tries to extracts authentication data
 /// and register them into request-local data for future use.
 ///
-/// See [`super::Authentication`] for extractor usage.
+/// See [`Authentication`] for extractor usage.
 ///
 /// # Example
 ///
