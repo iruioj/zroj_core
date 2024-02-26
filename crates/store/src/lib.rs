@@ -11,7 +11,7 @@ use std::{
     ffi::CString,
     fmt::Debug,
     fs,
-    io::{Seek, Write},
+    io::{Read, Seek, Write},
     os::unix::{
         ffi::OsStrExt,
         fs::{OpenOptionsExt, PermissionsExt},
@@ -85,6 +85,9 @@ impl Handle {
     /// 将数据序列化到该路径下（要求文件不存在）
     pub fn serialize_new_file<T: Serialize>(&self, data: &T) -> Result<(), Error> {
         Ok(serde_json::to_writer(self.create_new_file()?, data).context("serialize json")?)
+    }
+    pub fn serialize_pretty_new_file<T: Serialize>(&self, data: &T) -> Result<(), Error> {
+        Ok(serde_json::to_writer_pretty(self.create_new_file()?, data).context("serialize json")?)
     }
     pub fn path(&self) -> &Path {
         &self.dir
@@ -337,6 +340,21 @@ impl<T: FsStore> FsStore for Vec<T> {
         for (i, item) in self.iter_mut().enumerate() {
             item.save(&ctx.join(format!("v{i}")))?;
         }
+        Ok(())
+    }
+}
+
+impl FsStore for Vec<u8> {
+    fn open(ctx: &Handle) -> Result<Self, Error> {
+        let mut file = ctx.open_file()?;
+        let mut buf = Vec::new();
+        file.read_to_end(&mut buf).context("read file to buffer")?;
+        Ok(buf)
+    }
+
+    fn save(&mut self, ctx: &Handle) -> Result<(), Error> {
+        let mut file = ctx.create_new_file()?;
+        file.write_all(&self).context("write buffer to file")?;
         Ok(())
     }
 }
