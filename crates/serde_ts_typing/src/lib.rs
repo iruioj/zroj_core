@@ -268,29 +268,16 @@ impl TypeExpr {
     }
 }
 
-/// 对于 Rust 类型提供 typescript 类型生成
-pub trait TypeDef {
-    /// 生成 typescript 类型
-    fn type_def() -> String;
-}
+pub use std::any::TypeId;
 
-/// 一个 marker trait
-///
-/// 为实现了 Serialize 的类型提供 typescript 类型生成
-pub trait SerdeJsonWithType
-where
-    Self: TypeDef,
-{
-}
-
-pub type TypeId = std::any::TypeId;
-
-/// 类型标志符的上下文（类型集合）
+/// `Context` of a set of types basically contains the map from [`TypeId`] to
+/// the string identifier of the type (type name); the map from type name
+/// to its type signature and annotations.
 #[derive(Debug, Default, Clone)]
-pub struct Context(
-    BTreeMap<String, (TypeExpr, String)>,
-    BTreeMap<TypeId, String>,
-);
+pub struct Context {
+    items: BTreeMap<String, (TypeExpr, String)>,
+    id_to_item: BTreeMap<TypeId, String>,
+}
 
 impl
     From<(
@@ -304,7 +291,10 @@ impl
             BTreeMap<TypeId, String>,
         ),
     ) -> Self {
-        Self(value.0, value.1)
+        Self {
+            items: value.0,
+            id_to_item: value.1,
+        }
     }
 }
 
@@ -312,27 +302,27 @@ impl std::ops::Add for Context {
     type Output = Context;
 
     fn add(mut self, mut rhs: Self) -> Self::Output {
-        rhs.0.append(&mut self.0);
-        rhs.1.append(&mut self.1);
+        rhs.items.append(&mut self.items);
+        rhs.id_to_item.append(&mut self.id_to_item);
         rhs
     }
 }
 
 impl Context {
     pub fn register(&mut self, ty: TypeId, name: String, tydef: TypeExpr, docs: String) {
-        self.0.insert(name.clone(), (tydef, docs));
-        self.1.insert(ty, name);
+        self.items.insert(name.clone(), (tydef, docs));
+        self.id_to_item.insert(ty, name);
     }
     pub fn register_variant(&mut self, name: String, tydef: TypeExpr, docs: String) {
-        self.0.insert(name, (tydef, docs));
+        self.items.insert(name, (tydef, docs));
     }
     pub fn contains(&self, id: TypeId) -> bool {
-        self.1.contains_key(&id)
+        self.id_to_item.contains_key(&id)
     }
     /// rendering all types as exported type
     pub fn render_code(&self, indent: usize) -> String {
         let mut r = String::new();
-        for (name, (tydef, docs)) in &self.0 {
+        for (name, (tydef, docs)) in &self.items {
             r += &format!(
                 "/**\n{docs}*/\nexport type {name} = {:80.indent$};\n",
                 tydef
@@ -341,23 +331,35 @@ impl Context {
         r
     }
     pub fn get_ty_by_id(&self, id: &TypeId) -> Option<&TypeExpr> {
-        self.0.get(self.1.get(id)?).map(|o| &o.0)
+        self.items.get(self.id_to_item.get(id)?).map(|o| &o.0)
     }
 }
 
+/// `TsType` helps an often serializable Rust type to register its corresponding
+/// TypeScript type for document generation.
 pub trait TsType
 where
     Self: 'static,
 {
+    /// Add the Rust type to the type context. Basically it updates the type signature
+    /// map by adding a new TypeScript named type, then it add the links between the Rust
+    /// type [`TypeId`] and the TypeScript type.
     fn register_context(c: &mut Context);
+
+    /// the TypeScript type signature.
     fn type_def() -> TypeExpr;
 
-    /// 如果 context 中不包含自身的 context 就调用 register_context
+    /// To avoid collision, it calls [`TsType::register_context`] only if self's [`TypeId`]
+    /// hasn't been registered before.
+    ///
+    /// It is helpful for implementing `TsType` for a generic type.
     fn register_self_context(c: &mut Context) {
         if !c.contains(TypeId::of::<Self>()) {
             Self::register_context(c)
         }
     }
+
+    /// the context associated with its type signature.
     fn type_context() -> Context {
         let mut r = Context::default();
         Self::register_context(&mut r);
