@@ -1007,7 +1007,8 @@ export type UserUpdateInfo = {
     password_hash: ( undefined | null | string );
 };
 /**
- 用户名类型，在创建时会进行内容检查，确保没有不合法字符
+ A valid username contains alphabetic letters, numbers, and the underscore `_`.
+ Moreover, its length must lies in `[4, 20]`, and the first character must be alphabetic.
 */
 export type Username = string;
 /**
