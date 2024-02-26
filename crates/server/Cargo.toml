@@ -10,7 +10,14 @@ actix-files = "0.6.2"
 actix-http = "3.6"
 actix-multipart = { version = "0.6" }
 actix-rt = "2.9"
-actix-web = "4"
+actix-web = { version = "4", default-features = false, features = [
+    "macros",
+    # currently no compression is implemented
+    # "compress-brotli",
+    # "compress-gzip",
+    # "compress-zstd",
+    "cookies"
+]}
 anyhow = "1.0"
 askama = { version = "0.12.1", default-features = false }
 awc = { version = "3.4", features = ["rustls-0_22-webpki-roots"] }
@@ -49,4 +56,11 @@ features = [
 ]
 
 [features]
-# mysql = ["diesel", "diesel/mysql", "r2d2", "r2d2-diesel"]
+
+# If enabled, client id is generated from uid when a new user signs in.
+# This feature is used for debugging and testing.
+uid_as_cid = []
+
+# If enabled, server app will save requests to the .record folder
+# This feature is used for testdata generating.
+record_request = [ "uid_as_cid" ]

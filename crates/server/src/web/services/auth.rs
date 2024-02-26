@@ -1,5 +1,4 @@
 use crate::web::auth::{AuthInfo, Authentication};
-use crate::ClientID;
 use crate::{block_it, marker::*};
 use crate::{
     data::{
@@ -40,11 +39,9 @@ async fn login(
     if !passwd::verify(&user.password_hash, &payload.password_hash) {
         Err(error::ErrorBadRequest("password not correct"))
     } else {
-        let id = ClientID::new_v4(); // generate a random session id
-        tracing::info!("generate new client id {id} for {}", payload.username);
         let mut resp = HttpResponse::Ok();
         resp.extensions_mut()
-            .insert(Manip::Insert(id, AuthInfo { uid: user.id }));
+            .insert(Manip::Insert(AuthInfo { uid: user.id }));
         Ok(resp.body("login success"))
     }
 }

@@ -9,10 +9,9 @@ to get the corresponding resources.
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    error, Error, FromRequest, HttpMessage, Result,
+    error, Error, FromRequest, HttpMessage,
 };
 use anyhow::Context;
-use futures::Future;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -128,7 +127,7 @@ const CLIENT_ID_KEY: &str = "zroj_client_id";
 
 /// Add manipulation to response-local data to update [`AuthStorage`].
 pub enum Manip {
-    Insert(ClientID, AuthInfo),
+    Insert(AuthInfo),
     Delete(ClientID),
 }
 
@@ -193,11 +192,11 @@ where
     type Response = ServiceResponse<B>;
     type Error = Error;
     type InitError = ();
-    type Transform = AuthInjectorMiddleware<S>;
+    type Transform = Middleware<S>;
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(AuthInjectorMiddleware {
+        ready(Ok(Middleware {
             service,
             inner: self.0.clone(),
         }))
@@ -205,11 +204,11 @@ where
 }
 
 #[doc(hidden)]
-pub struct AuthInjectorMiddleware<S> {
+pub struct Middleware<S> {
     service: S,
     inner: Rc<Inner>,
 }
-impl<S> AuthInjectorMiddleware<S> {
+impl<S> Middleware<S> {
     fn extract_info(&self, req: &ServiceRequest) -> anyhow::Result<(ClientID, AuthInfo)> {
         let c = req
             .cookie(CLIENT_ID_KEY)
@@ -222,7 +221,7 @@ impl<S> AuthInjectorMiddleware<S> {
             .ok_or(anyhow::anyhow!("authinfo not found"))?;
         Ok((id, info))
     }
-    pub fn work(&self, req: &ServiceRequest) -> Result<()> {
+    pub fn work(&self, req: &ServiceRequest) -> actix_web::Result<()> {
         match self.extract_info(req) {
             Ok((id, info)) => {
                 tracing::debug!("client id = {id}");
@@ -237,7 +236,7 @@ impl<S> AuthInjectorMiddleware<S> {
         Ok(())
     }
 }
-impl<S, B> Service<ServiceRequest> for AuthInjectorMiddleware<S>
+impl<S, B> Service<ServiceRequest> for Middleware<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
@@ -245,12 +244,13 @@ where
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+    type Future = Pin<Box<dyn futures::Future<Output = Result<Self::Response, Self::Error>>>>;
     forward_ready!(service);
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let result = self.work(&req);
         let fut = self.service.call(req);
         let inner = self.inner.clone();
+
         Box::pin(async move {
             result?;
             let mut r = fut.await?;
@@ -258,13 +258,23 @@ where
             let op = r.response_mut().extensions_mut().remove::<Manip>();
             if let Some(op) = op {
                 match op {
-                    Manip::Insert(client_id, info) => {
+                    Manip::Insert(info) => {
+                        let id = if cfg!(feature = "uid_as_cid") {
+                            // used for request recording
+                            tracing::info!("generate client id from uid");
+                            ClientID::from_u128(info.uid as u128)
+                        } else {
+                            ClientID::new_v4() // generate a random session id
+                        };
+
+                        tracing::info!("generate new client id {id}");
+
                         r.response_mut().add_cookie(
-                            &actix_web::cookie::Cookie::build(CLIENT_ID_KEY, client_id.to_string())
+                            &actix_web::cookie::Cookie::build(CLIENT_ID_KEY, id.to_string())
                                 .path("/")
                                 .finish(),
                         )?;
-                        inner.store.set(client_id, info)
+                        inner.store.set(id, info)
                     }
                     Manip::Delete(client_id) => inner.store.remove(&client_id),
                 }

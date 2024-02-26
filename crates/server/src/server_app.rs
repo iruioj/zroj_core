@@ -198,6 +198,15 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         )));
         let auth_storage = AuthStorage::default();
         let tlscfg = std::sync::Arc::new(utils::rustls_config());
+
+        #[cfg(feature = "record_request")]
+        let reqrecord = {
+            let record_dir = store::Handle::new(".record");
+            let start_time = chrono::Utc::now();
+            record_dir.remove_all()?;
+            crate::web::req_record::ReqRecord::new(&record_dir, &start_time)
+        };
+
         let httpserver = actix_web::HttpServer::new(move || {
             use crate::web::services::*;
 
@@ -208,36 +217,38 @@ impl<A: ToSocketAddrs> ServerApp<A> {
             let authinject = AuthInjector::require_auth(auth_storage.clone());
 
             use actix_web::web;
-            actix_web::App::new()
+            let app = actix_web::App::new()
                 .app_data(revproxy.clone())
                 .app_data(web::Data::new(awc::Client::new()))
                 .route("/_nuxt/", web::get().to(crate::web::nuxt::nuxt_websocket))
                 .default_service(web::route().to(crate::web::rev_proxy::rev_proxy))
-                .wrap(tracing_actix_web::TracingLogger::default())
+                .wrap(tracing_actix_web::TracingLogger::default());
+
+            #[cfg(feature = "record_request")]
+            let app = app.wrap(reqrecord.clone());
+
+            let backend = actix_web::web::scope("/api")
                 .service(
-                    actix_web::web::scope("/api")
-                        .service(
-                            auth::service(user_db.clone())
-                                .wrap(AuthInjector::bypass(auth_storage.clone())),
-                        )
-                        .service(user::service(user_db.clone(), gclient).wrap(authinject.clone()))
-                        .service(
-                            problem::service(
-                                stmt_db.clone(),
-                                ojdata_db.clone(),
-                                subm_db.clone(),
-                                judger.clone(),
-                            )
-                            .wrap(authinject.clone()),
-                        )
-                        .service(one_off::service(oneoff.clone()).wrap(authinject.clone()))
-                        .service(
-                            submission::service(subm_db.clone(), judger.clone())
-                                .wrap(authinject.clone()),
-                        )
-                        .service(contest::service(ctst_db.clone()).wrap(authinject.clone()))
-                        .service(api_docs::service()),
+                    auth::service(user_db.clone()).wrap(AuthInjector::bypass(auth_storage.clone())),
                 )
+                .service(user::service(user_db.clone(), gclient).wrap(authinject.clone()))
+                .service(
+                    problem::service(
+                        stmt_db.clone(),
+                        ojdata_db.clone(),
+                        subm_db.clone(),
+                        judger.clone(),
+                    )
+                    .wrap(authinject.clone()),
+                )
+                .service(one_off::service(oneoff.clone()).wrap(authinject.clone()))
+                .service(
+                    submission::service(subm_db.clone(), judger.clone()).wrap(authinject.clone()),
+                )
+                .service(contest::service(ctst_db.clone()).wrap(authinject.clone()))
+                .service(api_docs::service());
+
+            app.service(backend)
         })
         .bind(self.config.listen_address)?;
 
