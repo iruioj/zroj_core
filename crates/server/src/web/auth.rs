@@ -21,8 +21,9 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use crate::{ClientID, UserID};
+use crate::UserID;
 
+type ClientID = uuid::Uuid;
 // session data for request
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AuthInfo {
