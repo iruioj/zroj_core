@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 use quote::{format_ident, quote, ToTokens};
+use structural_macro_utils::AttrListVisitor;
 use syn::{parse::Parse, parse_macro_input, Expr, FnArg, ItemFn, Meta, ReturnType, Stmt, Token};
 
 struct AttrList(Vec<Meta>);
@@ -192,10 +193,9 @@ fn parse_marker_type(marker: impl AsRef<str>, ty: &syn::Type) -> Option<syn::Typ
 /// An enhancement of the macros in `actix_web`,
 /// Use this macro to define a request handler and a document metadata generator function.
 ///
-/// - 使用 `method = xxx` 来声明 REST API 的 http 方法
-/// - 使用 `path = "xxx"` 声明 API 路径
+/// - use `method = xxx` to declare HTTP method
+/// - use `path = "xxx"` to declare API path
 ///
-/// 并自动生成文档数据
 #[proc_macro_attribute]
 pub fn api(
     attr: proc_macro::TokenStream,
@@ -204,7 +204,6 @@ pub fn api(
     let config: ApiConfig = parse_macro_input!(attr);
 
     let func: ItemFn = parse_macro_input!(item);
-    let doc_name = format_ident!("{}_doc", func.sig.ident);
     let method_ident = format_ident!("{}", config.method);
     let method_str = method_ident.to_string();
     let path = config.path;
@@ -254,23 +253,9 @@ pub fn api(
         }
     }
 
-    // parse comments as descriptions (starting with 3 slashes)
-    let mut descrip_stmt = quote!(let mut description = String::new(););
-    func.attrs
-        .clone()
-        .into_iter()
-        .filter_map(|f| match f.meta {
-            Meta::NameValue(v) => Some(v),
-            _ => None,
-        })
-        .filter_map(|v| {
-            if v.path.is_ident("doc") {
-                Some(v.value)
-            } else {
-                None
-            }
-        })
-        .for_each(|e| descrip_stmt.extend(quote!( description += #e; description += "\n"; )));
+    let attr_visitor = AttrListVisitor(&func.attrs);
+    let descrip_stmt = attr_visitor.get_docs();
+    let doc_name = format_ident!("{}_doc", func.sig.ident);
 
     let ret = quote! {
         fn #doc_name() -> (crate::ApiDocMeta, serde_ts_typing::Context) {
@@ -278,7 +263,6 @@ pub fn api(
             let method = String::from(#method_str);
             #body_type_stmt
             #res_type_stmt
-            #descrip_stmt
             #query_type_stmt
             (crate::ApiDocMeta {
                 path,
@@ -287,7 +271,7 @@ pub fn api(
                 body_type,
                 is_form: #is_form,
                 res_type,
-                description
+                description: #descrip_stmt
             }, {
                 #ctxt_stmt
                 c

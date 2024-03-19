@@ -5,7 +5,19 @@ use std::fmt::Display;
 
 /// 时间表示（时间和 timestamp）
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq, SqlType, FromSqlRow, AsExpression,
+    AsExpression,
+    Clone,
+    Debug,
+    Default,
+    Deserialize,
+    Eq,
+    FromSqlRow,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+    SqlType,
 )]
 #[diesel(sql_type = BigInt)]
 pub struct DateTime(
