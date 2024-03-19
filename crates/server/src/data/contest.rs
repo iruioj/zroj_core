@@ -1,25 +1,48 @@
-use crate::{CtstID, UserID};
-
 use super::{
     error::DataError,
     mysql::{
+        last_insert_id,
         schema::{contest_problems, contest_registrants, contests, problems, users},
         schema_model::{Contest, ContestRegistrant, Problem},
         MysqlDb,
     },
     problem_statement::ProblemMeta,
     types::*,
+    Resource, ResourceHandle,
 };
+use crate::{CtstID, UserID};
 use diesel::*;
+use problem::Elapse;
 use serde::Serialize;
 use serde_ts_typing::TsType;
 
 pub struct CtstDB(MysqlDb);
 
 impl CtstDB {
-    pub fn new(mysqldb: &MysqlDb) -> Self {
-        Self(mysqldb.clone())
+    pub fn new(mysqldb: &MysqlDb) -> Result<Self, DataError> {
+        let mysqldb = mysqldb.clone();
+
+        // get contest-registrants whose contest has not ended.
+        // let r = mysqldb.transaction(|conn| {
+        //     let table = contest_registrants::table
+        //         .inner_join(contests::table)
+        //         .filter(contests::end_time.ge(DateTime::now()));
+        //     let r: Vec<(CtstID, UserID, DateTime)> = table
+        //         .select((
+        //             contest_registrants::uid,
+        //             contest_registrants::cid,
+        //             contests::end_time,
+        //         ))
+        //         .load::<(CtstID, UserID, DateTime)>(conn)?;
+        //     Ok(r)
+        // })?;
+
+        Ok(Self(mysqldb))
     }
+}
+
+impl CtstDB {
+    /// Fetch contests list with pagination and keywords filter.
     pub fn get_metas(
         &self,
         max_count: u8,
@@ -43,7 +66,9 @@ impl CtstDB {
                 .collect())
         })
     }
-    pub fn get(&self, id: CtstID) -> Result<ContestInfo, DataError> {
+
+    /// Get contest metadata and problems
+    pub(super) fn get(&self, id: CtstID) -> Result<ContestInfo, DataError> {
         self.0.transaction(|conn| {
             let meta: Contest = contests::table.filter(contests::id.eq(id)).first(conn)?;
             let meta: ContestMeta = meta.into();
@@ -59,6 +84,10 @@ impl CtstDB {
             Ok(ContestInfo { meta, problems })
         })
     }
+    pub fn rs_get(&self, id: CtstID) -> CtstDBGet {
+        ResourceHandle::new(CtstDBGetInner { id, db: self })
+    }
+
     /// Try to insert a registrant for a contest with [`ContestRegistrant::register_time`]
     /// set to the current time.
     pub fn insert_registrant(&self, id: CtstID, uid: UserID) -> Result<(), DataError> {
@@ -86,6 +115,8 @@ impl CtstDB {
             Ok(())
         })
     }
+
+    /// Fetch contest registrants with pagination.
     pub fn get_registrants(
         &self,
         id: CtstID,
@@ -106,6 +137,30 @@ impl CtstDB {
 
             Ok(user_metas)
         })
+    }
+
+    pub fn create_contest(
+        &self,
+        title: String,
+        start_time: DateTime,
+        end_time: DateTime,
+        duration: Elapse,
+    ) -> Result<CtstID, DataError> {
+        let cid = self.0.transaction(|conn| {
+            diesel::insert_into(contests::table)
+                .values((
+                    contests::title.eq(title),
+                    contests::start_time.eq(start_time),
+                    contests::end_time.eq(end_time.clone()),
+                    contests::duration.eq(CastElapse(duration)),
+                ))
+                .execute(conn)?;
+
+            let id: u64 = diesel::select(last_insert_id()).first(conn)?;
+            Ok(id as CtstID)
+        })?;
+
+        Ok(cid)
     }
 }
 
@@ -140,4 +195,24 @@ pub struct ContestInfo {
 pub struct UserMeta {
     id: UserID,
     username: Username,
+}
+
+type CtstDBGet<'a> = ResourceHandle<CtstDBGetInner<'a>>;
+
+/// This type is public, but not publicly constructable
+pub struct CtstDBGetInner<'a> {
+    id: CtstID,
+    db: &'a CtstDB,
+}
+
+impl<'a> Resource for CtstDBGetInner<'a> {
+    type Item = ContestInfo;
+
+    fn perm_id(&self) -> u64 {
+        self.id as u64 + 1u64 << 32
+    }
+
+    fn load(&self) -> Result<Self::Item, DataError> {
+        self.db.get(self.id)
+    }
 }

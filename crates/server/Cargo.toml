@@ -47,6 +47,7 @@ tracing-actix-web = "0.7"
 tracing-subscriber = { version = "0.3", features = ["json"] }
 zip = { version = "0.6", default-features = false }
 tokio = { version = "1.36.0", features = ["macros"] }
+smallvec = "1.13.1"
 
 [dependencies.uuid]
 version = "1.3.0"

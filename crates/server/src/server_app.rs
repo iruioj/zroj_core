@@ -129,7 +129,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let stmt_db = data::problem_statement::StmtDB::new(&mysqldb, &filesysdb);
         let ojdata_db = data::problem_ojdata::OJDataDB::new(&filesysdb);
         let subm_db = data::submission::SubmDB::new(&mysqldb);
-        let ctst_db = data::contest::CtstDB::new(&mysqldb);
+        let ctst_db = data::contest::CtstDB::new(&mysqldb)?;
 
         self.runtime = Some(ServerAppRuntime {
             mysqldb,
@@ -167,6 +167,9 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let judger = Data::new(manager::ProblemJudger::new(
             self.config.runner_working_root.join("problem_judge"),
         )?);
+        let permission_manager = Data::new(
+            data::PermissionManager::new()
+        );
 
         // once finish judging, update submission database
         {
@@ -228,6 +231,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
             let app = app.wrap(reqrecord.clone());
 
             let backend = actix_web::web::scope("/api")
+                .app_data(permission_manager.clone())
                 .service(
                     auth::service(user_db.clone()).wrap(AuthInjector::bypass(auth_storage.clone())),
                 )

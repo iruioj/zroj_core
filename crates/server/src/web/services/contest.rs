@@ -1,6 +1,9 @@
 use crate::{
     block_it,
-    data::contest::{ContestInfo, ContestMeta, CtstDB, UserMeta},
+    data::{
+        contest::{ContestInfo, ContestMeta, CtstDB, UserMeta},
+        PermissionManager,
+    },
     marker::*,
     web::auth::Authentication,
     CtstID,
@@ -44,9 +47,16 @@ struct CtstQuery {
 async fn info(
     ctst_db: ServerData<CtstDB>,
     query: QueryParam<CtstQuery>,
+    perm_manager: ServerData<PermissionManager>,
+    auth: Authentication,
 ) -> JsonResult<ContestInfo> {
+    let user_id = auth.user_id_or_unauthorized()?;
     let cid = query.id;
-    let info = block_it!(ctst_db.get(cid))?;
+
+    let info = block_it!({
+        let rs = ctst_db.rs_get(cid);
+        perm_manager.query(user_id, rs)
+    })?;
     Ok(Json(info))
 }
 

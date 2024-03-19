@@ -4,7 +4,7 @@ use problem::{Elapse, ProblemFullData};
 use server::data::{
     file_system::{schema::*, FileSysTable},
     mysql::{schema::*, schema_model},
-    types::*,
+    types::*, ROOT_USER_ID,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -24,8 +24,20 @@ fn main() -> anyhow::Result<()> {
     let mysqldb = app.runtime_mysqldb().unwrap();
     let filesysdb = app.runtime_filesysdb().unwrap();
 
+    let root_user = schema_model::User {
+        id: ROOT_USER_ID,
+        username: Username::new("root")?,
+        password_hash: passwd::register_hash("123456"),
+        name: "Root".into(),
+        email: EmailAddress::new("root@root.com")?,
+        motto: "The root user".into(),
+        register_time: DateTime::now(),
+        gender: Gender::Private,
+    };
+
+    assert!(ROOT_USER_ID != 2);
     let test_user = schema_model::User {
-        id: 1,
+        id: 2,
         username: Username::new("testtest")?,
         password_hash: passwd::register_hash("testtest"),
         name: "Test".into(),
@@ -34,7 +46,8 @@ fn main() -> anyhow::Result<()> {
         register_time: DateTime::now(),
         gender: Gender::Private,
     };
-    eprintln!("insert a user {}", test_user.username);
+    eprintln!("insert root and user {}", test_user.username);
+    mysqldb.upsert(users::table, root_user)?;
     mysqldb.upsert(users::table, test_user)?;
 
     let insert_prob_full = |pid: u32, mut prob_full: ProblemFullData| -> anyhow::Result<()> {

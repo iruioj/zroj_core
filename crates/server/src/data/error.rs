@@ -1,5 +1,7 @@
 use std::sync::PoisonError;
 
+use crate::UserID;
+
 /// 数据查询过程中出现的错误（不包括权限控制）
 ///
 /// diesel 的 NotFound 会转换为 DataError::NotFound，进而转换为 404
@@ -9,6 +11,8 @@ pub enum DataError {
     NotFound,
     #[error("data error: {0}")]
     Error(#[from] anyhow::Error),
+    #[error("no permission: user_id = {0}, perm_id = {1}")]
+    Perm(UserID, u64),
 }
 
 impl From<diesel::result::Error> for DataError {

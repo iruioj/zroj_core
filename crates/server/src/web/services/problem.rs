@@ -245,10 +245,10 @@ async fn judge(
         match stddata {
             problem::StandardProblem::Traditional(ojdata) => {
                 let raw2 = raw.clone();
-                let subm_id = block_it! {
-                    let file_type = raw2.get("source").map(|x| x.file_type.clone())
+                let subm_id = block_it!({
+                    let file_type = raw2.get("source").map(|x| x.file_type.clone());
                     subm_db.insert_new(uid, pid, cid, file_type, &raw2)
-                }?;
+                })?;
 
                 let subm = traditional::Subm {
                     source: raw

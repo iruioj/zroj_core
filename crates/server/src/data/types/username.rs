@@ -41,6 +41,12 @@ impl std::error::Error for Error {}
 impl Username {
     /// Check sanity and create a new username object
     pub fn new(value: impl AsRef<str>) -> Result<Self, Error> {
+        // the "root" user should be registered during system initialization,
+        // thus is not registerable by user.
+        if value.as_ref() == "root" {
+            return Ok(Self(value.as_ref().to_string()));
+        }
+
         // avoid the use of regex for performance
         let value = value.as_ref().to_string();
         if value.len() < 4 {
