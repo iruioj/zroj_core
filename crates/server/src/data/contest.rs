@@ -6,6 +6,7 @@ use super::{
         schema_model::{Contest, ContestRegistrant, Problem},
         MysqlDb,
     },
+    permission::PermID,
     problem_statement::ProblemMeta,
     types::*,
     Resource, ResourceHandle,
@@ -15,6 +16,7 @@ use diesel::*;
 use problem::Elapse;
 use serde::Serialize;
 use serde_ts_typing::TsType;
+use server_derive::perm_guard;
 
 pub struct CtstDB(MysqlDb);
 
@@ -41,6 +43,7 @@ impl CtstDB {
     }
 }
 
+#[perm_guard]
 impl CtstDB {
     /// Fetch contests list with pagination and keywords filter.
     pub fn get_metas(
@@ -67,78 +70,6 @@ impl CtstDB {
         })
     }
 
-    /// Get contest metadata and problems
-    pub(super) fn get(&self, id: CtstID) -> Result<ContestInfo, DataError> {
-        self.0.transaction(|conn| {
-            let meta: Contest = contests::table.filter(contests::id.eq(id)).first(conn)?;
-            let meta: ContestMeta = meta.into();
-            let problems: Vec<ProblemMeta> = contest_problems::table
-                .filter(contest_problems::cid.eq(id))
-                .inner_join(problems::table)
-                .select(Problem::as_select())
-                .load(conn)?
-                .into_iter()
-                .map(Problem::into)
-                .collect();
-
-            Ok(ContestInfo { meta, problems })
-        })
-    }
-    pub fn rs_get(&self, id: CtstID) -> CtstDBGet {
-        ResourceHandle::new(CtstDBGetInner { id, db: self })
-    }
-
-    /// Try to insert a registrant for a contest with [`ContestRegistrant::register_time`]
-    /// set to the current time.
-    pub fn insert_registrant(&self, id: CtstID, uid: UserID) -> Result<(), DataError> {
-        self.0.transaction(|conn| {
-            diesel::insert_or_ignore_into(contest_registrants::table)
-                .values(&ContestRegistrant {
-                    cid: id,
-                    uid,
-                    register_time: DateTime::now(),
-                })
-                .execute(conn)?;
-            Ok(())
-        })
-    }
-    pub fn remove_registrant(&self, id: CtstID, uid: UserID) -> Result<(), DataError> {
-        self.0.transaction(|conn| {
-            diesel::delete(
-                contest_registrants::table.filter(
-                    contest_registrants::cid
-                        .eq(id)
-                        .and(contest_registrants::uid.eq(uid)),
-                ),
-            )
-            .execute(conn)?;
-            Ok(())
-        })
-    }
-
-    /// Fetch contest registrants with pagination.
-    pub fn get_registrants(
-        &self,
-        id: CtstID,
-        max_count: u8,
-        offset: usize,
-    ) -> Result<Vec<UserMeta>, DataError> {
-        self.0.transaction(|conn| {
-            let user_metas: Vec<UserMeta> = contest_registrants::table
-                .filter(contest_registrants::cid.eq(id))
-                .inner_join(users::table)
-                .offset(offset as i64)
-                .limit(max_count as i64)
-                .select((users::id, users::username))
-                .load::<(UserID, Username)>(conn)?
-                .into_iter()
-                .map(|(id, username)| UserMeta { id, username })
-                .collect();
-
-            Ok(user_metas)
-        })
-    }
-
     pub fn create_contest(
         &self,
         title: String,
@@ -161,6 +92,75 @@ impl CtstDB {
         })?;
 
         Ok(cid)
+    }
+
+    /// Get contest metadata and problems
+    fn get(&self, #[id] id: CtstID) -> Result<ContestInfo, DataError> {
+        self.0.transaction(|conn| {
+            let meta: Contest = contests::table.filter(contests::id.eq(id)).first(conn)?;
+            let meta: ContestMeta = meta.into();
+            let problems: Vec<ProblemMeta> = contest_problems::table
+                .filter(contest_problems::cid.eq(id))
+                .inner_join(problems::table)
+                .select(Problem::as_select())
+                .load(conn)?
+                .into_iter()
+                .map(Problem::into)
+                .collect();
+
+            Ok(ContestInfo { meta, problems })
+        })
+    }
+
+    /// Try to insert a registrant for a contest with [`ContestRegistrant::register_time`]
+    /// set to the current time.
+    fn insert_registrant(&self, #[id] id: CtstID, uid: UserID) -> Result<(), DataError> {
+        self.0.transaction(|conn| {
+            diesel::insert_or_ignore_into(contest_registrants::table)
+                .values(&ContestRegistrant {
+                    cid: id,
+                    uid,
+                    register_time: DateTime::now(),
+                })
+                .execute(conn)?;
+            Ok(())
+        })
+    }
+    fn remove_registrant(&self, #[id] id: CtstID, uid: UserID) -> Result<(), DataError> {
+        self.0.transaction(|conn| {
+            diesel::delete(
+                contest_registrants::table.filter(
+                    contest_registrants::cid
+                        .eq(id)
+                        .and(contest_registrants::uid.eq(uid)),
+                ),
+            )
+            .execute(conn)?;
+            Ok(())
+        })
+    }
+
+    /// Fetch contest registrants with pagination.
+    fn get_registrants(
+        &self,
+        #[id] id: CtstID,
+        max_count: u8,
+        offset: usize,
+    ) -> Result<Vec<UserMeta>, DataError> {
+        self.0.transaction(|conn| {
+            let user_metas: Vec<UserMeta> = contest_registrants::table
+                .filter(contest_registrants::cid.eq(id))
+                .inner_join(users::table)
+                .offset(offset as i64)
+                .limit(max_count as i64)
+                .select((users::id, users::username))
+                .load::<(UserID, Username)>(conn)?
+                .into_iter()
+                .map(|(id, username)| UserMeta { id, username })
+                .collect();
+
+            Ok(user_metas)
+        })
     }
 }
 
@@ -195,24 +195,4 @@ pub struct ContestInfo {
 pub struct UserMeta {
     id: UserID,
     username: Username,
-}
-
-type CtstDBGet<'a> = ResourceHandle<CtstDBGetInner<'a>>;
-
-/// This type is public, but not publicly constructable
-pub struct CtstDBGetInner<'a> {
-    id: CtstID,
-    db: &'a CtstDB,
-}
-
-impl<'a> Resource for CtstDBGetInner<'a> {
-    type Item = ContestInfo;
-
-    fn perm_id(&self) -> u64 {
-        self.id as u64 + 1u64 << 32
-    }
-
-    fn load(&self) -> Result<Self::Item, DataError> {
-        self.db.get(self.id)
-    }
 }

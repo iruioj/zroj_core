@@ -4,7 +4,8 @@ use problem::{Elapse, ProblemFullData};
 use server::data::{
     file_system::{schema::*, FileSysTable},
     mysql::{schema::*, schema_model},
-    types::*, ROOT_USER_ID,
+    types::*,
+    ROOT_USER_ID,
 };
 
 fn main() -> anyhow::Result<()> {

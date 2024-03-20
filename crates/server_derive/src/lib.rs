@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 
+use convert_case::Casing;
 use quote::{format_ident, quote, ToTokens};
 use structural_macro_utils::AttrListVisitor;
 use syn::{parse::Parse, parse_macro_input, Expr, FnArg, ItemFn, Meta, ReturnType, Stmt, Token};
@@ -33,14 +34,14 @@ impl Parse for ScopeServiceAttr {
     }
 }
 
-/// 基于 actix_web 定义的 zroj 定制 service 宏
+/// Custom REST service macro based on actix_web
 ///
-/// - 使用 `path = "..."` 设置路径
+/// - use `path = "..."` the specify the path of this service
 /// - 函数内部自动新建一个 `web::Scope` 类型的变量 `scope`
 /// - 函数内调用 `service`，`app_data`，`wrap`，`wrap_fn`，`route`，`default_service`，`guard`，`configure`
 ///   函数（末尾需要带分号）将会自动转换为 scope 上的方法，使用 `r#` 可以取消转换
-/// - 将返回值强制设置为
-///   ```ignore
+/// - the return value would be enforced to
+///   ```no-run rust
 ///   actix_web::Scope<
 ///       impl actix_web::dev::ServiceFactory<
 ///           actix_web::dev::ServiceRequest,
@@ -280,6 +281,124 @@ pub fn api(
 
         #[actix_web:: #method_ident(#path)]
         #func
+    };
+
+    ret.into()
+}
+
+#[proc_macro_attribute]
+pub fn perm_guard(
+    _attr: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let mut imp: syn::ItemImpl = parse_macro_input!(item);
+    let impty = match &*imp.self_ty {
+        syn::Type::Path(p) => p,
+        _ => panic!("invalid perm_guard implementation"),
+    };
+    let impname = &impty.path.segments.last().unwrap().ident;
+    let mut extra_statements = quote!();
+    let mut extra_imp_items = quote!();
+
+    imp.items.iter_mut().for_each(|item| {
+        let func = match item {
+            syn::ImplItem::Fn(func) => func,
+            _ => return (),
+        };
+        // find private function
+        let syn::Visibility::Inherited = func.vis else {
+            return;
+        };
+        let mut id_ty = None;
+        let mut id_fname = None;
+        let fnname = &func.sig.ident;
+
+        let perm_id_varname = format_ident!(
+            "{impname}{}",
+            fnname.to_string().to_case(convert_case::Case::Pascal)
+        );
+
+        let rs_fnname = format_ident!("rs_{fnname}");
+
+        let mut rs_fields = quote!();
+        let mut call_self_args = quote!();
+        let mut call_args = quote!();
+
+        func.sig.inputs.iter_mut().for_each(|arg| {
+            let arg = match arg {
+                FnArg::Receiver(_) => return,
+                FnArg::Typed(r) => r,
+            };
+            let mut is_id = false;
+            for i in (0..arg.attrs.len()).rev() {
+                if arg.attrs[i].meta.path().is_ident("id") {
+                    arg.attrs.remove(i);
+                    is_id = true;
+                    break;
+                }
+            }
+            if is_id {
+                id_ty = Some(arg.ty.clone());
+                id_fname = Some(arg.pat.clone());
+            }
+
+            let fname = &arg.pat;
+            let fty = &arg.ty;
+            rs_fields.extend(quote!(#fname : #fty, ));
+            call_self_args.extend(quote!(self.#fname, ));
+            call_args.extend(quote!(#fname, ));
+        });
+        let retitem = match &func.sig.output {
+            ReturnType::Default => return,
+            ReturnType::Type(_, ty) => match &**ty {
+                syn::Type::Path(p) => {
+                    let args = &p.path.segments.last().unwrap().arguments;
+                    match args {
+                        syn::PathArguments::AngleBracketed(p) => match p.args.first() {
+                            Some(syn::GenericArgument::Type(ty)) => ty,
+                            _ => return,
+                        },
+                        _ => return,
+                    }
+                }
+                _ => return,
+            },
+        };
+        if id_fname.is_none() {
+            panic!("no id attributed")
+        }
+        let rs_struct = quote!(
+            pub struct #perm_id_varname<'a> {
+                #rs_fields
+                db: &'a #impname,
+            }
+
+            impl<'a> Resource for #perm_id_varname<'a> {
+                type Item = #retitem;
+
+                fn perm_id(&self) -> PermID {
+                    PermID::#perm_id_varname(self.#id_fname)
+                }
+
+                fn load(&self) -> Result<Self::Item, DataError> {
+                    self.db.#fnname(#call_self_args)
+                }
+            }
+        );
+        extra_statements.extend(rs_struct);
+        extra_imp_items.extend(quote!(
+            pub fn #rs_fnname(&self, #rs_fields) -> ResourceHandle<#perm_id_varname> {
+                ResourceHandle::new(#perm_id_varname { #call_args db: self })
+            }
+        ));
+    });
+
+    let ret = quote! {
+        #imp
+        impl #impname {
+            #extra_imp_items
+        }
+        #extra_statements
     };
 
     ret.into()

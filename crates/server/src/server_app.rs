@@ -167,9 +167,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let judger = Data::new(manager::ProblemJudger::new(
             self.config.runner_working_root.join("problem_judge"),
         )?);
-        let permission_manager = Data::new(
-            data::PermissionManager::new()
-        );
+        let permission_manager = Data::new(data::PermissionManager::new());
 
         // once finish judging, update submission database
         {

@@ -74,12 +74,15 @@ struct CtstRegistQuery {
 async fn registrants(
     ctst_db: ServerData<CtstDB>,
     query: QueryParam<CtstRegistQuery>,
+    perm_manager: ServerData<PermissionManager>,
+    auth: Authentication,
 ) -> JsonResult<Vec<UserMeta>> {
-    let r = block_it!(ctst_db.get_registrants(
-        query.id,
-        query.list.max_count,
-        query.list.offset as usize
-    ))?;
+    let user_id = auth.user_id_or_unauthorized()?;
+    let r = block_it!({
+        let rs =
+            ctst_db.rs_get_registrants(query.id, query.list.max_count, query.list.offset as usize);
+        perm_manager.query(user_id, rs)
+    })?;
     Ok(Json(r))
 }
 
@@ -94,9 +97,13 @@ async fn registrant_post(
     ctst_db: ServerData<CtstDB>,
     reg_info: JsonBody<CtstRegistInfo>,
     auth: Authentication,
+    perm_manager: ServerData<PermissionManager>,
 ) -> AnyResult<String> {
     let uid = auth.user_id_or_unauthorized()?;
-    block_it!(ctst_db.insert_registrant(reg_info.cid, uid))?;
+    block_it!({
+        let rs = ctst_db.rs_insert_registrant(reg_info.cid, uid);
+        perm_manager.query(uid, rs)
+    })?;
     Ok("ok".into())
 }
 
@@ -106,9 +113,13 @@ async fn registrant_delete(
     ctst_db: ServerData<CtstDB>,
     reg_info: JsonBody<CtstRegistInfo>,
     auth: Authentication,
+    perm_manager: ServerData<PermissionManager>,
 ) -> AnyResult<String> {
     let uid = auth.user_id_or_unauthorized()?;
-    block_it!(ctst_db.remove_registrant(reg_info.cid, uid))?;
+    block_it!({
+        let rs = ctst_db.rs_remove_registrant(reg_info.cid, uid);
+        perm_manager.query(uid, rs)
+    })?;
     Ok("ok".into())
 }
 

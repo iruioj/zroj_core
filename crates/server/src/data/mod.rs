@@ -19,4 +19,4 @@ pub mod user;
 
 // permission
 mod permission;
-pub use permission::{Resource, ResourceHandle, PermissionManager, ROOT_USER_ID};
+pub use permission::{PermissionManager, Resource, ResourceHandle, ROOT_USER_ID};
