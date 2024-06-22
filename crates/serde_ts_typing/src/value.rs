@@ -66,34 +66,42 @@ pub enum Value {
     Object(BTreeMap<String, Value>),
 }
 
-impl ToString for Value {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Null => "null".into(),
-            Value::Bool(b) => {
+            Value::Null => f.write_str("null"),
+            Value::Bool(b) => f.write_str({
                 if *b {
-                    "true".into()
+                    "true"
                 } else {
-                    "false".into()
+                    "false"
                 }
-            }
-            Value::Number(n) => n.to_string(),
-            Value::String(s) => format!("\"{s}\""),
+            }),
+            Value::Number(n) => n.fmt(f),
+            Value::String(s) => write!(f, "\"{s}\""),
             Value::Array(a) => {
                 let mut sep = "";
-                a.iter().fold(String::from("["), |acc, cur| {
-                    let r = acc + sep + &cur.to_string();
-                    sep = ",";
-                    r
-                }) + "]"
+                write!(
+                    f,
+                    "{}",
+                    a.iter().fold(String::from("["), |acc, cur| {
+                        let r = acc + sep + &cur.to_string();
+                        sep = ",";
+                        r
+                    }) + "]"
+                )
             }
             Value::Object(o) => {
                 let mut sep = "";
-                o.iter().fold(String::from("{"), |acc, (k, v)| {
-                    let r = acc + sep + k + ":" + &v.to_string();
-                    sep = ",";
-                    r
-                }) + "}"
+                write!(
+                    f,
+                    "{}",
+                    o.iter().fold(String::from("{"), |acc, (k, v)| {
+                        let r = acc + sep + k + ":" + &v.to_string();
+                        sep = ",";
+                        r
+                    }) + "}"
+                )
             }
         }
     }

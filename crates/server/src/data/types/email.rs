@@ -39,9 +39,9 @@ impl BorrowMut<email_address::EmailAddress> for EmailAddress {
         &mut self.0
     }
 }
-impl ToString for EmailAddress {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+impl std::fmt::Display for EmailAddress{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 impl From<email_address::EmailAddress> for EmailAddress {

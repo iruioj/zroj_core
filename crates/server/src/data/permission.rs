@@ -81,6 +81,12 @@ struct PermissonManagerInner {
 }
 pub struct PermissionManager(RwLock<PermissonManagerInner>);
 
+impl Default for PermissionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PermissionManager {
     pub fn new() -> Self {
         Self(RwLock::new(PermissonManagerInner {

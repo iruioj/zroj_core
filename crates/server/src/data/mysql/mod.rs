@@ -17,6 +17,7 @@ use diesel::{
 type MysqlPool = Pool<ConnectionManager<MysqlConnection>>;
 type MysqlPooledConnection = PooledConnection<ConnectionManager<MysqlConnection>>;
 
+/// Configuration for connecting to MySQL backends.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MysqlConfig {
     pub user: String,
@@ -30,7 +31,6 @@ pub struct MysqlConfig {
 #[derive(Clone)]
 pub struct MysqlDb(MysqlPool);
 
-/// 数据库存储
 impl MysqlDb {
     pub fn new(cfg: &MysqlConfig) -> Result<Self, r2d2::Error> {
         let MysqlConfig {
@@ -46,35 +46,6 @@ impl MysqlDb {
                 .max_size(15)
                 .build(ConnectionManager::<MysqlConnection>::new(url))?,
         ))
-    }
-    /// remove original tables and create new ones
-    pub fn setup_new(cfg: &MysqlConfig) -> Result<Self, DataError> {
-        setup_database(cfg, SetupDatabaseFlag::ForceNew)?;
-        tracing::debug!(?cfg, "create database");
-
-        let r = Self::new(cfg).context("create mysql database")?;
-        // r.transaction(|conn| {
-        //     todo!();
-        //     // for cmd in include_str!("./drop_tables.sql").split(";").map(str::trim) {
-        //     //     if !cmd.is_empty() {
-        //     //         tracing::debug!("executing: {}", cmd);
-        //     //         diesel::sql_query(cmd).execute(conn)?;
-        //     //     }
-        //     // }
-
-        //     // for cmd in include_str!("./create_tables.sql")
-        //     //     .split(";")
-        //     //     .map(str::trim)
-        //     // {
-        //     //     if !cmd.is_empty() {
-        //     //         tracing::debug!("executing: {}", cmd);
-        //     //         diesel::sql_query(cmd).execute(conn)?;
-        //     //     }
-        //     // }
-        //     Ok(())
-        // })?;
-
-        Ok(r)
     }
 
     /// see [`diesel::connection::Connection::transaction`]
@@ -113,7 +84,7 @@ pub enum SetupDatabaseFlag {
     ForceNew,
 }
 
-/// Setup MySQL database according to flag.
+/// Setup MySQL database according to `flag`.
 pub fn setup_database(cfg: &MysqlConfig, flag: SetupDatabaseFlag) -> Result<(), DataError> {
     let MysqlConfig {
         user,

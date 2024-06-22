@@ -303,7 +303,7 @@ pub fn perm_guard(
     imp.items.iter_mut().for_each(|item| {
         let func = match item {
             syn::ImplItem::Fn(func) => func,
-            _ => return (),
+            _ => return,
         };
         // find private function
         let syn::Visibility::Inherited = func.vis else {

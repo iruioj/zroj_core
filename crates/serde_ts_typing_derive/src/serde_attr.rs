@@ -3,6 +3,7 @@ use structural_macro_utils::{AttrListVisitor, MetaList as AttrList};
 
 use super::*;
 
+#[allow(dead_code)]
 pub enum ContainerAttr {
     Rename(SeperableMeta<String>),
     RenameAll(SeperableMeta<RenameAllKind>),
@@ -21,6 +22,7 @@ pub enum ContainerAttr {
     Crate(String),
 }
 
+#[allow(dead_code)]
 pub enum VariantAttr {
     Rename(SeperableMeta<String>),
     Alias(String),
@@ -36,6 +38,7 @@ pub enum VariantAttr {
     Other,
 }
 
+#[allow(dead_code)]
 pub enum FieldAttr {
     Rename(SeperableMeta<String>),
     Alias(String),
@@ -54,6 +57,7 @@ pub enum FieldAttr {
     Getter(String),
 }
 
+#[allow(dead_code)]
 pub enum SeperableMeta<T> {
     /// `[param] = "..."`
     Consistent(T),

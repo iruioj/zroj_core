@@ -224,54 +224,6 @@ impl std::fmt::Debug for Node {
     }
 }
 
-fn children_to_string(children: &[Node]) -> String {
-    children.iter().map(ToString::to_string).collect()
-}
-
-impl ToString for Node {
-    fn to_string(&self) -> String {
-        match self {
-            // Parents.
-            Node::Root(x) => children_to_string(&x.children),
-            Node::BlockQuote(x) => children_to_string(&x.children),
-            Node::FootnoteDefinition(x) => children_to_string(&x.children),
-            Node::List(x) => children_to_string(&x.children),
-            Node::Delete(x) => children_to_string(&x.children),
-            Node::Emphasis(x) => children_to_string(&x.children),
-            Node::Link(x) => children_to_string(&x.children),
-            Node::LinkReference(x) => children_to_string(&x.children),
-            Node::Strong(x) => children_to_string(&x.children),
-            Node::Heading(x) => children_to_string(&x.children),
-            Node::Table(x) => children_to_string(&x.children),
-            Node::TableRow(x) => children_to_string(&x.children),
-            Node::TableCell(x) => children_to_string(&x.children),
-            Node::ListItem(x) => children_to_string(&x.children),
-            Node::Paragraph(x) => children_to_string(&x.children),
-
-            // Literals.
-            Node::Toml(x) => x.value.clone(),
-            Node::Yaml(x) => x.value.clone(),
-            Node::InlineCode(x) => x.value.clone(),
-            Node::InlineMath(x) => x.value.clone(),
-            Node::Html(x) => x.value.clone(),
-            Node::Text(x) => x.value.clone(),
-            Node::Code(x) => x.value.clone(),
-            Node::Math(x) => x.value.clone(),
-
-            // Voids.
-            Node::Break(_)
-            | Node::FootnoteReference(_)
-            | Node::Image(_)
-            | Node::ImageReference(_)
-            | Node::ThematicBreak(_)
-            | Node::Definition(_) => String::new(),
-
-            // custom
-            Node::TwoColumns(x) => x.left.to_string() + &x.right.to_string(),
-        }
-    }
-}
-
 /// Document.
 ///
 /// ```markdown

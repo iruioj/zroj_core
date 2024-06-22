@@ -33,6 +33,7 @@ struct NewProblemStatement<'a> {
     content: &'a JsonStr<Mdast>,
 }
 
+/// Markdown AST of the statement with metadata.
 #[derive(Debug, Serialize, TsType)]
 pub struct Statement {
     pub title: String,

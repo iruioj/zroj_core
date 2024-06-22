@@ -62,6 +62,7 @@ async fn statement(
             replace_assets_link(c, pid)
         }
     }
+    // replacement is performed in backend for flexibility and safety
     replace_assets_link(&mut ast.statement, pid);
     Ok(Json(ast))
 }

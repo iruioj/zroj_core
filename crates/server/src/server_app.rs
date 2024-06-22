@@ -25,6 +25,7 @@ struct ServerAppRuntime {
 /// Create an online judge server application.
 pub struct ServerApp<A: ToSocketAddrs> {
     config: ServerAppConfig<A>,
+    /// runtime data is accessible before starting the HTTP server.
     runtime: Option<ServerAppRuntime>,
 }
 
@@ -93,6 +94,7 @@ pub fn test_server_app_cfg() -> ServerAppConfig<String> {
 }
 
 impl<A: ToSocketAddrs> ServerApp<A> {
+    /// Create a new server instance. Your application should create at most 1 [`ServerApp`] instance.
     pub fn new(cfg: ServerAppConfig<A>) -> Self {
         Self {
             config: cfg,
@@ -113,14 +115,14 @@ impl<A: ToSocketAddrs> ServerApp<A> {
             &self.config.sql_config,
             data::mysql::SetupDatabaseFlag::ForceNew,
         )
-        .context("force reset mysql database")?;
+        .context("force resetting mysql database")?;
         data::mysql::run_migrations(&self.config.sql_config)
     }
     pub fn reset_filesys_database(&self) -> anyhow::Result<()> {
         FileSysDb::setup_new(&self.config.fs_data_root)?;
         Ok(())
     }
-    /// Prepare runtime data, but not start the http server
+    /// Prepare database backend connections and runtime data managers without starting the http server.
     pub fn prepare_data(&mut self) -> anyhow::Result<()> {
         let mysqldb = MysqlDb::new(&self.config.sql_config)?;
         let filesysdb = FileSysDb::new(&self.config.fs_data_root)?;
@@ -142,6 +144,7 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         });
         Ok(())
     }
+    /// Start the http server.
     pub async fn start(mut self) -> anyhow::Result<()> {
         if self.runtime.is_none() {
             self.prepare_data()?;
