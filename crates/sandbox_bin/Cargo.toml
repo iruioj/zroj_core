@@ -11,11 +11,11 @@ repository.workspace = true
 
 [dependencies]
 sandbox = { path = "../sandbox", features = ["exec_sandbox"] }
-shadow-rs = "0.26.1"
+shadow-rs = "0.28.0"
 anyhow = "1.0"
 clap = { version = "4.4", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 [build-dependencies]
-shadow-rs = "0.26.1"
+shadow-rs = "0.28.0"
