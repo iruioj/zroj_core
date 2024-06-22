@@ -135,7 +135,7 @@ pub fn rustls_config() -> ClientConfig {
 /// of the function execution.
 #[macro_export]
 macro_rules! block_it {
-    ($s:stmt) => {
+    ($s:expr) => {
         actix_web::web::block(move || $s).await?
     };
 }
