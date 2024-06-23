@@ -1,7 +1,7 @@
 use crate::{
     block_it,
     data::{
-        contest::{ContestInfo, ContestMeta, CtstDB, UserMeta},
+        databases::contest::{ContestInfo, ContestMeta, CtstDB, UserMeta},
         PermissionManager,
     },
     marker::*,

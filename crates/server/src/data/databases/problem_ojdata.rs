@@ -1,6 +1,6 @@
 //! 题目的评测数据
 
-use super::{
+use super::super::{
     error::DataError,
     file_system::{FileSysDb, FileSysTable},
 };

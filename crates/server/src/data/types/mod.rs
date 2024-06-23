@@ -1,7 +1,7 @@
 //! Define basic data types for SQL serialization.
 //!
 //! It is recommended to create wrapper types as a restriction of data
-//! (e.g. [`Username`], [`EmailAddress`]), so as to prevent attacks.
+//! (e.g. [`Username`], [`EmailAddress`]), in order to prevent attacks.
 
 use diesel::{sql_types::*, *};
 

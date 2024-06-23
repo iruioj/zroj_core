@@ -1,6 +1,6 @@
 use crate::{
     block_it,
-    data::{mysql::schema_model::User, types::*, user::UserDB},
+    data::{mysql::schema_model::User, types::*, databases::user::UserDB},
     marker::*,
     web::auth::Authentication,
     web::gravatar::GravatarClient,

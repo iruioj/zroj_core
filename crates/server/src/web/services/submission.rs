@@ -5,7 +5,7 @@ use server_derive::{api, scope_service};
 
 use crate::{
     block_it,
-    data::submission::{SubmDB, SubmInfo, SubmMeta},
+    data::databases::submission::{SubmDB, SubmInfo, SubmMeta},
     manager::ProblemJudger,
     marker::*,
     SubmID,

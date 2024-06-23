@@ -5,13 +5,13 @@ use problem::sample::{a_plus_b_data, a_plus_b_statment};
 use std::sync::Arc;
 
 use crate::data::{
-    self,
+    databases::{
+        problem_ojdata::{self, OJDataDB},
+        problem_statement, user,
+    },
     file_system::FileSysDb,
     mysql::MysqlDb,
-    problem_ojdata::{self, OJDataDB},
-    problem_statement,
     types::*,
-    user,
 };
 use crate::web::rev_proxy::RevProxy;
 
@@ -30,7 +30,7 @@ pub fn frontend_rev_proxy(base_url: String) -> RevProxy {
 /// 存储在文件中的用户数据库
 ///
 /// 预先插入用户名 `testtest`，密码 `testtest` 的用户
-pub fn test_userdb(mysqldb: &MysqlDb) -> Data<data::user::UserDB> {
+pub fn test_userdb(mysqldb: &MysqlDb) -> Data<user::UserDB> {
     let db = user::UserDB::new(mysqldb);
     let r = web::Data::new(db);
     // 预先插入一个用户方便测试

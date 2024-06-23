@@ -1,4 +1,4 @@
-use super::{
+use super::super::{
     error::DataError,
     mysql::{
         last_insert_id,
@@ -7,7 +7,7 @@ use super::{
         MysqlDb,
     },
     permission::PermID,
-    problem_statement::ProblemMeta,
+    databases::problem_statement::ProblemMeta,
     types::*,
     Resource, ResourceHandle,
 };

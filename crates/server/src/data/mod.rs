@@ -9,13 +9,8 @@ pub mod error;
 pub mod file_system;
 pub mod mysql;
 pub mod types;
+pub mod databases;
 
-// database
-pub mod contest;
-pub mod problem_ojdata;
-pub mod problem_statement;
-pub mod submission;
-pub mod user;
 
 // permission
 mod permission;

@@ -1,3 +1,4 @@
+//! Define error types used by database operations.
 use std::sync::PoisonError;
 
 use crate::UserID;

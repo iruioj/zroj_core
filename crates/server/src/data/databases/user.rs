@@ -1,6 +1,6 @@
 //! 用户数据库
 
-use super::{
+use super::super::{
     error::DataError,
     mysql::{last_insert_id, schema::users, schema_model::User, MysqlDb},
     types::*,

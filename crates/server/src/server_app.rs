@@ -15,11 +15,11 @@ use std::{net::ToSocketAddrs, path::PathBuf};
 struct ServerAppRuntime {
     mysqldb: MysqlDb,
     filesysdb: FileSysDb,
-    user_db: data::user::UserDB,
-    subm_db: data::submission::SubmDB,
-    stmt_db: data::problem_statement::StmtDB,
-    ojdata_db: data::problem_ojdata::OJDataDB,
-    ctst_db: data::contest::CtstDB,
+    user_db: data::databases::user::UserDB,
+    subm_db: data::databases::submission::SubmDB,
+    stmt_db: data::databases::problem_statement::StmtDB,
+    ojdata_db: data::databases::problem_ojdata::OJDataDB,
+    ctst_db: data::databases::contest::CtstDB,
 }
 
 /// Create an online judge server application.
@@ -76,6 +76,7 @@ where
     }
 }
 
+/// Configuration for testing server application.
 pub fn test_server_app_cfg() -> ServerAppConfig<String> {
     ServerAppConfig {
         sql_config: MysqlConfig {
@@ -127,11 +128,11 @@ impl<A: ToSocketAddrs> ServerApp<A> {
         let mysqldb = MysqlDb::new(&self.config.sql_config)?;
         let filesysdb = FileSysDb::new(&self.config.fs_data_root)?;
 
-        let user_db = data::user::UserDB::new(&mysqldb);
-        let stmt_db = data::problem_statement::StmtDB::new(&mysqldb, &filesysdb);
-        let ojdata_db = data::problem_ojdata::OJDataDB::new(&filesysdb);
-        let subm_db = data::submission::SubmDB::new(&mysqldb);
-        let ctst_db = data::contest::CtstDB::new(&mysqldb)?;
+        let user_db = data::databases::user::UserDB::new(&mysqldb);
+        let stmt_db = data::databases::problem_statement::StmtDB::new(&mysqldb, &filesysdb);
+        let ojdata_db = data::databases::problem_ojdata::OJDataDB::new(&filesysdb);
+        let subm_db = data::databases::submission::SubmDB::new(&mysqldb);
+        let ctst_db = data::databases::contest::CtstDB::new(&mysqldb)?;
 
         self.runtime = Some(ServerAppRuntime {
             mysqldb,

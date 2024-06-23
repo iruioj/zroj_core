@@ -3,7 +3,7 @@ use crate::{block_it, marker::*};
 use crate::{
     data::{
         types::{EmailAddress, Username},
-        user::UserDB,
+        databases::user::UserDB,
     },
     web::auth::Manip,
 };
